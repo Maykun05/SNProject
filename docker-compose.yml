@@ -1,0 +1,38 @@
+version: '3.8'  # ระบุเวอร์ชัน
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile-postgres
+    image: postgres:15  # ระบุเวอร์ชันชัดเจน
+    environment:
+      POSTGRES_USER: healthapp_user
+      POSTGRES_PASSWORD: securepassword
+      POSTGRES_DB: healthapp_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    # เพิ่ม healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthapp_user -d healthapp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@healthapp.com
+      PGADMIN_DEFAULT_PASSWORD: SatangMaykun30!
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
