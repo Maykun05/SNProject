@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Picker } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-export default function PersonalInfoScreen() {
+export default function PersonalInfoScreen({ navigation }) {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [gender, setGender] = useState("");
@@ -14,18 +15,18 @@ export default function PersonalInfoScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Personal Information</Text>
 
-        <TextInput style={styles.input} placeholder="weight" keyboardType="numeric" />
-        <TextInput style={styles.input} placeholder="height" keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="weight (kg)" keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="height (cm)" keyboardType="numeric" />
 
         <TouchableOpacity style={styles.datePicker} onPress={() => setShow(true)}>
-          <Text>Date picker select birthday</Text>
+          <Text>Select birthday: {date.toDateString()}</Text>
         </TouchableOpacity>
 
         {show && (
           <DateTimePicker
             value={date}
             mode="date"
-            display="default"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
             onChange={(event, selectedDate) => {
               setShow(false);
               if (selectedDate) setDate(selectedDate);
@@ -33,28 +34,23 @@ export default function PersonalInfoScreen() {
           />
         )}
 
-        <Picker
-          selectedValue={gender}
-          style={styles.input}
-          onValueChange={(val) => setGender(val)}
-        >
-          <Picker.Item label="เพศ" value="" />
-          <Picker.Item label="ชาย" value="male" />
-          <Picker.Item label="หญิง" value="female" />
+        <Picker selectedValue={gender} style={styles.input} onValueChange={(val) => setGender(val)}>
+          <Picker.Item label="Select gender" value="" />
+          <Picker.Item label="Male" value="male" />
+          <Picker.Item label="Female" value="female" />
         </Picker>
 
-        <Picker
-          selectedValue={activity}
-          style={styles.input}
-          onValueChange={(val) => setActivity(val)}
-        >
-          <Picker.Item label="ระดับการออกกำลังกาย" value="" />
-          <Picker.Item label="น้อย" value="low" />
-          <Picker.Item label="ปานกลาง" value="medium" />
-          <Picker.Item label="สูง" value="high" />
+        <Picker selectedValue={activity} style={styles.input} onValueChange={(val) => setActivity(val)}>
+          <Picker.Item label="Exercise level" value="" />
+          <Picker.Item label="Low" value="low" />
+          <Picker.Item label="Medium" value="medium" />
+          <Picker.Item label="High" value="high" />
         </Picker>
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("Login")} // กลับหน้า Login หลัง Save
+        >
           <Text style={styles.buttonText}>Save</Text>
         </TouchableOpacity>
       </View>

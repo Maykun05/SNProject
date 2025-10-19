@@ -10,10 +10,29 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: "#4F7857" },
+          headerTintColor: "#fff",
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontWeight: "bold" },
+        }}
+      >
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ title: "Sign in", headerShown: false }}
+        />
+        <Stack.Screen
+          name="Signup"
+          component={SignupScreen}
+          options={{ title: "Sign up" }}
+        />
+        <Stack.Screen
+          name="PersonalInfo"
+          component={PersonalInfoScreen}
+          options={{ title: "Personal Information" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

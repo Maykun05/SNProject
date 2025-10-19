@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 
-export default function SignupScreen({ navigation }) {  // <-- ต้องรับ navigation
+export default function SignupScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.topSection}></View>
@@ -14,10 +14,9 @@ export default function SignupScreen({ navigation }) {  // <-- ต้องร�
         <TextInput style={styles.input} placeholder="Password" secureTextEntry />
         <TextInput style={styles.input} placeholder="Confirm password" secureTextEntry />
 
-        {/* ปุ่ม Sign up */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate("PersonalInfo")} // <-- ลิงก์ไปหน้า Personal Info
+          onPress={() => navigation.navigate("PersonalInfo")}
         >
           <Text style={styles.buttonText}>Sign up</Text>
         </TouchableOpacity>
