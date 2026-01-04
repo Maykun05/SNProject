@@ -1,35 +1,35 @@
-const db = require('../db');
+// controllers/userController.js
+const { User, User_Data } = require('../models');
 
-exports.createUser = async (req, res) => {
-  const { email, password, name, weight } = req.body;
-  try {
-    const result = await db.query(
-      'INSERT INTO users (email, password, name, weight) VALUES ($1, $2, $3, $4) RETURNING *',
-      [email, password, name, weight]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+exports.register = async (req, res) => {
+    try {
+        const { username, lastname, email, password } = req.body;
+        
+        // ใช้ Sequelize สร้าง User (จะ mapping กับตารางใน pgAdmin อัตโนมัติ)
+        const newUser = await User.create({ username, lastname, email, password });
+
+        // สร้างข้อมูล User_Data พร้อมค่า EXP เริ่มต้นสำหรับต้นไม้ (Main0)
+        await User_Data.create({ 
+            user_id: newUser.user_id,
+            tree_exp: 0,
+            tree_level: 0 
+        });
+
+        res.status(201).json({ success: true, data: newUser });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 
-exports.getUser = async (req, res) => {
-  try {
-    const result = await db.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
-    
-    // ตรวจสอบว่ามี user จริงหรือไม่
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+exports.getUserProfile = async (req, res) => {
+    try {
+        // ดึงข้อมูล User พร้อมข้อมูล User_Data (Weight, Height, Tree Level)
+        const user = await User.findByPk(req.params.id, {
+            include: [{ model: User_Data }]
+        });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-    
-    res.json(result.rows[0]);
-  } catch (err) {
-    // แยก error กรณี connection issue
-    if (err.code === 'ECONNREFUSED') {
-      res.status(503).json({ error: 'Database unavailable' });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  }
-  
 };
