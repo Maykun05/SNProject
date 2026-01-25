@@ -9,7 +9,7 @@ const moods = [
   { id: '5', label: '😕 Confused', color: '#DDA0DD' },
 ];
 
-export default function DrinkScreen() {
+export default function MoodScreen() {
     console.log('MoodScreen loaded');
 
   const [selectedMood, setSelectedMood] = useState(null);
