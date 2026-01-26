@@ -1,9 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
 import Homepage from '../screen/homepage';
-import DrinkScreen from '../screen/drink-feature';
-import MoodScreen from '../screen/mental-feature';
 import ExerciseScreen from '../screen/exercise';
+import FeatureSelectScreen from '../screen/FeatureSelectScreen';
 const Stack = createNativeStackNavigator();
 
 export default function HomeStackNavigator() {
@@ -15,9 +13,10 @@ export default function HomeStackNavigator() {
         options={{ headerShown: false }}
       />
 
-      <Stack.Screen name="Water" component={DrinkScreen} />
-      <Stack.Screen name="Mood" component={MoodScreen} />
       <Stack.Screen name="Exercise" component={ExerciseScreen} />
+      <Stack.Screen name="Select" component={FeatureSelectScreen} />
+
+
     </Stack.Navigator>
   );
 }

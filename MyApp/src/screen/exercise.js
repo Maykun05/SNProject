@@ -1,33 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
-} from 'react-native';
+import {View,Text,StyleSheet,TouchableOpacity,FlatList,TextInput,} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
-/* ===== utils ===== */
+/* ======================
+   utils
+====================== */
+
 const todayKey = () => {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 };
 
-const STORAGE_KEY = `exercise_goals_`;
+const STORAGE_KEY = 'exercise_goals_';
 
-/* ===== main screen ===== */
+/* ======================
+   screen
+====================== */
+
 export default function ExerciseScreen() {
   const [goals, setGoals] = useState([]);
-  const [newGoal, setNewGoal] = useState('');
+  const [text, setText] = useState('');
 
   const today = todayKey();
+
+  /* ===== load / save ===== */
 
   useEffect(() => {
     loadGoals();
@@ -51,13 +52,19 @@ export default function ExerciseScreen() {
     );
   };
 
+  /* ===== actions ===== */
+
   const addGoal = () => {
-    if (!newGoal.trim()) return;
+    if (!text.trim()) return;
     setGoals(prev => [
       ...prev,
-      { id: Date.now().toString(), text: newGoal, done: false },
+      {
+        id: Date.now().toString(),
+        text,
+        done: false,
+      },
     ]);
-    setNewGoal('');
+    setText('');
   };
 
   const toggleGoal = id => {
@@ -68,63 +75,106 @@ export default function ExerciseScreen() {
     );
   };
 
+  const deleteGoal = id => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+  };
+
   /* ===== progress ===== */
+
   const total = goals.length;
   const doneCount = goals.filter(g => g.done).length;
   const progress = total === 0 ? 0 : doneCount / total;
 
+  /* ===== render goal ===== */
+
+  const renderItem = ({ item }) => (
+    <View
+      style={[
+        styles.goalItem,
+        item.done && styles.goalDone,
+      ]}
+    >
+      <Text
+        style={[
+          styles.goalText,
+          item.done && styles.goalTextDone,
+        ]}
+      >
+        {item.text}
+      </Text>
+
+      <View style={styles.actionRow}>
+        {/* tick */}
+        <TouchableOpacity
+          onPress={() => toggleGoal(item.id)}
+          style={styles.iconBtn}
+        >
+          <Ionicons
+            name={
+              item.done
+                ? 'checkmark-circle'
+                : 'ellipse-outline'
+            }
+            size={22}
+            color={item.done ? '#2E7D5B' : '#999'}
+          />
+        </TouchableOpacity>
+
+        {/* delete */}
+        <TouchableOpacity
+          onPress={() => deleteGoal(item.id)}
+          style={styles.iconBtn}
+        >
+          <Ionicons
+            name="trash-outline"
+            size={22}
+            color="#D32F2F"
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      {/* ===== Progress Ring ===== */}
+      {/* ===== progress ring ===== */}
       <View style={styles.ringWrapper}>
         <ProgressRing progress={progress} />
-        <Text style={styles.ringText}>เป้าหมาย</Text>
+        <Text style={styles.ringText}>
+          {doneCount}/{total || 0}
+        </Text>
       </View>
 
-      {/* ===== Add Goal ===== */}
+      {/* ===== add goal ===== */}
       <View style={styles.addRow}>
         <TextInput
-          value={newGoal}
-          onChangeText={setNewGoal}
+          value={text}
+          onChangeText={setText}
           placeholder="เช่น วิ่ง 20 นาที"
           style={styles.input}
         />
-        <TouchableOpacity style={styles.addBtn} onPress={addGoal}>
-          <Ionicons name="add" size={28} color="#fff" />
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={addGoal}
+        >
+          <Ionicons name="add" size={26} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* ===== Goals List ===== */}
+      {/* ===== list ===== */}
       <FlatList
         data={goals}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.goalItem,
-              item.done && styles.goalDone,
-            ]}
-            onPress={() => toggleGoal(item.id)}
-          >
-            <Text
-              style={[
-                styles.goalText,
-                item.done && styles.goalTextDone,
-              ]}
-            >
-              {item.text}
-            </Text>
-            {item.done && (
-              <Ionicons name="checkmark-circle" size={22} color="#2E7D5B" />
-            )}
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
       />
     </View>
   );
 }
 
-/* ===== Progress Ring Component ===== */
+/* ======================
+   progress ring
+====================== */
+
 function ProgressRing({ progress }) {
   const size = 200;
   const strokeWidth = 14;
@@ -133,7 +183,6 @@ function ProgressRing({ progress }) {
 
   return (
     <Svg width={size} height={size}>
-      {/* background */}
       <Circle
         stroke="#E0E0E0"
         cx={size / 2}
@@ -142,7 +191,6 @@ function ProgressRing({ progress }) {
         strokeWidth={strokeWidth}
         fill="none"
       />
-      {/* progress */}
       <Circle
         stroke="#4CAF50"
         cx={size / 2}
@@ -151,7 +199,9 @@ function ProgressRing({ progress }) {
         strokeWidth={strokeWidth}
         fill="none"
         strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - progress)}
+        strokeDashoffset={
+          circumference * (1 - progress)
+        }
         strokeLinecap="round"
         rotation="-90"
         origin={`${size / 2}, ${size / 2}`}
@@ -159,6 +209,11 @@ function ProgressRing({ progress }) {
     </Svg>
   );
 }
+
+/* ======================
+   styles
+====================== */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -219,10 +274,20 @@ const styles = StyleSheet.create({
 
   goalText: {
     fontSize: 16,
+    flex: 1,
   },
 
   goalTextDone: {
     textDecorationLine: 'line-through',
     color: '#2E7D5B',
+  },
+
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  iconBtn: {
+    marginLeft: 10,
   },
 });

@@ -2,11 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import Homepage from '../screen/homepage';
-import DrinkScreen from '../screen/drink-feature';
-import MoodScreen from '../screen/mental-feature';
 import HomeStackNavigator from './HomeStackNavigator';
+import CalendarScreen from '../screen/CalendarScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -72,8 +70,8 @@ export default function BottomTabNavigator() {
         component={HomeStackNavigator}
         options={{ headerShown: false }}
       />
-      <Tab.Screen name="Calendar" component={DrinkScreen} />
-      <Tab.Screen name="BMI" component={MoodScreen} />
+      <Tab.Screen name="Calendar" component={CalendarScreen} />
+      <Tab.Screen name="BMI" component={Homepage}/>
       <Tab.Screen name="Stats" component={Homepage} />
       <Tab.Screen name="Profile" component={Homepage} />
     </Tab.Navigator>
