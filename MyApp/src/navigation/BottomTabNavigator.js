@@ -24,7 +24,7 @@ export default function BottomTabNavigator() {
           switch (route.name) {
             case 'Home':
               iconName = 'home';
-              label = 'main';
+              label = 'หน้าหลัก';
               break;
             case 'Calendar':
               iconName = 'calendar';

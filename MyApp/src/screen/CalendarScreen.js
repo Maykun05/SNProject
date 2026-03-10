@@ -1,39 +1,43 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-} from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MOODS = {
-  rad: '😆',
-  good: '🙂',
-  meh: '😐',
-  bad: '😞',
-  awful: '😵',
-};
+import CalendarGrid from '../components/CalendarGrid';
+import MoodPickerModal from '../components/MoodPickerModal';
+import MoodCount from '../components/MoodCount';
+import { useFocusEffect } from '@react-navigation/native';
+import { getAllMoods, setMoodByDate } from '../services/moodService';
 
 export default function CalendarScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [moods, setMoods] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  /* ===== โหลด mood ทั้งหมดครั้งเดียว ===== */
+  useFocusEffect(
+    React.useCallback(() => {
+      loadMoods();
+    }, [])
+  );
+
+  const loadMoods = async () => {
+    const data = await getAllMoods();
+    setMoods(data);
+  };
+
+  /* ===== บันทึก / แก้ mood ===== */
+  const onSelectMood = async (mood) => {
+    const updated = await setMoodByDate(selectedDate, mood);
+    setMoods(updated);
+    setSelectedDate(null);
+  };
 
   /* ===== เลื่อนเดือน ===== */
   const goPrevMonth = () => {
-    setCurrentDate(
-      prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
-    );
+    setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   };
 
   const goNextMonth = () => {
@@ -43,14 +47,18 @@ export default function CalendarScreen() {
     }
   };
 
-  /* ===== เลือก / แก้ mood ===== */
-  const onSelectMood = mood => {
-    setMoods(prev => ({
-      ...prev,
-      [selectedDate]: mood, // overwrite ค่าเดิมได้
-    }));
-    setSelectedDate(null);
-  };
+  /* =====  filter moods เฉพาะเดือนที่กำลังดู ===== */
+  const monthlyMoods = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(moods).filter(([dateKey]) => {
+        const date = new Date(dateKey);
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month
+        );
+      })
+    );
+  }, [moods, year, month]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -61,8 +69,7 @@ export default function CalendarScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>
-          {currentDate.toLocaleString('th-TH', { month: 'long' })}{' '}
-          {year + 543}
+          {currentDate.toLocaleString('th-TH', { month: 'long' })} {year + 543}
         </Text>
 
         <TouchableOpacity onPress={goNextMonth}>
@@ -71,62 +78,22 @@ export default function CalendarScreen() {
       </View>
 
       {/* ===== Calendar ===== */}
-      <View style={styles.grid}>
-        {Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const dateObj = new Date(year, month, day);
-          dateObj.setHours(0, 0, 0, 0);
+      <CalendarGrid
+        year={year}
+        month={month}
+        moods={moods}
+        onSelectDate={setSelectedDate}
+      />
 
-          const dateKey = dateObj.toISOString().slice(0, 10);
-          const isPastOrToday = dateObj <= today;
-          const isToday = dateObj.getTime() === today.getTime();
-          const mood = moods[dateKey];
-
-          return (
-            <View key={day} style={styles.dayCell}>
-              <TouchableOpacity
-                disabled={!isPastOrToday}
-                onPress={() => {
-                  if (isPastOrToday) {
-                    setSelectedDate(dateKey); // 👈 กดได้เสมอ
-                  }
-                }}
-                style={[
-                  styles.dayCircle,
-                  isToday && styles.todayCircle,
-                  !isPastOrToday && styles.disabled,
-                ]}
-              >
-                {mood ? (
-                  <Text style={styles.emoji}>{MOODS[mood]}</Text>
-                ) : isPastOrToday ? (
-                  <Text style={styles.plus}>+</Text>
-                ) : null}
-              </TouchableOpacity>
-              <Text style={styles.dayText}>{day}</Text>
-            </View>
-          );
-        })}
-      </View>
+      {/* ===== Mood Count (รายเดือน) ===== */}
+      <MoodCount moods={monthlyMoods} />
 
       {/* ===== Mood Picker ===== */}
-      <Modal transparent visible={!!selectedDate} animationType="fade">
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setSelectedDate(null)}
-        >
-          <Pressable style={styles.modal}>
-            {Object.entries(MOODS).map(([key, emoji]) => (
-              <TouchableOpacity
-                key={key}
-                onPress={() => onSelectMood(key)}
-              >
-                <Text style={styles.modalEmoji}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <MoodPickerModal
+        visible={!!selectedDate}
+        onSelect={onSelectMood}
+        onClose={() => setSelectedDate(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -134,12 +101,11 @@ export default function CalendarScreen() {
 /* ======================
    STYLES
 ====================== */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     padding: 16,
+    backgroundColor: '#fff',
   },
 
   header: {
@@ -158,70 +124,5 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
-  },
-
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-  },
-
-  dayCell: {
-    width: '14.28%',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-
-  dayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EDEDED',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  todayCircle: {
-    borderWidth: 2,
-    borderColor: '#2EC4B6',
-  },
-
-  disabled: {
-    opacity: 0.3,
-  },
-
-  emoji: {
-    fontSize: 20,
-  },
-
-  plus: {
-    fontSize: 20,
-    color: '#666',
-  },
-
-  dayText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#555',
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  modal: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 20,
-  },
-
-  modalEmoji: {
-    fontSize: 32,
-    marginHorizontal: 8,
   },
 });
