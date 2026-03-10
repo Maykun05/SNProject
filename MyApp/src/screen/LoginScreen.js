@@ -5,43 +5,35 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   SafeAreaView,
-  Image
+  Image,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native';
-import axios from 'axios';
-import API_URL from '../config';
+
+const { width } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/users/login`, {
-        username,
-        password
-      });
-
-      if (response.status === 200) {
-        navigation.navigate('Main', {
-          userId: response.data.userId
-        });
-      }
-    } catch (error) {
-      Alert.alert('Error', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    }
+  const handleLogin = () => {
+    // สั่งให้เปลี่ยนหน้าไปที่ 'Main' ทันที
+    // หมายเหตุ: ตรวจสอบว่าใน App.js ของคุณมี Screen ชื่อ 'Main' อยู่ใน Stack Navigator แล้ว
+    navigation.navigate('Main'); 
   };
 
   return (
     <View style={styles.root}>
-
-      {/* ===== GREEN TOP AREA ===== */}
+      {/* ส่วนหัวสีเขียว */}
       <View style={styles.greenArea}>
         <SafeAreaView />
         <View style={styles.logoContainer}>
           <View style={styles.logoBox}>
             <Image
+              // ตรวจสอบ Path รูปภาพของคุณให้ถูกต้อง
               source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/assets/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
@@ -50,138 +42,152 @@ const LoginScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* ===== WHITE AREA (INCLUDES BOTTOM SAFE AREA) ===== */}
-      <SafeAreaView style={styles.whiteArea}>
-        <View style={styles.card}>
+      {/* ส่วนเนื้อหาพื้นหลังสีขาว */}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.whiteArea}
+      >
+        <ScrollView contentContainerStyle={styles.card} bounces={false}>
           <Text style={styles.title}>เข้าสู่ระบบ</Text>
 
-          <Text style={styles.label}>ชื่อ</Text>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>ชื่อ</Text>
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              placeholderTextColor="#9E9E9E"
+            />
+          </View>
 
-          <Text style={styles.label}>รหัสผ่าน</Text>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>รหัสผ่าน</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9E9E9E"
+            />
+          </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <TouchableOpacity 
+            style={styles.loginButton} 
+            onPress={handleLogin}
+          >
             <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
           </TouchableOpacity>
-
+          
           <View style={styles.footer}>
-            <Text style={styles.forgotText}>ลืมรหัสผ่าน?</Text>
+            <TouchableOpacity>
+              <Text style={styles.forgotText}>ลืมรหัสผ่าน?</Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Text style={styles.signUpText}>สมัครสมาชิก</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </SafeAreaView>
-
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
-export default LoginScreen;
-
 const styles = StyleSheet.create({
-  /* ===== ROOT ===== */
   root: {
     flex: 1,
-    backgroundColor: '#2D4F45'
+    backgroundColor: '#2D4F45' // สีเขียวเข้มพื้นหลัง
   },
-
-  /* ===== GREEN TOP ===== */
   greenArea: {
     backgroundColor: '#2D4F45',
-    paddingBottom: 40
+    height: '35%', // ปรับสัดส่วนตามความเหมาะสม
+    justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 10
   },
   logoBox: {
-    width: 110,
-    height: 110,
-    borderRadius: 20,
-    overflow: 'hidden',
+    width: 120,
+    height: 120,
+    backgroundColor: '#76B947', // สีเขียวสว่างของไอคอน (ถ้าต้องการใส่พื้นหลังไอคอน)
+    borderRadius: 25,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    overflow: 'hidden'
   },
   logoImage: {
     width: '100%',
     height: '100%'
   },
-
-  /* ===== WHITE AREA ===== */
   whiteArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    overflow: 'hidden'
+    borderTopLeftRadius: 50, // ความโค้งมนด้านบนตามดีไซน์
+    borderTopRightRadius: 50,
   },
-
-  /* ===== CARD ===== */
   card: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 30
+    paddingHorizontal: 40,
+    paddingTop: 50,
+    paddingBottom: 20,
+    alignItems: 'stretch'
   },
-
-  /* ===== TEXT ===== */
   title: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#2D4F45',
     textAlign: 'center',
-    marginBottom: 30
+    marginBottom: 40
   },
-  label: {
-    color: '#9E9E9E',
-    marginBottom: 6
-  },
-
-  /* ===== INPUT ===== */
-  input: {
-    backgroundColor: '#E5E5E5',
-    borderRadius: 20,
-    padding: 16,
+  inputGroup: {
     marginBottom: 20
   },
-
-  /* ===== BUTTON ===== */
-  button: {
-    backgroundColor: '#2D4F45',
-    padding: 18,
+  label: {
+    fontSize: 16,
+    color: '#A0A0A0',
+    marginBottom: 8,
+    marginLeft: 5
+  },
+  input: {
+    backgroundColor: '#D9D9D9', // สีเทาอ่อนตามรูป
     borderRadius: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: '#333'
+  },
+  loginButton: {
+    backgroundColor: '#2D4F45',
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 10
+    marginTop: 20,
+    // เพิ่มเงาให้ดูสวยงาม
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold'
   },
-
-  /* ===== FOOTER ===== */
   footer: {
     alignItems: 'center',
-    marginTop: 25
+    marginTop: 30
   },
   forgotText: {
     color: '#9E9E9E',
-    marginBottom: 5
+    fontSize: 16,
+    marginBottom: 10
   },
   signUpText: {
-    color: '#2D6A4F',
-    fontWeight: 'bold'
+    color: '#2D4F45',
+    fontWeight: 'bold',
+    fontSize: 18
   }
 });
+
+export default LoginScreen;
