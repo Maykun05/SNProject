@@ -79,7 +79,7 @@ const FeatureSelectionScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => navigation.replace('Main')} // ไปหน้าหลักเมื่อเลือกเสร็จ
+            onPress={() => navigation.replace('MainTabs')} // ไปหน้าหลักเมื่อเลือกเสร็จ
           >
             <Text style={styles.saveButtonText}>บันทึก</Text>
           </TouchableOpacity>

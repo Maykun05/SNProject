@@ -78,6 +78,7 @@ export default function useHomeState() {
     onPressFeature,
     loadTodayStatus,
     setMoodToday: async (key) => {
+      console.log("SELECT MOOD:", key);
       await setMoodByDate(todayKey(), key);
       await loadTodayStatus();
       setShowMoodPicker(false);

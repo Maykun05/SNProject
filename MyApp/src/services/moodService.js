@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "http://192.168.1.48:3000";
 
 /* =========================
    GET ALL (calendar)
@@ -27,26 +27,20 @@ export const getAllMoods = async (month, year, token) => {
   return mapped;
 };
 
-export const getMoodByDate = async (dateKey, token) => {
-  const res = await fetch(`${API_URL}/mood/today`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) throw new Error("Failed to fetch mood");
-
+export const getMoodByDate = async (dateKey) => {
+  const res = await fetch(`${API_URL}/api/mood/today`);
   const data = await res.json();
 
   return data?.mood || null;
 };
 
-export const setMoodByDate = async (dateKey, mood, token) => {
-  const res = await fetch(`${API_URL}/mood`, {
+export const setMoodByDate = async (dateKey, mood) => {
+  console.log("CALL API:", dateKey, mood); // debug
+
+  const res = await fetch(`${API_URL}/api/mood`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       mood,
@@ -54,7 +48,8 @@ export const setMoodByDate = async (dateKey, mood, token) => {
     }),
   });
 
-  if (!res.ok) throw new Error("Failed to set mood");
+  const data = await res.json();
+  console.log("RESPONSE:", data);
 
-  return await res.json();
+  return data;
 };

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // ใช้ Ionicons แทน Image เพื่อให้เหมือน PersonalInfo
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
 
 const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -10,7 +12,7 @@ const RegisterScreen = ({ navigation }) => {
   const [isAgreed, setIsAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!username || !email || !password) {
       Alert.alert('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
@@ -20,15 +22,43 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
     if (!isAgreed) {
-      Alert.alert('คำเตือน', 'กรุณากดยอมรับการอนุญาตข้อมูลส่วนตัว');
+      Alert.alert('คำเตือน', 'กรุณายอมรับเงื่อนไข');
       return;
     }
 
-    setLoading(true);
-    setTimeout(() => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_URL}/api/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        Alert.alert("Error", data.message || "Register failed");
+        return;
+      }
+
+      // 🔥 เก็บ token (สำคัญมาก)
+      await AsyncStorage.setItem("token", data.token);
+
+      // 👉 ไปหน้าหลักเลย (ไม่ต้อง mock แล้ว)
+      navigation.replace("Select");
+
+    } catch (err) {
+      console.log("REGISTER ERROR:", err);
+    } finally {
       setLoading(false);
-      navigation.navigate('PersonalInfo', { userId: 'mock_123' });
-    }, 800);
+    }
   };
 
   return (

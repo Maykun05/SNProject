@@ -1,22 +1,4 @@
-// import express from "express"
-// import cors from "cors"
-// import dotenv from "dotenv"
-// import userRoutes from "./src/routes/userRoutes.js";
-// import moodRoutes from "./src/routes/moodRoutes.js";
 
-// dotenv.config()
-
-// const app = express()
-
-// app.use(cors())
-// app.use(express.json())
-
-// app.use("/api", userRoutes)
-// app.use("/api", moodRoutes)
-
-// app.listen(process.env.PORT || 3000, ()=>{
-//   console.log("server running")
-// })
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -38,8 +20,9 @@ app.get("/", (req, res) => {
 
 // routes
 app.use("/api", userRoutes);
-app.use("/api", moodRoutes);
+app.use("/api/mood", moodRoutes);
 
-app.listen(3000, () => {
+
+app.listen(3000,'0.0.0.0',() => {
   console.log("SERVER STARTED ON 3000");
 });

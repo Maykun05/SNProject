@@ -1,24 +1,20 @@
+import bcrypt from "bcrypt";
 import prisma from "../config/prisma.js";
 
-export const createUserService = async (data) => {
-  const { username, weight, height, age, activityLevel } = data;
+export const createUser = async ({ username, email, password }) => {
+  const hashedPassword = await bcrypt.hash(password, 10); // 🔥 ตรงนี้
 
-  const user = await prisma.user.create({
+  return prisma.user.create({
     data: {
       username,
-      weight,
-      height,
-      age,
-      activityLevel,
+      email,
+      password: hashedPassword, // ❗ เก็บ hash ไม่ใช่ password จริง
     },
   });
-
-  return user;
 };
 
-export const getUsersService = async () => {
-  return await prisma.user.findMany();
+export const findUserByEmail = async (email) => {
+  return prisma.user.findUnique({
+    where: { email },
+  });
 };
-
-
-

@@ -12,17 +12,42 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-import HomeScreen from './homepage';
+import { API_URL } from  "../config"
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
+
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // สั่งให้เปลี่ยนหน้าไปที่ 'Main' ทันที
-    // หมายเหตุ: ตรวจสอบว่าใน App.js ของคุณมี Screen ชื่อ 'Main' อยู่ใน Stack Navigator แล้ว
-    navigation.replace('MainTabs'); 
+  const handleLogin = async() => {
+    try {
+      const res = await fetch(`${API_URL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      await AsyncStorage.setItem("token", data.token);
+
+      navigation.replace('MainTabs');
+
+    } catch (err) {
+      console.log("LOGIN ERROR:", err);
+    }
   };
 
   return (
@@ -34,7 +59,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.logoBox}>
             <Image
               // ตรวจสอบ Path รูปภาพของคุณให้ถูกต้อง
-              source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/assets/logo.png')}
+              source={require('../assets/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
