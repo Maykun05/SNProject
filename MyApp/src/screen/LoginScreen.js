@@ -12,7 +12,7 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-
+import HomeScreen from './homepage';
 const { width } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
@@ -22,7 +22,7 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = () => {
     // สั่งให้เปลี่ยนหน้าไปที่ 'Main' ทันที
     // หมายเหตุ: ตรวจสอบว่าใน App.js ของคุณมี Screen ชื่อ 'Main' อยู่ใน Stack Navigator แล้ว
-    navigation.navigate('Main'); 
+    navigation.replace('MainTabs'); 
   };
 
   return (

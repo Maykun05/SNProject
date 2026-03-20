@@ -1,5 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import LoginScreen from '../screen/login';
+import LoginScreen from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/screen/LoginScreen.js';
 import BottomTabNavigator from './BottomTabNavigator';
 const Stack = createNativeStackNavigator();
 
@@ -18,5 +18,6 @@ export default function StackNavigator() {
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
+
   );
 }
