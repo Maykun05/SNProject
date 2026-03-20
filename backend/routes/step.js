@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/stepController');
+// แนะนำให้เปลี่ยนชื่อตัวแปรให้ชัดเจนเพื่อป้องกันสับสน
+const stepController = require('../controllers/stepController'); 
 
-router.post('/', controller.addStepLog);
-router.get('/:userId', controller.getStepToday);
+router.post('/', stepController.addStepLog); 
+router.get('/:userId', stepController.getStepToday); 
 
 module.exports = router;

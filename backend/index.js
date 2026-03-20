@@ -1,33 +1,26 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
-
-const userRoutes = require('./routes/user');
-const waterRoutes = require('./routes/water');
-const moodRoutes = require('./routes/mood');
-const foodRoutes = require('./routes/food');
-const stepRoutes = require('./routes/step');
-const treeRoutes = require('./routes/tree');
+require('dotenv').config(); // ตรวจสอบว่ามีบรรทัดนี้เพื่อดึงค่าจาก .env
 
 const app = express();
+const apiRoutes = require('./routes/api');
+
+// --- Middleware ---
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// เพิ่มหลังจากประกาศ app
-app.get('/api/health', async (req, res) => {
-  try {
-    // ทดสอบ query ง่ายๆ
-    const result = await pool.query('SELECT 1 AS status');
-    res.json({
-      status: 'healthy',
-      database: 'connected',
-      testQuery: result.rows[0].status
-    });
-  } catch (err) {
-    res.status(500).json({
-      status: 'unhealthy',
-      database: 'disconnected',
-      error: err.message
-    });
-  }
+// --- Routes ---
+app.use('/api', apiRoutes); 
+
+app.get('/', (req, res) => {
+    res.send('Health Tracking API is running...');
+});
+
+// --- Server Setup ---
+// เปลี่ยนจาก process.env.PORT เป็นชื่อที่ตรงกับใน .env ของคุณ (ใน .env คุณใช้ PORT=4000)
+const PORT = process.env.PORT || 3000; 
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

@@ -1,27 +1,25 @@
-const db = require('../db');
+const { Emotion_Log, User_Data } = require('../models');
 
 exports.addMoodLog = async (req, res) => {
-  const { user_id, mood, note } = req.body;
-  try {
-    const result = await db.query(
-      'INSERT INTO mood_logs (user_id, mood, note) VALUES ($1, $2, $3) RETURNING *',
-      [user_id, mood, note]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    try {
+        const { user_id, emotion_id, note } = req.body;
 
-exports.getMoodToday = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const result = await db.query(
-      `SELECT * FROM mood_logs WHERE user_id = $1 AND DATE(log_time) = CURRENT_DATE`,
-      [userId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+        await Emotion_Log.create({
+            user_id,
+            emotion_id,
+            note,
+            log_date: new Date()
+        });
+
+        // บวก EXP ต้นไม้ (5 EXP)
+        const userData = await User_Data.findByPk(user_id);
+        const newExp = (userData.tree_exp || 0) + 5;
+        const newLevel = Math.min(Math.floor(newExp / 100), 5);
+
+        await userData.update({ tree_exp: newExp, tree_level: newLevel });
+
+        res.status(201).json({ success: true, tree_level: newLevel });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };

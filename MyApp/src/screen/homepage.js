@@ -12,6 +12,8 @@ import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
 
+import { useNavigation } from '@react-navigation/native';
+
 const TREE_IMAGES = [
   require('../assets/tree_0.png'),
   require('../assets/tree_1.png'),
@@ -21,7 +23,7 @@ const TREE_IMAGES = [
   require('../assets/tree_5.png'),
 ];
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const {
     doneMap,
     enabledFeatures,

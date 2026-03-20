@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Homepage from '../screen/homepage';
 import HomeStackNavigator from './HomeStackNavigator';
 import CalendarScreen from '../screen/CalendarScreen';
+import BMIScreen from '../screen/BMIScreen';
+import MissionScreen from '../screen/MissionScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -38,9 +40,9 @@ export default function BottomTabNavigator() {
               iconName = 'stats-chart';
               label = 'สถิติ';
               break;
-            case 'Profile':
+            case 'Mission':
               iconName = 'person';
-              label = 'โปรไฟล์';
+              label = 'ภารกิจ';
               break;
           }
 
@@ -71,9 +73,9 @@ export default function BottomTabNavigator() {
         options={{ headerShown: false }}
       />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="BMI" component={Homepage}/>
+      <Tab.Screen name="BMI" component={BMIScreen} />
       <Tab.Screen name="Stats" component={Homepage} />
-      <Tab.Screen name="Profile" component={Homepage} />
+      <Tab.Screen name="Mission" component={MissionScreen} />
     </Tab.Navigator>
   );
 }
