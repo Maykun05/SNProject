@@ -1,45 +1,60 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+const API_URL = "http://localhost:3000";
 
-const STORAGE_KEY = 'MOODS_BY_DATE';
+/* =========================
+   GET ALL (calendar)
+========================= */
+export const getAllMoods = async (month, year, token) => {
+  const res = await fetch(
+    `${API_URL}/mood/month?month=${month}&year=${year}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
-/* ===== helper ===== */
-const loadAll = async () => {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : {};
+  if (!res.ok) throw new Error("Failed to fetch moods");
+
+  const data = await res.json();
+
+  // 🔥 แปลง array → object เหมือน AsyncStorage
+  const mapped = {};
+  data.forEach((item) => {
+    const dateKey = item.date.split("T")[0];
+    mapped[dateKey] = item.mood;
+  });
+
+  return mapped;
 };
 
-const saveAll = async (data) => {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+export const getMoodByDate = async (dateKey, token) => {
+  const res = await fetch(`${API_URL}/mood/today`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch mood");
+
+  const data = await res.json();
+
+  return data?.mood || null;
 };
 
-/* ===== public API ===== */
+export const setMoodByDate = async (dateKey, mood, token) => {
+  const res = await fetch(`${API_URL}/mood`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      mood,
+      date: dateKey,
+    }),
+  });
 
-// ดึง mood ทั้งหมด (Calendar ใช้)
-export const getAllMoods = async () => {
-  return await loadAll();
-};
+  if (!res.ok) throw new Error("Failed to set mood");
 
-// ดึง mood ของวันเดียว (Home ใช้)
-export const getMoodByDate = async (dateKey) => {
-  const moods = await loadAll();
-  return moods[dateKey] || null;
-};
-
-// บันทึก / แก้ mood
-export const setMoodByDate = async (dateKey, mood) => {
-  const moods = await loadAll();
-  const updated = {
-    ...moods,
-    [dateKey]: mood,
-  };
-  await saveAll(updated);
-  return updated;
-};
-
-// (optional) ลบ mood
-export const deleteMoodByDate = async (dateKey) => {
-  const moods = await loadAll();
-  delete moods[dateKey];
-  await saveAll(moods);
-  return moods;
+  return await res.json();
 };

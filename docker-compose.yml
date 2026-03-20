@@ -22,17 +22,6 @@ services:
       timeout: 5s
       retries: 10
 
-  pgadmin:
-    image: dpage/pgadmin4
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@healthapp.com
-      PGADMIN_DEFAULT_PASSWORD: SatangMaykun30!
-    ports:
-      - "5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
 
 volumes:
   postgres_data:

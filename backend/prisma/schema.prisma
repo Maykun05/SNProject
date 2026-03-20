@@ -5,11 +5,57 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  username      String        @unique
+  weight        Float? // กิโลกรัม
+  height        Float? // เซนติเมตร
+  age           Int?
+  activityLevel ActivityLevel
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  MoodLog       MoodLog[]
+  DailyProgress DailyProgress[]
+}
+
+enum ActivityLevel {
+  ActivityLevel1
+  ActivityLevel2
+  ActivityLevel3
+  ActivityLevel4
+  ActivityLevel5
+}
+
+model MoodLog {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  mood   String
+  note   String?
+  date   DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model DailyProgress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime
+  completed Int
+  total     Int
+  treeLevel Int
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
 }

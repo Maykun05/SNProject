@@ -1,33 +1,45 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+// import express from "express"
+// import cors from "cors"
+// import dotenv from "dotenv"
+// import userRoutes from "./src/routes/userRoutes.js";
+// import moodRoutes from "./src/routes/moodRoutes.js";
 
-const userRoutes = require('./routes/user');
-const waterRoutes = require('./routes/water');
-const moodRoutes = require('./routes/mood');
-const foodRoutes = require('./routes/food');
-const stepRoutes = require('./routes/step');
-const treeRoutes = require('./routes/tree');
+// dotenv.config()
+
+// const app = express()
+
+// app.use(cors())
+// app.use(express.json())
+
+// app.use("/api", userRoutes)
+// app.use("/api", moodRoutes)
+
+// app.listen(process.env.PORT || 3000, ()=>{
+//   console.log("server running")
+// })
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+import userRoutes from "./src/routes/userRoutes.js";
+import moodRoutes from "./src/routes/moodRoutes.js";
+
+dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// เพิ่มหลังจากประกาศ app
-app.get('/api/health', async (req, res) => {
-  try {
-    // ทดสอบ query ง่ายๆ
-    const result = await pool.query('SELECT 1 AS status');
-    res.json({
-      status: 'healthy',
-      database: 'connected',
-      testQuery: result.rows[0].status
-    });
-  } catch (err) {
-    res.status(500).json({
-      status: 'unhealthy',
-      database: 'disconnected',
-      error: err.message
-    });
-  }
+// test route
+app.get("/", (req, res) => {
+  res.send("API WORKING");
+});
+
+// routes
+app.use("/api", userRoutes);
+app.use("/api", moodRoutes);
+
+app.listen(3000, () => {
+  console.log("SERVER STARTED ON 3000");
 });
