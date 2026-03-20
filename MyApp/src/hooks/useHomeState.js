@@ -53,16 +53,20 @@ export default function useHomeState() {
   );
 
   const onPressFeature = (f) => {
-    if (f.key === 'mood') {
-      setShowMoodPicker(prev => !prev);
-      setShowSleepPicker(false);
-    } else if (f.key === 'sleep') {
-      setShowSleepPicker(prev => !prev);
-      setShowMoodPicker(false);
-    } else {
+  if (f.key === 'mood') {
+    setShowMoodPicker(prev => !prev);
+    setShowSleepPicker(false);
+  } else if (f.key === 'sleep') {
+    setShowSleepPicker(prev => !prev);
+    setShowMoodPicker(false);
+  } else if (f.key === 'water') {
+    navigation.navigate('WaterScreen');
+  }
+    else {
       navigation.navigate(f.route);
     }
   };
+
 
   return {
     doneMap,
