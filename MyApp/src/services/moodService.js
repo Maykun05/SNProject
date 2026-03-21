@@ -103,6 +103,7 @@ const API_URL = "http://192.168.1.48:3000";
 // };
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocalDateKey } from '../utils/dateUtils';
 
 const STORAGE_KEY = 'MOODS_BY_DATE';
 
@@ -120,8 +121,16 @@ const saveLocal = async (data) => {
 const mapArrayToObject = (data) => {
   const mapped = {};
   data.forEach((item) => {
-    const dateKey = item.date.split("T")[0];
-    mapped[dateKey] = item.mood;
+    const d = new Date(item.date);
+
+    // 🔥 FIX timezone ตรงนี้
+    d.setHours(0, 0, 0, 0);
+
+    const key = getLocalDateKey(d);
+
+    mapped[key] = item.mood;
+    // const dateKey = item.date.split("T")[0];
+    // mapped[dateKey] = item.mood;
   });
   return mapped;
 };
@@ -129,12 +138,58 @@ const mapArrayToObject = (data) => {
 /* ================== API ================== */
 
 // โหลดทั้งเดือน
+// export const getAllMoods = async (month, year) => {
+//   const token = await AsyncStorage.getItem("token");
+
+//   try {
+//     const res = await fetch(
+//       `${API_URL}/mood/month?month=${month}&year=${year}`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       }
+//     );
+
+//     if (!res.ok) throw new Error("API fail");
+
+//     const data = await res.json();
+
+//     const mapped = mapArrayToObject(data);
+
+//     // 🔥 save cache
+//     await saveLocal(mapped);
+
+//     return mapped;
+//   } catch (err) {
+//     console.log("API error → fallback local", err);
+
+//     // 🔥 fallback ใช้ local
+//     return await loadLocal();
+//   }
+// };
+
 export const getAllMoods = async (month, year) => {
   const token = await AsyncStorage.getItem("token");
 
+  // 🔥 1. โหลด local ก่อน (เร็ว)
+  const local = await loadLocal();
+
+  // 🔥 2. filter เฉพาะเดือนนั้นจาก local
+  const localFiltered = Object.fromEntries(
+    Object.entries(local).filter(([dateKey]) => {
+      const d = new Date(dateKey + "T00:00:00");
+      return (
+        d.getFullYear() === year &&
+        d.getMonth() === month - 1 // API = 1-12, JS = 0-11
+      );
+    })
+  );
+
+  // 🔥 3. ยิง API (background)
   try {
     const res = await fetch(
-      `${API_URL}/mood/month?month=${month}&year=${year}`,
+      `${API_URL}/api/mood/month?month=${month}&year=${year}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -145,18 +200,20 @@ export const getAllMoods = async (month, year) => {
     if (!res.ok) throw new Error("API fail");
 
     const data = await res.json();
-
     const mapped = mapArrayToObject(data);
 
-    // 🔥 save cache
-    await saveLocal(mapped);
+    // 🔥 4. รวมกับ local
+    const merged = {
+      ...local,
+      ...mapped,
+    };
 
-    return mapped;
+    await saveLocal(merged);
+
+    return mapped; // return ของเดือนนั้น
   } catch (err) {
-    console.log("API error → fallback local", err);
-
-    // 🔥 fallback ใช้ local
-    return await loadLocal();
+    console.log("⚠️ fallback local", err);
+    return localFiltered;
   }
 };
 
@@ -193,12 +250,57 @@ export const getMoodByDate = async (dateKey) => {
   }
 };
 
+export const getLocalMoodsForMonth = async (month, year) => {
+  const local = await loadLocal();
+
+  return Object.fromEntries(
+    Object.entries(local).filter(([dateKey]) => {
+      const d = new Date(dateKey);
+      return (
+        d.getFullYear() === year &&
+        d.getMonth() === month - 1
+      );
+    })
+  );
+};
+
 // save
+// export const setMoodByDate = async (dateKey, mood) => {
+//   const token = await AsyncStorage.getItem("token");
+
+//   // 🔥 optimistic update (สำคัญมาก)
+//   const local = await loadLocal();
+//   const updated = {
+//     ...local,
+//     [dateKey]: mood,
+//   };
+
+//   await saveLocal(updated);
+
+//   try {
+//     await fetch(`${API_URL}/api/mood`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//       body: JSON.stringify({
+//         mood,
+//         date: dateKey,
+//       }),
+//     });
+//   } catch (err) {
+//     console.log("API save fail", err);
+//   }
+
+//   return updated;
+// };
+// 
 export const setMoodByDate = async (dateKey, mood) => {
   const token = await AsyncStorage.getItem("token");
 
-  // 🔥 optimistic update (สำคัญมาก)
   const local = await loadLocal();
+
   const updated = {
     ...local,
     [dateKey]: mood,
@@ -218,9 +320,7 @@ export const setMoodByDate = async (dateKey, mood) => {
         date: dateKey,
       }),
     });
-  } catch (err) {
-    console.log("API save fail", err);
-  }
+  } catch {}
 
   return updated;
 };

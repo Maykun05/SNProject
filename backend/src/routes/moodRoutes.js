@@ -1,11 +1,15 @@
 import express from "express";
-import {setMood, getMoodByMonth, getTodayMood } from "../controllers/moodController.js";
+import {
+    createOrUpdateMood, 
+    getMoodsByMonth, 
+    getTodayMood 
+} from "../controllers/moodController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", authMiddleware, setMood);
-router.get("/month", authMiddleware, getMoodByMonth);
+router.get("/month", authMiddleware, getMoodsByMonth);
 router.get("/today", authMiddleware, getTodayMood);
+router.post("/", authMiddleware, createOrUpdateMood);
 
 export default router;
