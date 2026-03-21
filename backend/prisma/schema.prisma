@@ -22,22 +22,22 @@ model User {
 
   weight        Float?
   height        Float?
-  age           Int?
-  activityLevel ActivityLevel?
-
+  birthDate     DateTime?
+  activityLevel Int?
+  gender        Gender?
+  
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  selectedFeatures String[]
   MoodLog       MoodLog[]
   DailyProgress DailyProgress[]
 }
 
-enum ActivityLevel {
-  ActivityLevel1
-  ActivityLevel2
-  ActivityLevel3
-  ActivityLevel4
-  ActivityLevel5
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 model MoodLog {

@@ -18,7 +18,8 @@ const { width } = Dimensions.get('window');
 
 
 const LoginScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
+  // const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async() => {
@@ -29,19 +30,28 @@ const LoginScreen = ({ navigation }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
+          // username,
+          email,
           password,
         }),
       });
 
       const data = await res.json();
+      // console.log("LOGIN RESPONSE:", data);
+
 
       if (!res.ok) {
         alert(data.message || "Login failed");
         return;
       }
 
-      await AsyncStorage.setItem("token", data.token);
+      const { token } = data;
+      if (!token) {
+        throw new Error("Token not found in response");
+      }
+
+      await AsyncStorage.setItem("token", token);
+      // console.log("TOKEN:", token);
 
       navigation.replace('MainTabs');
 
@@ -79,8 +89,10 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.label}>ชื่อ</Text>
             <TextInput
               style={styles.input}
-              value={username}
-              onChangeText={setUsername}
+              value={email}
+              // value={username}
+              onChangeText={setEmail}
+              // onChangeText={setUsername}
               autoCapitalize="none"
               placeholderTextColor="#9E9E9E"
             />

@@ -8,11 +8,36 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
+
+
 
 const FeatureSelectionScreen = ({ navigation }) => {
   // เก็บสถานะฟีเจอร์ที่เลือก (เป็น Array เพื่อให้เลือกได้หลายอย่าง)
   const [selectedFeatures, setSelectedFeatures] = useState([]);
+  const handleSave = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
 
+      await fetch(`${API_URL}/api/features`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          features: selectedFeatures,
+        }),
+      });
+
+      // 👉 เสร็จแล้วค่อยไปหน้า main
+      navigation.replace("MainTabs");
+
+    } catch (err) {
+      console.log("SAVE FEATURES ERROR:", err);
+    }
+  };
   const features = [
     { id: 'water', label: 'บันทึกการดื่มน้ำ', icon: 'water-outline' },
     { id: 'calories', label: 'บันทึกแคลอรี่', icon: 'fast-food-outline' },
@@ -79,7 +104,7 @@ const FeatureSelectionScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => navigation.replace('MainTabs')} // ไปหน้าหลักเมื่อเลือกเสร็จ
+            onPress={handleSave}          
           >
             <Text style={styles.saveButtonText}>บันทึก</Text>
           </TouchableOpacity>

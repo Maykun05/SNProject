@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // ใช้ Ionicons แทน Image เพื่อให้เหมือน PersonalInfo
+import { Ionicons } from '@expo/vector-icons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 
@@ -48,11 +48,8 @@ const RegisterScreen = ({ navigation }) => {
         return;
       }
 
-      // 🔥 เก็บ token (สำคัญมาก)
       await AsyncStorage.setItem("token", data.token);
-
-      // 👉 ไปหน้าหลักเลย (ไม่ต้อง mock แล้ว)
-      navigation.replace("Select");
+      navigation.replace("PersonalInfo");
 
     } catch (err) {
       console.log("REGISTER ERROR:", err);
