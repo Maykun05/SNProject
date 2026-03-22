@@ -8,7 +8,7 @@ import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
 
@@ -35,6 +35,12 @@ export default function HomeScreen({ navigation }) {
     toggleFeature,
   } = useHomeState();
 
+  const handleLogout = async () => {
+
+    await AsyncStorage.removeItem("token");
+    navigation.replace("Login");
+  }; //เทสล้อกเอ้า
+
   const visibleFeatures = FEATURES.filter(
     f => enabledFeatures[f.key] !== false
   );
@@ -49,6 +55,13 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <HomeHeader />
+
+      <TouchableOpacity
+        style={styles.logoutBtn}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={24} color="#000" />
+      </TouchableOpacity> 
 
       <HomeCircle
         features={visibleFeatures}
@@ -88,6 +101,7 @@ export default function HomeScreen({ navigation }) {
         onToggle={toggleFeature}
         onClose={() => setShowFeatureModal(false)}
       />
+      
     </View>
   );
 }
@@ -105,4 +119,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+   logoutBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+
 });

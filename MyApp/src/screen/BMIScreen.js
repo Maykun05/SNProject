@@ -1,14 +1,82 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import {useEffect, useState} from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native"; 
+import { API_URL } from "../config";
 
-const BMIScreen = ({ route }) => {
+const BMIScreen = () => {
+  // const [userData, setUserData] = useState({
+  //   weight: 70,
+  //   height: 165,
+  //   birthday: "2000-01-01", // เก็บเป็นวันเกิด
+  //   gender: "male"
+  // });
+  const [userData, setUserData] = useState(null);
 
-const {
-  weight = 70,
-  height = 165,
-  age = 25,
-  gender = "male"
-} = route.params || {};
+
+
+  // ฟังก์ชันคำนวณอายุจากวันเกิด
+  const calculateAge = (birthday) => {
+    const birthDate = new Date(birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // useEffect(() => {
+  //   const fetchUser = async () => {
+  //     try {
+  //       // ตัวอย่าง: ดึงจาก API
+  //       const res = await axios.get("https://your-api.com/api/user/profile");
+  //       setUserData(res.data);
+
+  //       // หรือถ้าเก็บใน AsyncStorage
+  //       // const stored = await AsyncStorage.getItem("userProfile");
+  //       // if (stored) setUserData(JSON.parse(stored));
+  //     } catch (err) {
+  //       console.error(err);
+  //     }
+  //   };
+  //   fetchUser();
+  // }, []);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const res = await fetch(`${API_URL}/api/profile`,{
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch user profile");
+        }
+
+        const data = await res.json();
+        const { activityLevel, ...filteredData } = data;
+
+        setUserData(filteredData);
+        // setUserData(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+
+
+  const { weight, height, birthday, gender } = userData;
+  const age = calculateAge(birthday);
+
+
+
 
 const heightMeter = height / 100;
 

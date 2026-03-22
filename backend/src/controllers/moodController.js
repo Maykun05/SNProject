@@ -27,7 +27,7 @@ export const getTodayMood = async (req, res) => {
     const mood = await fetchTodayMood(userId);
 
     res.json(mood || null);
-  } catch {
+  } catch (err) {
     res.status(500).json({ error: "Failed to fetch today mood" });
   }
 };

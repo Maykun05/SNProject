@@ -53,7 +53,7 @@ const PersonalInfoScreen = ({ navigation }) => {
       const token = await AsyncStorage.getItem("token");
 
       const res = await fetch(`${API_URL}/api/profile`, {
-        method: "POST",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

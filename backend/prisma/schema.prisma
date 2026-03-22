@@ -15,29 +15,51 @@ datasource db {
 }
 
 model User {
-  id            Int           @id @default(autoincrement())
-  username      String
-  email         String        @unique  
-  password      String
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  username  String
 
+  profile   Profile?
+
+  features  UserFeature[]
+  moods     MoodLog[]
+  progress  DailyProgress[]
+}
+
+model Profile {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
   weight        Float?
   height        Float?
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
 
-  selectedFeatures String[]
-  MoodLog       MoodLog[]
-  DailyProgress DailyProgress[]
+  user          User     @relation(fields: [userId], references: [id])
 }
 
 enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+model Feature {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  users UserFeature[]
+}
+
+model UserFeature {
+  id        Int @id @default(autoincrement())
+
+  userId    Int
+  featureId Int
+
+  user      User    @relation(fields: [userId], references: [id])
+  feature   Feature @relation(fields: [featureId], references: [id])
 }
 
 model MoodLog {

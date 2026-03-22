@@ -45,13 +45,17 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      const { token } = data;
+      const { token, user } = data;
+      
       if (!token) {
         throw new Error("Token not found in response");
       }
 
+      // ✅ save token
       await AsyncStorage.setItem("token", token);
-      // console.log("TOKEN:", token);
+
+      // ✅ save userId (สำคัญมาก)
+      await AsyncStorage.setItem("userId", user.id.toString());
 
       navigation.replace('MainTabs');
 

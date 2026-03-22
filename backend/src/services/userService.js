@@ -14,6 +14,19 @@ export const createUser = async ({ username, email, password }) => {
   });
 };
 
+export const getUserProfile = async (userId) => {
+  return prisma.profile.findUnique({
+    where: { userId },
+    select: {
+      weight: true,
+      height: true,
+      birthDate: true,
+      activityLevel: true,
+      gender: true,
+    },
+  });
+};
+
 export const findUserByEmail = async (email) => {
   return prisma.user.findUnique({
     where: { email },
@@ -21,25 +34,22 @@ export const findUserByEmail = async (email) => {
 };
 
 export const updateUserProfile = async (userId, data) => {
-  return await prisma.user.update({
-    where: { id: userId },
-    data: {
+  return prisma.profile.upsert({
+    where: { userId },
+    update: {
       weight: data.weight,
       height: data.height,
-      birthDate: data.birthDate
-        ? new Date(data.birthDate)
-        : null,
+      birthDate: data.birthDate ? new Date(data.birthDate) : null,
       activityLevel: data.activityLevel,
       gender: data.gender,
     },
-  });
-};
-
-export const updateUserFeatures = async (userId, features) => {
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      selectedFeatures: features,
+    create: {
+      userId,
+      weight: data.weight,
+      height: data.height,
+      birthDate: data.birthDate ? new Date(data.birthDate) : null,
+      activityLevel: data.activityLevel,
+      gender: data.gender,
     },
   });
 };
@@ -47,6 +57,15 @@ export const updateUserFeatures = async (userId, features) => {
 export const getUserById = async (userId) => {
   return prisma.user.findUnique({
     where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      profile: true,
+      features: { include: { feature: true } },
+      moods: true,
+      progress: true,
+    },
   });
 };
 
@@ -99,5 +118,12 @@ export const loginUser = async ({ email, password }) => {
     { expiresIn: "7d" }
   );
 
-  return { token };
+  return { token,
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    }, 
+  };
 };
+
