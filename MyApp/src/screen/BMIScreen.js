@@ -1,17 +1,10 @@
 import {useEffect, useState} from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native"; 
 import { API_URL } from "../config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const BMIScreen = () => {
-  // const [userData, setUserData] = useState({
-  //   weight: 70,
-  //   height: 165,
-  //   birthday: "2000-01-01", // เก็บเป็นวันเกิด
-  //   gender: "male"
-  // });
   const [userData, setUserData] = useState(null);
-
-
 
   // ฟังก์ชันคำนวณอายุจากวันเกิด
   const calculateAge = (birthday) => {
@@ -24,23 +17,6 @@ const BMIScreen = () => {
     }
     return age;
   };
-
-  // useEffect(() => {
-  //   const fetchUser = async () => {
-  //     try {
-  //       // ตัวอย่าง: ดึงจาก API
-  //       const res = await axios.get("https://your-api.com/api/user/profile");
-  //       setUserData(res.data);
-
-  //       // หรือถ้าเก็บใน AsyncStorage
-  //       // const stored = await AsyncStorage.getItem("userProfile");
-  //       // if (stored) setUserData(JSON.parse(stored));
-  //     } catch (err) {
-  //       console.error(err);
-  //     }
-  //   };
-  //   fetchUser();
-  // }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -70,122 +46,122 @@ const BMIScreen = () => {
     fetchUser();
   }, []);
 
-
+  if (!userData) {
+    return <Text>Loading...</Text>;
+  }
 
   const { weight, height, birthday, gender } = userData;
   const age = calculateAge(birthday);
 
+  const heightMeter = height / 100;
 
+  const bmi = (weight / (heightMeter * heightMeter)).toFixed(2);
 
+  const bmiValue = parseFloat(bmi);
 
-const heightMeter = height / 100;
+  const getCategory = () => {
 
-const bmi = (weight / (heightMeter * heightMeter)).toFixed(2);
+    if (bmiValue < 18.5) return "ผอม";
+    if (bmiValue < 23) return "น้ำหนักเหมาะสม";
+    if (bmiValue < 25) return "น้ำหนักเกิน";
+    if (bmiValue < 30) return "อ้วนระดับ 1";
+    return "อ้วนระดับ 2";
 
-const bmiValue = parseFloat(bmi);
+  };
 
-const getCategory = () => {
+  const category = getCategory();
 
-  if (bmiValue < 18.5) return "ผอม";
-  if (bmiValue < 23) return "น้ำหนักเหมาะสม";
-  if (bmiValue < 25) return "น้ำหนักเกิน";
-  if (bmiValue < 30) return "อ้วนระดับ 1";
-  return "อ้วนระดับ 2";
+  const minWeight = (18.5 * heightMeter * heightMeter).toFixed(1);
+  const maxWeight = (22.9 * heightMeter * heightMeter).toFixed(1);
 
-};
+  const recommendedWeight =
+  ((parseFloat(minWeight) + parseFloat(maxWeight)) / 2).toFixed(0);
 
-const category = getCategory();
+  const weightToLose = (weight - maxWeight).toFixed(1);
 
-const minWeight = (18.5 * heightMeter * heightMeter).toFixed(1);
-const maxWeight = (22.9 * heightMeter * heightMeter).toFixed(1);
+  const generateAdvice = () => {
 
-const recommendedWeight =
-((parseFloat(minWeight) + parseFloat(maxWeight)) / 2).toFixed(0);
+  let advice = [];
 
-const weightToLose = (weight - maxWeight).toFixed(1);
+  // BMI condition
+  if (bmiValue < 18.5) {
+  advice.push("เพิ่มแคลอรี่ในแต่ละวัน");
+  advice.push("เพิ่มโปรตีน เช่น ไข่ ปลา นม");
+  advice.push("ออกกำลังกายแบบ Strength Training");
+  }
 
-const generateAdvice = () => {
+  else if (bmiValue < 23) {
+  advice.push("รักษาพฤติกรรมการกินที่ดี");
+  advice.push("ออกกำลังกายสม่ำเสมอ");
+  }
 
-let advice = [];
+  else if (bmiValue < 25) {
+  advice.push("ควบคุมปริมาณแคลอรี่");
+  advice.push("ลดน้ำตาลและของหวาน");
+  }
 
-// BMI condition
-if (bmiValue < 18.5) {
-advice.push("เพิ่มแคลอรี่ในแต่ละวัน");
-advice.push("เพิ่มโปรตีน เช่น ไข่ ปลา นม");
-advice.push("ออกกำลังกายแบบ Strength Training");
+  else {
+  advice.push("ควบคุมแคลอรี่");
+  advice.push("เพิ่มคาร์ดิโอ เช่น เดินเร็ว วิ่ง ปั่นจักรยาน");
+  advice.push("Strength Training 2-3 ครั้ง/สัปดาห์");
+  }
+
+  // age condition
+  if (age > 40) {
+  advice.push("เพิ่มคาร์ดิโอเพื่อสุขภาพหัวใจ");
+  }
+
+  // gender condition
+  if (gender === "female") {
+  advice.push("เพิ่มอาหารที่มีธาตุเหล็ก เช่น ผักใบเขียว");
+  }
+
+  if (gender === "male") {
+  advice.push("เพิ่มโปรตีนเพื่อเสริมสร้างกล้ามเนื้อ");
+  }
+
+  // general health
+  advice.push("ดื่มน้ำวันละ 1.5 - 2 ลิตร");
+  advice.push("นอนหลับอย่างน้อย 7-8 ชั่วโมง");
+
+  return advice;
+
+  };
+
+  const adviceList = generateAdvice();
+
+  return (
+
+  <ScrollView style={styles.container}>
+
+  <Text style={styles.title}>BMI</Text>
+
+  <Text style={styles.bmiValue}>{bmi}</Text>
+
+  <View style={styles.categoryBox}>
+  <Text style={styles.categoryText}>{category}</Text>
+  </View>
+
+  {/* BMI BAR */}
+  <View style={styles.barContainer}>
+  <View style={[styles.bar,{backgroundColor:"#5DADE2"}]} />
+  <View style={[styles.bar,{backgroundColor:"#58D68D"}]} />
+  <View style={[styles.bar,{backgroundColor:"#F4D03F"}]} />
+  <View style={[styles.bar,{backgroundColor:"#EB984E"}]} />
+  <View style={[styles.bar,{backgroundColor:"#E74C3C"}]} />
+  </View>
+
+  <View style={styles.greenBox}>
+  <Text style={styles.bigText}>
+  น้ำหนักที่เหมาะสำหรับคุณ {minWeight}-{maxWeight} kg
+  </Text>
+
+  {weightToLose > 0 && (
+  <Text style={styles.smallText}>
+  ควรลดประมาณ {weightToLose} kg
+  </Text>
+  )
 }
-
-else if (bmiValue < 23) {
-advice.push("รักษาพฤติกรรมการกินที่ดี");
-advice.push("ออกกำลังกายสม่ำเสมอ");
-}
-
-else if (bmiValue < 25) {
-advice.push("ควบคุมปริมาณแคลอรี่");
-advice.push("ลดน้ำตาลและของหวาน");
-}
-
-else {
-advice.push("ควบคุมแคลอรี่");
-advice.push("เพิ่มคาร์ดิโอ เช่น เดินเร็ว วิ่ง ปั่นจักรยาน");
-advice.push("Strength Training 2-3 ครั้ง/สัปดาห์");
-}
-
-// age condition
-if (age > 40) {
-advice.push("เพิ่มคาร์ดิโอเพื่อสุขภาพหัวใจ");
-}
-
-// gender condition
-if (gender === "female") {
-advice.push("เพิ่มอาหารที่มีธาตุเหล็ก เช่น ผักใบเขียว");
-}
-
-if (gender === "male") {
-advice.push("เพิ่มโปรตีนเพื่อเสริมสร้างกล้ามเนื้อ");
-}
-
-// general health
-advice.push("ดื่มน้ำวันละ 1.5 - 2 ลิตร");
-advice.push("นอนหลับอย่างน้อย 7-8 ชั่วโมง");
-
-return advice;
-
-};
-
-const adviceList = generateAdvice();
-
-return (
-
-<ScrollView style={styles.container}>
-
-<Text style={styles.title}>BMI</Text>
-
-<Text style={styles.bmiValue}>{bmi}</Text>
-
-<View style={styles.categoryBox}>
-<Text style={styles.categoryText}>{category}</Text>
-</View>
-
-{/* BMI BAR */}
-<View style={styles.barContainer}>
-<View style={[styles.bar,{backgroundColor:"#5DADE2"}]} />
-<View style={[styles.bar,{backgroundColor:"#58D68D"}]} />
-<View style={[styles.bar,{backgroundColor:"#F4D03F"}]} />
-<View style={[styles.bar,{backgroundColor:"#EB984E"}]} />
-<View style={[styles.bar,{backgroundColor:"#E74C3C"}]} />
-</View>
-
-<View style={styles.greenBox}>
-<Text style={styles.bigText}>
-น้ำหนักที่เหมาะสำหรับคุณ {minWeight}-{maxWeight} kg
-</Text>
-
-{weightToLose > 0 && (
-<Text style={styles.smallText}>
-ควรลดประมาณ {weightToLose} kg
-</Text>
-)}
 
 </View>
 

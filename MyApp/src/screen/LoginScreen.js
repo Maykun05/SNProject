@@ -37,7 +37,6 @@ const LoginScreen = ({ navigation }) => {
       });
 
       const data = await res.json();
-      // console.log("LOGIN RESPONSE:", data);
 
 
       if (!res.ok) {

@@ -73,8 +73,6 @@ const PersonalInfoScreen = ({ navigation }) => {
         throw new Error(data.message);
       }
 
-      console.log("Profile saved:", data);
-
       navigation.navigate("Select");
 
     } catch (err) {

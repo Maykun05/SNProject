@@ -37,18 +37,20 @@ export default function HomeScreen({ navigation }) {
   } = useHomeState();
 
   const handleLogout = async () => {
-
-    await AsyncStorage.removeItem("token");
+    await AsyncStorage.clear();
     navigation.replace("Login");
   }; //เทสล้อกเอ้า
 
-  const visibleFeatures = FEATURES.filter(
-    f => enabledFeatures[f.key] !== false
-  );
+  const visibleFeatures = Object.keys(enabledFeatures)
+    .filter(key => enabledFeatures[key])
+    .map(key => FEATURES.find(f => f.key === key))
+    .filter(Boolean);
 
   const doneCount = visibleFeatures.filter(
     f => doneMap[f.key]
   ).length;
+
+
 
   const treeImage =
     TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];

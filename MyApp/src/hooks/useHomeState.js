@@ -20,39 +20,41 @@ export default function useHomeState() {
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [lastSleepHours, setLastSleepHours] = useState(6);
 
-  const loadTodayStatus = async () => {
-    const today = todayKey();
-    const result = {};
+  const loadTodayStatus = async (featuresOverride) => {
+  const today = todayKey();
+  const result = {};
 
-    for (const f of FEATURES) {
-      if (f.key === 'mood') {
-        const mood = await getMoodByDate(today);
-        result.mood = !!mood;
-      } else if (f.key === 'sleep') {
-        try {
-          const latest = await getLatestSleep(); // เรียก service ที่ยิง fetch ไป backend
-          result.sleep = !!latest;               // ถ้ามี record วันนี้ = true
-          setLastSleepHours(latest?.hours || 6); // เก็บค่าไว้ใช้เป็น initialHours ของ SleepQuickPicker
-        } catch (err) {
-          result.sleep = false;
-        }
-      } else {
-        const value = await AsyncStorage.getItem(
-          `daily_${f.key}_${today}`
-        );
-        result[f.key] = !!value;
+  // 🔥 ใช้ตัวใหม่ ถ้ามี
+  const activeFeatures = featuresOverride || enabledFeatures;
+
+  for (const f of FEATURES.filter(f => activeFeatures[f.key])) {
+    if (f.key === 'mood') {
+      const mood = await getMoodByDate(today);
+      result.mood = !!mood;
+    } else if (f.key === 'sleep') {
+      try {
+        const latest = await getLatestSleep();
+        result.sleep = !!latest;
+        setLastSleepHours(latest?.hours || 6);
+      } catch (err) {
+        result.sleep = false;
       }
+    } else {
+      const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
+      result[f.key] = !!value;
     }
+  }
 
-    setDoneMap(result);
-  };
+  setDoneMap(result);
+};
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         const features = await getHomeFeatures();
+
         setEnabledFeatures(features);
-        await loadTodayStatus();
+        await loadTodayStatus(features);
       };
       load();
     }, [])
@@ -101,8 +103,13 @@ export default function useHomeState() {
         ...enabledFeatures,
         [key]: !enabledFeatures[key],
       };
-      setEnabledFeatures(updated);
       await saveHomeFeatures(updated);
+
+      // 🔥 ดึงจาก backend ใหม่
+      const fresh = await getHomeFeatures();
+
+      setEnabledFeatures(fresh);
+      await loadTodayStatus(fresh);
     },
     lastSleepHours,
 

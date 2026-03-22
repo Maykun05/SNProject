@@ -94,7 +94,14 @@ export const registerUser = async ({ username, email, password }) => {
     { expiresIn: "7d" }
   );
 
-  return { token };
+  return {
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    },
+  };
 };
 
 export const loginUser = async ({ email, password }) => {

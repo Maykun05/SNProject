@@ -81,7 +81,7 @@ export const getAllMoods = async (month, year) => {
 
     return mapped; // return ของเดือนนั้น
   } catch (err) {
-    console.log("⚠️ fallback local", err);
+    console.log("fallback local", err);
     return localFiltered;
   }
 };

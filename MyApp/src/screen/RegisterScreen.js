@@ -49,6 +49,7 @@ const RegisterScreen = ({ navigation }) => {
       }
 
       await AsyncStorage.setItem("token", data.token);
+      await AsyncStorage.setItem("userId", data.user.id.toString()); 
       navigation.replace("PersonalInfo");
 
     } catch (err) {

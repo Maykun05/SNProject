@@ -20,21 +20,22 @@ export const updateUserFeatures = async (userId, featureIds) => {
 
   const newFeatures = featureIds.map(fid => ({ userId, featureId: fid }));
 
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      features: { create: newFeatures },
-    },
-    include: {
-      features: { include: { feature: true } },
-    },
+  await prisma.userFeature.createMany({ data: newFeatures });
+
+  const updated = await prisma.userFeature.findMany({
+    where: { userId },
+    include: { feature: true },
   });
+
+  return updated;
 };
 
 // ดึง feature ของ user
 export const getUserFeatures = async (userId) => {
-  return prisma.userFeature.findMany({
+  const features = await prisma.userFeature.findMany({
     where: { userId },
     include: { feature: true },
   });
+
+  return features; // ✅ คืนค่าเฉพาะ relation ที่ user มีจริง
 };
