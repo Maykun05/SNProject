@@ -24,6 +24,7 @@ model User {
 
   features  UserFeature[]
   moods     MoodLog[]
+  sleeps    Sleep[]
   progress  DailyProgress[]
 }
 
@@ -85,4 +86,14 @@ model DailyProgress {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
+}
+
+model Sleep {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  user   User     @relation(fields: [userId], references: [id])
+  hours  Int
+  date   DateTime 
+
+  @@unique([userId, date])  
 }

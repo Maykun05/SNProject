@@ -33,6 +33,7 @@ export default function HomeScreen({ navigation }) {
     setMoodToday,
     setSleepToday,
     toggleFeature,
+    lastSleepHours,
   } = useHomeState();
 
   const handleLogout = async () => {
@@ -91,6 +92,7 @@ export default function HomeScreen({ navigation }) {
 
       <SleepQuickPicker
         visible={showSleepPicker}
+        initialHours={lastSleepHours}
         onSelect={setSleepToday}
       />
 

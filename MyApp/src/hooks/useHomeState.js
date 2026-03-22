@@ -6,6 +6,8 @@ import { FEATURES } from '../constants/features';
 import { getHomeFeatures, saveHomeFeatures } from '../services/homeFeatureService';
 import { getMoodByDate, setMoodByDate } from '../services/moodService';
 import { getLocalDateKey } from '../utils/dateUtils';
+import { saveSleepToDB, getLatestSleep} from '../services/sleepService';
+
 const todayKey = () => getLocalDateKey();
 
 export default function useHomeState() {
@@ -16,6 +18,7 @@ export default function useHomeState() {
   const [showMoodPicker, setShowMoodPicker] = useState(false);
   const [showSleepPicker, setShowSleepPicker] = useState(false);
   const [showFeatureModal, setShowFeatureModal] = useState(false);
+  const [lastSleepHours, setLastSleepHours] = useState(6);
 
   const loadTodayStatus = async () => {
     const today = todayKey();
@@ -26,10 +29,13 @@ export default function useHomeState() {
         const mood = await getMoodByDate(today);
         result.mood = !!mood;
       } else if (f.key === 'sleep') {
-        const value = await AsyncStorage.getItem(
-          `daily_sleep_${today}`
-        );
-        result.sleep = !!value;
+        try {
+          const latest = await getLatestSleep(); // เรียก service ที่ยิง fetch ไป backend
+          result.sleep = !!latest;               // ถ้ามี record วันนี้ = true
+          setLastSleepHours(latest?.hours || 6); // เก็บค่าไว้ใช้เป็น initialHours ของ SleepQuickPicker
+        } catch (err) {
+          result.sleep = false;
+        }
       } else {
         const value = await AsyncStorage.getItem(
           `daily_${f.key}_${today}`
@@ -75,6 +81,7 @@ export default function useHomeState() {
     showSleepPicker,
     showFeatureModal,
     setShowFeatureModal,
+
     onPressFeature,
     loadTodayStatus,
     setMoodToday: async (key) => {
@@ -83,14 +90,12 @@ export default function useHomeState() {
       await loadTodayStatus();
       setShowMoodPicker(false);
     },
-    setSleepToday: async (key) => {
-      await AsyncStorage.setItem(
-        `daily_sleep_${todayKey()}`,
-        key
-      );
+    setSleepToday: async (hours) => {
+      await saveSleepToDB(hours); // เรียก service
       await loadTodayStatus();
       setShowSleepPicker(false);
     },
+
     toggleFeature: async (key) => {
       const updated = {
         ...enabledFeatures,
@@ -99,5 +104,7 @@ export default function useHomeState() {
       setEnabledFeatures(updated);
       await saveHomeFeatures(updated);
     },
+    lastSleepHours,
+
   };
 }
