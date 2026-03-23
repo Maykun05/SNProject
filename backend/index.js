@@ -1,26 +1,30 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config(); // ตรวจสอบว่ามีบรรทัดนี้เพื่อดึงค่าจาก .env
+
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+import userRoutes from "./src/routes/userRoutes.js";
+import moodRoutes from "./src/routes/moodRoutes.js";
+import sleepRoutes from "./src/routes/sleepRoutes.js";
+
+dotenv.config();
 
 const app = express();
-const apiRoutes = require('./routes/api');
 
-// --- Middleware ---
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// --- Routes ---
-app.use('/api', apiRoutes); 
-
-app.get('/', (req, res) => {
-    res.send('Health Tracking API is running...');
+// test route
+app.get("/", (req, res) => {
+  res.send("API WORKING");
 });
 
-// --- Server Setup ---
-// เปลี่ยนจาก process.env.PORT เป็นชื่อที่ตรงกับใน .env ของคุณ (ใน .env คุณใช้ PORT=4000)
-const PORT = process.env.PORT || 3000; 
+// routes
+app.use("/api", userRoutes);
+app.use("/api/mood", moodRoutes);
+app.use("/api/sleep", sleepRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+
+app.listen(3000,'0.0.0.0',() => {
+  console.log("SERVER STARTED ON 3000");
 });

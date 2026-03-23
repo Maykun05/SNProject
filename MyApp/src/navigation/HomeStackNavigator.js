@@ -16,7 +16,6 @@ export default function HomeStackNavigator() {
       />
 
       <Stack.Screen name="Exercise" component={ExerciseScreen} />
-      <Stack.Screen name="Select" component={FeatureSelectionScreen} />
       <Stack.Screen name="Calorie" component={CalScreen} />
       <Stack.Screen name="WaterScreen" component={WaterScreen} />
 

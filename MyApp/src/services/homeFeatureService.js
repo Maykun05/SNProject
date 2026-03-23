@@ -1,65 +1,97 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'HOME_FEATURES';
+const API_URL = "http://192.168.1.48:3000";
 
 /* ======================
-   ค่าเริ่มต้น (ครั้งแรก)
+   key สำหรับ cache ต่อ user
 ====================== */
-const DEFAULT_FEATURES = {
-  mood: true,
-  exercise: true,
-  water: true,
-  sleep: true,
-  calorie: true,
+const getUserKey = async () => {
+  const userId = await AsyncStorage.getItem("userId");
+  const key = userId ? `HOME_FEATURES_${userId}` : 'HOME_FEATURES_GUEST';
+
+  return key;
 };
 
 /* ======================
-   โหลดฟีเจอร์ที่เลือก
+   โหลดฟีเจอร์ (DB → fallback local)
 ====================== */
 export const getHomeFeatures = async () => {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      return JSON.parse(raw);
-    }
+  const token = await AsyncStorage.getItem("token");
 
-    // ถ้ายังไม่เคยมี → set ค่า default
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(DEFAULT_FEATURES)
-    );
-    return DEFAULT_FEATURES;
+  // 🔥 1. โหลด local ก่อน
+  const key = await getUserKey();
+  const raw = await AsyncStorage.getItem(key);
+  const local = raw ? JSON.parse(raw) : {};
+
+
+  // 🔥 2. ยิง API
+  try {
+
+    const res = await fetch(`${API_URL}/api/features`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("API fail");
+
+    const data = await res.json();
+
+    // 🔥 3. sync ลง local
+    await AsyncStorage.setItem(key, JSON.stringify(data));
+
+    return data;
   } catch (err) {
-    console.error('getHomeFeatures error:', err);
-    return DEFAULT_FEATURES;
+    console.log("API ERROR:", err);
+    console.log("USING LOCAL INSTEAD:", local);
+
+    return local;
   }
 };
 
 /* ======================
-   บันทึกฟีเจอร์ที่เลือก
+   save ฟีเจอร์ (optimistic update)
 ====================== */
 export const saveHomeFeatures = async (features) => {
+  const token = await AsyncStorage.getItem("token");
+  const key = await getUserKey();
+
+
+  // 🔥 1. save local ก่อน
+  await AsyncStorage.setItem(key, JSON.stringify(features));
+
+  // 🔥 2. ยิง API
   try {
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(features)
-    );
-    return features;
+    const res = await fetch(`${API_URL}/api/features`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(features),
+    });
+
   } catch (err) {
-    console.error('saveHomeFeatures error:', err);
-    return features;
+    console.log("SAVE API ERROR:", err);
+    console.log("LOCAL ONLY (API FAIL)");
   }
+
+  return features;
 };
 
 /* ======================
-   toggle ฟีเจอร์ (optional helper)
+   toggle helper
 ====================== */
 export const toggleHomeFeature = async (featureKey) => {
+
   const current = await getHomeFeatures();
+
   const updated = {
     ...current,
     [featureKey]: !current[featureKey],
   };
+
   await saveHomeFeatures(updated);
+
   return updated;
 };

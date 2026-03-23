@@ -12,17 +12,55 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-import HomeScreen from './homepage';
+import { API_URL } from  "../config"
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
 
+
 const LoginScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
+  // const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // สั่งให้เปลี่ยนหน้าไปที่ 'Main' ทันที
-    // หมายเหตุ: ตรวจสอบว่าใน App.js ของคุณมี Screen ชื่อ 'Main' อยู่ใน Stack Navigator แล้ว
-    navigation.replace('MainTabs'); 
+  const handleLogin = async() => {
+    try {
+      const res = await fetch(`${API_URL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // username,
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+
+      if (!res.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      const { token, user } = data;
+      
+      if (!token) {
+        throw new Error("Token not found in response");
+      }
+
+      // ✅ save token
+      await AsyncStorage.setItem("token", token);
+
+      // ✅ save userId (สำคัญมาก)
+      await AsyncStorage.setItem("userId", user.id.toString());
+
+      navigation.replace('MainTabs');
+
+    } catch (err) {
+      console.log("LOGIN ERROR:", err);
+    }
   };
 
   return (
@@ -34,7 +72,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.logoBox}>
             <Image
               // ตรวจสอบ Path รูปภาพของคุณให้ถูกต้อง
-              source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/assets/logo.png')}
+              source={require('../assets/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -54,8 +92,10 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.label}>ชื่อ</Text>
             <TextInput
               style={styles.input}
-              value={username}
-              onChangeText={setUsername}
+              value={email}
+              // value={username}
+              onChangeText={setEmail}
+              // onChangeText={setUsername}
               autoCapitalize="none"
               placeholderTextColor="#9E9E9E"
             />

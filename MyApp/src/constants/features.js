@@ -20,7 +20,7 @@ export const FEATURES = [
     position: { bottom: -12, left: '50%', marginLeft: -22 },
   },
   {
-    key: 'calorie',
+    key: 'food',
     label: 'แคลอรี่',
     icon: 'food',
     route: 'Calorie',

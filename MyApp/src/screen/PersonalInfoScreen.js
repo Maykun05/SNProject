@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
 
 const PersonalInfoScreen = ({ navigation }) => {
   const [weight, setWeight] = useState('');
@@ -21,22 +23,62 @@ const PersonalInfoScreen = ({ navigation }) => {
   const [birthDateText, setBirthDateText] = useState('เลือกวันเกิด');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [gender, setGender] = useState('ไม่ระบุเพศ');
+  const [gender, setGender] = useState('OTHER');
   const [exerciseLevel, setExerciseLevel] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const genderOptions = [
-    { key: 'female', label: 'หญิง', icon: 'female' },
-    { key: 'male', label: 'ชาย', icon: 'male' },
-    { key: 'other', label: 'ไม่ระบุเพศ', icon: 'person' },
+    { key: 'FEMALE', label: 'หญิง', icon: 'female' },
+    { key: 'MALE', label: 'ชาย', icon: 'male' },
+    { key: 'OTHER', label: 'ไม่ระบุเพศ', icon: 'person' },
   ];
 
   const exerciseOptions = [
     { level: 0, times: '0 ครั้ง/สัปดาห์', desc: 'ไม่ออกกำลังกาย' },
-    { level: 1, times: '1–2 ครั้ง/สัปดาห์', desc: 'น้อย' },
-    { level: 2, times: '3–4 ครั้ง/สัปดาห์', desc: 'ปานกลาง' },
-    { level: 3, times: '5–6 ครั้ง/สัปดาห์', desc: 'ดี' },
+    { level: 1, times: '1-2 ครั้ง/สัปดาห์', desc: 'น้อย' },
+    { level: 2, times: '3-4 ครั้ง/สัปดาห์', desc: 'ปานกลาง' },
+    { level: 3, times: '5-6 ครั้ง/สัปดาห์', desc: 'ดี' },
     { level: 4, times: '7 ครั้ง/สัปดาห์', desc: 'ดีมาก' },
   ];
+
+  const handleSave = async () => {
+    // if (loading) return;
+    //   setLoading(true);
+    try {
+      if (!isFormValid) {
+        console.log("Form not complete");
+        return;
+      }
+
+      const token = await AsyncStorage.getItem("token");
+
+      const res = await fetch(`${API_URL}/api/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          weight: Number(weight),
+          height: Number(height),
+          birthDate: date.toISOString(),
+          activityLevel: exerciseLevel,
+          gender: gender,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      navigation.navigate("Select");
+
+    } catch (err) {
+      console.log("SAVE PROFILE ERROR:", err);
+    }
+  };
 
   const onDateChange = (event, selectedDate) => {
     if (Platform.OS === 'android') setShowDatePicker(false);
@@ -111,12 +153,12 @@ const PersonalInfoScreen = ({ navigation }) => {
               <Text style={styles.label}>เพศ</Text>
               <View style={styles.genderGrid}>
                 {genderOptions.map((item) => {
-                  const active = gender === item.label;
+                  const active = gender === item.key;
                   return (
                     <TouchableOpacity 
                       key={item.key} 
                       style={[styles.genderBtn, active && styles.btnActive]} 
-                      onPress={() => { Keyboard.dismiss(); setGender(item.label); }}
+                      onPress={() => { Keyboard.dismiss(); setGender(item.key); }}
                     >
                       <Ionicons name={item.icon} size={18} color={active ? '#FFF' : '#2D4F45'} />
                       <Text style={[styles.genderText, active && styles.txtActive]}>{item.label}</Text>
@@ -145,24 +187,15 @@ const PersonalInfoScreen = ({ navigation }) => {
                 })}
               </View>
 
-              {/* ปุ่มบันทึก: จะไปหน้าเลือกฟีเจอร์ (FeatureSelection) */}
               <TouchableOpacity
-  style={[
-    styles.saveBtn,
-    !isFormValid && { opacity: 0.5 }
-  ]}
-  onPress={() => {
-    if (!isFormValid) {
-      console.log("Form not complete");
-      return;
-    }
-
-    navigation.navigate('FeatureSelection');
-  }}
-  activeOpacity={0.8}
->
-  <Text style={styles.saveBtnText}>บันทึก</Text>
-</TouchableOpacity>
+                style={[
+                  styles.saveBtn,
+                  !isFormValid && { opacity: 0.5 }
+                ]}
+                onPress={handleSave}
+              >
+                <Text style={styles.saveBtnText}>บันทึก</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

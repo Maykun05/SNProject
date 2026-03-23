@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, PanResponder, TouchableOpacity, } from 'react-n
 
 const SLIDER_WIDTH = 260;
 
-export default function SleepQuickPicker({ visible, onSelect }) {
-  /* 🔥 Hooks ต้องอยู่บนสุดเสมอ */
-  const [hours, setHours] = useState(6);
-  const thumbX = useRef((6 / 10) * SLIDER_WIDTH);
+export default function SleepQuickPicker({ visible, onSelect, initialHours = 6 }) {
+  const [hours, setHours] = useState(initialHours);
+  const thumbX = useRef((initialHours / 10) * SLIDER_WIDTH);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -54,12 +53,15 @@ export default function SleepQuickPicker({ visible, onSelect }) {
 
       <TouchableOpacity
         style={styles.confirmButton}
-        onPress={() => onSelect(getSleepKey(hours))}
+        onPress={() => {
+          onSelect(hours);
+        }}
+
         >
         <Text style={styles.confirmText}>บันทึกการนอน</Text>
-        </TouchableOpacity>
+      </TouchableOpacity>
 
-      </View>
+    </View>
   );
 }
 

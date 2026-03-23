@@ -21,7 +21,7 @@ export default function FeatureSelectorModal({
           <Text style={styles.title}>เลือกฟีเจอร์</Text>
 
           {features.map(f => {
-            const enabled = enabledFeatures[f.key] !== false;
+            const enabled = enabledFeatures[f.key] === true;
 
             return (
               <TouchableOpacity

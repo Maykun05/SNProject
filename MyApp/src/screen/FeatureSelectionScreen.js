@@ -8,17 +8,36 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
+
+
 
 const FeatureSelectionScreen = ({ navigation }) => {
   // เก็บสถานะฟีเจอร์ที่เลือก (เป็น Array เพื่อให้เลือกได้หลายอย่าง)
   const [selectedFeatures, setSelectedFeatures] = useState([]);
-
+  const handleSave = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await fetch(`${API_URL}/api/features`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      body: JSON.stringify({ features: selectedFeatures })  
+      });
+      navigation.replace("MainTabs");
+    } catch (err) {
+      console.log("SAVE FEATURES ERROR:", err);
+    }
+  };
   const features = [
-    { id: 'water', label: 'บันทึกการดื่มน้ำ', icon: 'water-outline' },
-    { id: 'calories', label: 'บันทึกแคลอรี่', icon: 'fast-food-outline' },
-    { id: 'mood', label: 'บันทึกอารมณ์', icon: 'happy-outline' },
-    { id: 'steps', label: 'บันทึกก้าวเดิน', icon: 'walk-outline' },
-    { id: 'sleep', label: 'บันทึกการนอนหลับ', icon: 'bed-outline' },
+    { id: 1, label: 'บันทึกการดื่มน้ำ', icon: 'water-outline' },
+    { id: 2, label: 'บันทึกแคลอรี่', icon: 'fast-food-outline' },
+    { id: 3, label: 'บันทึกอารมณ์', icon: 'happy-outline' },
+    { id: 5, label: 'บันทึกการออกกำลังกาย', icon: 'walk-outline' },
+    { id: 4, label: 'บันทึกการนอนหลับ', icon: 'bed-outline' },
   ];
 
   const toggleFeature = (id) => {
@@ -79,7 +98,7 @@ const FeatureSelectionScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => navigation.replace('Main')} // ไปหน้าหลักเมื่อเลือกเสร็จ
+            onPress={handleSave}          
           >
             <Text style={styles.saveButtonText}>บันทึก</Text>
           </TouchableOpacity>

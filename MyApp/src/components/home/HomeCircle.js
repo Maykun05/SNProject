@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     height: 260,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative', // 🔥 สำคัญ
+    position: 'relative', 
   },
 
   circle: {

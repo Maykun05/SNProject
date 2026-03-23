@@ -22,7 +22,7 @@ export default function HomeFeatureIcons({ features, doneMap, onPress }) {
 
 const styles = StyleSheet.create({
   icon: {
-    position: 'absolute',   // 🔥 ต้องเป็น absolute
+    position: 'absolute',  
     width: 44,
     height: 44,
     borderRadius: 22,
