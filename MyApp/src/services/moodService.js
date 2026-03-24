@@ -1,4 +1,4 @@
-const API_URL = "http://192.168.1.48:3000";
+import { API_URL } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocalDateKey } from '../utils/dateUtils';
 

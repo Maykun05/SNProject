@@ -65,9 +65,7 @@ export default function CalendarScreen() {
   /* ===== บันทึก / แก้ mood ===== */
   const onSelectMood = async (mood) => {
     await setMoodByDate(selectedDate, mood);
-
-    // 🔥 reload ใหม่ (สำคัญ)
-    loadMoods(month + 1, year);
+    await loadMoods(month + 1, year);
 
     setSelectedDate(null);
   };

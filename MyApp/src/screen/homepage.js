@@ -67,13 +67,14 @@ export default function HomeScreen({ navigation }) {
       </TouchableOpacity> 
 
       <HomeCircle
-        features={visibleFeatures}
+        features={visibleFeatures}     // ใช้เฉพาะฟีเจอร์ที่เลือก
         doneMap={doneMap}
         doneCount={doneCount}
         totalCount={visibleFeatures.length}
         treeImage={treeImage}
         onPressFeature={onPressFeature}
       />
+
 
       <TouchableOpacity
         style={styles.plusCircle}
@@ -83,9 +84,10 @@ export default function HomeScreen({ navigation }) {
       </TouchableOpacity>
 
       <HomeFeatureRow
-        features={visibleFeatures}
+        features={FEATURES}          // แสดงทุกฟีเจอร์
         onPress={onPressFeature}
       />
+
 
       <MoodQuickPicker
         visible={showMoodPicker}
