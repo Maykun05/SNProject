@@ -20,4 +20,5 @@ export const ALL_MISSIONS = {
     { id: 'm4', title: "บันทึกอารมณ์ต่อเนื่องครบ 30 วัน", reward: 500, goal: 30, unit: 'วัน' },
     { id: 'm5', title: "บันทึก Calorie Diary รวม 20 วัน", reward: 500, goal: 20, unit: 'วัน' },
   ]
+  
 };
