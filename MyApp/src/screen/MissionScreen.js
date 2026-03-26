@@ -11,12 +11,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { ALL_MISSIONS } from '../constants/missions';
+import ProfileAvatar from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/components/ProfileAvatar.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ALL_MISSIONS } from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/constants/missions.js';
+import { useProfile } from '../context/ProfileContext';
+
 
 const MissionScreen = () => {
-  const [profileImage, setProfileImage] = useState(null);
+  const { profileImage, setProfileImage } = useProfile();
   const [streak, setStreak] = useState(0);
   const [activeDays, setActiveDays] = useState([]);
   const [coins, setCoins] = useState(0);
@@ -82,30 +84,6 @@ const MissionScreen = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const pickImage = async () => {
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permission.granted) {
-        Alert.alert('Permission required', 'ต้องอนุญาตให้เข้าถึงรูปภาพ');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setProfileImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('pickImage error:', error);
-      Alert.alert('Error', 'ไม่สามารถเลือกรูปภาพได้');
-    }
-  };
 
   const updateStreak = async () => {
     const today = getLocalDateString();
@@ -323,19 +301,7 @@ const currentYearThai = new Date().getFullYear() + 543;
             </View>
           </View>
 
-          <TouchableOpacity onPress={pickImage} style={styles.profileWrapper} activeOpacity={0.8}>
-            <Image
-              source={
-                profileImage
-                  ? { uri: profileImage }
-                  : { uri: 'https://cdn-icons-png.flaticon.com/512/4333/4333609.png' }
-              }
-              style={styles.profileImage}
-            />
-            <View style={styles.editIcon}>
-              <MaterialCommunityIcons name="pencil" size={14} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          <ProfileAvatar />
         </View>
 
         {/* ส่วนของ Monthly Mission */}
@@ -434,26 +400,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 
-  profileWrapper: {
-    position: 'relative',
-  },
-
-  profileImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-
-  editIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#4CAF50',
-    borderRadius: 10,
-    padding: 4,
-  },
   coinWrapper: {
   position: 'absolute',
   left: 0,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import HomeHeader from '../components/home/HomeHeader';
@@ -8,9 +8,10 @@ import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 const TREE_IMAGES = [
   require('../assets/tree_0.png'),
@@ -21,7 +22,7 @@ const TREE_IMAGES = [
   require('../assets/tree_5.png'),
 ];
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
   const {
     doneMap,
     enabledFeatures,
@@ -36,21 +37,12 @@ export default function HomeScreen({ navigation }) {
     lastSleepHours,
   } = useHomeState();
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    navigation.replace("Login");
-  }; //เทสล้อกเอ้า
-
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
     .map(key => FEATURES.find(f => f.key === key))
     .filter(Boolean);
 
-  const doneCount = visibleFeatures.filter(
-    f => doneMap[f.key]
-  ).length;
-
-
+  const doneCount = visibleFeatures.filter(f => doneMap[f.key]).length;
 
   const treeImage =
     TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];
@@ -59,12 +51,10 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       <HomeHeader />
 
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={handleLogout}
-      >
-        <Ionicons name="log-out-outline" size={24} color="#000" />
-      </TouchableOpacity> 
+      {/* ✅ Profile ใช้ component เดียว */}
+      <View style={styles.profilePosition}>
+        <ProfileAvatar size={60} />
+      </View>
 
       <HomeCircle
         features={visibleFeatures}
@@ -75,28 +65,17 @@ export default function HomeScreen({ navigation }) {
         onPressFeature={onPressFeature}
       />
 
-      <TouchableOpacity
-        style={styles.plusCircle}
-        onPress={() => setShowFeatureModal(true)}
-      >
+      <View style={styles.plusCircle}>
         <Ionicons name="add" size={24} color="#fff" />
-      </TouchableOpacity>
+      </View>
 
       <HomeFeatureRow
         features={visibleFeatures}
         onPress={onPressFeature}
       />
 
-      <MoodQuickPicker
-        visible={showMoodPicker}
-        onSelect={setMoodToday}
-      />
-
-      <SleepQuickPicker
-        visible={showSleepPicker}
-        initialHours={lastSleepHours}
-        onSelect={setSleepToday}
-      />
+      <MoodQuickPicker visible={showMoodPicker} onSelect={setMoodToday} />
+      <SleepQuickPicker visible={showSleepPicker} onSelect={setSleepToday} />
 
       <FeatureSelectorModal
         visible={showFeatureModal}
@@ -105,13 +84,20 @@ export default function HomeScreen({ navigation }) {
         onToggle={toggleFeature}
         onClose={() => setShowFeatureModal(false)}
       />
-      
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: 40 },
+
+  profilePosition: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+
   plusCircle: {
     position: 'absolute',
     bottom: 550,
@@ -123,12 +109,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-   logoutBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-  },
-
 });

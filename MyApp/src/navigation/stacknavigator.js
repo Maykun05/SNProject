@@ -4,6 +4,7 @@ import BottomTabNavigator from './BottomTabNavigator';
 import RegisterScreen from '../screen/RegisterScreen.js';
 import FeatureSelectionScreen from '../screen/FeatureSelectionScreen.js';
 import PersonalInfoScreen from '../screen/PersonalInfoScreen.js';
+import ProfileScreen from '../screen/ProfileScreen.js';
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigator() {
@@ -17,6 +18,8 @@ export default function StackNavigator() {
 
       {/* App */}
       <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
+
+      <Stack.Screen name="Profile" component={ProfileScreen} />
     </Stack.Navigator>
     // <Stack.Navigator initialRouteName="Login">
     //   <Stack.Screen
