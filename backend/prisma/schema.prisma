@@ -12,11 +12,17 @@ model User {
   username String
   email    String          @unique
   password String
+
+  coins    Int @default(0)
+
   progress DailyProgress[]
   moods    MoodLog[]
   profile  Profile?
   sleeps   Sleep[]
   features UserFeature[]
+
+  missions MissionProgress[]   
+  transactions CoinTransaction[]
 }
 
 model Profile {
@@ -81,4 +87,35 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+model MissionProgress {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  missionId   String    // อ้างอิงจาก ALL_MISSIONS
+  type        String    // daily | weekly | monthly
+  progress    Int       @default(0)
+  goal        Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, missionId]) // ❗ กันซ้ำ
+}
+
+model CoinTransaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Int
+  source    String   // daily | weekly | monthly
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model MissionReward {
+  id     Int    @id @default(autoincrement())
+  type   String @unique  // daily / weekly / monthly
+  reward Int
 }

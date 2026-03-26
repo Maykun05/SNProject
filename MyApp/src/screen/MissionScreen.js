@@ -19,10 +19,40 @@ const MissionScreen = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [streak, setStreak] = useState(0);
   const [activeDays, setActiveDays] = useState([]);
+  const [coins, setCoins] = useState(0);
 
   const [dailyMissions, setDailyMissions] = useState([]);
   const [weeklyMission, setWeeklyMission] = useState(null);
   const [monthlyMission, setMonthlyMission] = useState(null);
+
+  const [coinsLoaded, setCoinsLoaded] = useState(false);
+
+  const toggleMission = (id) => {
+  setDailyMissions(prev =>
+    prev.map(m => {
+      if (m.id === id) {
+        const newCompleted = !m.completed;
+
+        // ⭐ ได้เหรียญครั้งเดียวเท่านั้น
+        if (newCompleted && !m.rewarded) {
+          setCoins(c => c + m.reward);
+
+          return {
+            ...m,
+            completed: true,
+            rewarded: true,
+          };
+        }
+
+        return {
+          ...m,
+          completed: newCompleted,
+        };
+      }
+      return m;
+    })
+  );
+};
 
   useEffect(() => {
     updateStreak();
@@ -34,7 +64,13 @@ const MissionScreen = () => {
     };
 
     // สุ่มและตั้งค่า State (สุ่มครั้งเดียวตอนเข้าหน้าจอ)
-    setDailyMissions(getRandom(ALL_MISSIONS.daily, 3));
+    setDailyMissions(
+      getRandom(ALL_MISSIONS.daily, 3).map(m => ({
+        ...m,
+        completed: false,
+        rewarded: false,
+      }))
+    );
     setWeeklyMission(getRandom(ALL_MISSIONS.weekly, 1)[0]);
     setMonthlyMission(getRandom(ALL_MISSIONS.monthly, 1)[0]);
   }, []);
@@ -122,9 +158,60 @@ const MissionScreen = () => {
   };
 
   useEffect(() => {
-    updateStreak();
-  }, []);
+  const loadDaily = async () => {
+    const today = getLocalDateString();
+    const saved = await AsyncStorage.getItem('DAILY_MISSIONS');
 
+    const getRandom = (arr, n) => {
+      const shuffled = [...arr].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, n);
+    };
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      if (parsed.date === today) {
+        setDailyMissions(parsed.missions);
+        return;
+      }
+    }
+
+    // ⭐ สุ่มใหม่ (วันใหม่)
+    const newMissions = getRandom(ALL_MISSIONS.daily, 3).map(m => ({
+      ...m,
+      completed: false,
+      rewarded: false,
+    }));
+
+    setDailyMissions(newMissions);
+
+    await AsyncStorage.setItem(
+      'DAILY_MISSIONS',
+      JSON.stringify({
+        date: today,
+        missions: newMissions,
+      })
+    );
+  };
+
+  loadDaily();
+}, []);
+
+  useEffect(() => {
+  const loadCoins = async () => {
+    const saved = await AsyncStorage.getItem('COINS');
+    if (saved !== null) setCoins(JSON.parse(saved));
+    setCoinsLoaded(true);
+  };
+
+  loadCoins();
+}, []);
+
+useEffect(() => {
+  if (!coinsLoaded) return;
+  AsyncStorage.setItem('COINS', JSON.stringify(coins));
+}, [coins, coinsLoaded]);
+  
   const MissionCard = ({ title, subtitle, progress, total, timeLeft, color }) => (
     <TouchableOpacity style={styles.card} activeOpacity={0.8}>
       <View style={[styles.accentBar, { backgroundColor: color }]} />
@@ -164,6 +251,52 @@ const MissionScreen = () => {
 
   const today = getLocalDateString();
 
+const DailyMissionGroupCard = ({ missions }) => {
+  const completedCount = missions.filter(m => m.completed).length;
+  const totalCount = missions.length;
+
+  return (
+    <View style={styles.card}>
+      <View style={[styles.accentBar, { backgroundColor: "#4CAF50" }]} />
+
+      {/* ⭐ 0/3 มุมขวาบน */}
+      <Text style={styles.dailyCount}>
+        {completedCount}/{totalCount}
+      </Text>
+
+      <View style={styles.cardContent}>
+        <View style={styles.infoContainer}>
+          <Text style={styles.cardTitle}>ภารกิจประจำวัน</Text>
+
+          {missions.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.dailyItem}
+              onPress={() => toggleMission(item.id)}
+            >
+              <Text style={styles.dailyText}>
+                {item.title} (+{item.reward} 🪙)
+              </Text>
+
+              <View style={styles.progressBarBg}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: item.completed ? "100%" : "0%",
+                      backgroundColor: "#4CAF50",
+                    },
+                  ]}
+                />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+};
+
   // ดึงชื่อเดือนภาษาไทย (เช่น "เมษายน", "พฤษภาคม")
 const currentMonthName = new Intl.DateTimeFormat('th-TH', { month: 'long' }).format(new Date());
 
@@ -176,6 +309,18 @@ const currentYearThai = new Date().getFullYear() + 543;
         <View style={styles.header}>
           <View>
             <Text style={styles.headerSmall}>ภารกิจ</Text>
+          </View>
+
+          <View style={styles.coinWrapper}>
+            <View style={styles.coinIcon}>
+              <Image
+                source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/crown.png')}
+                style={styles.coinImage}
+              />
+            </View>
+            <View style={{ justifyContent: 'center' }}>
+              <Text style={styles.coinText}>{coins}</Text>
+            </View>
           </View>
 
           <TouchableOpacity onPress={pickImage} style={styles.profileWrapper} activeOpacity={0.8}>
@@ -225,7 +370,7 @@ const currentYearThai = new Date().getFullYear() + 543;
           </LinearGradient>
         )}
 
-        <Text style={styles.sectionTitle}>ภารกิจแนะนำ ✨</Text>
+        <Text style={styles.sectionTitle}>ภารกิจทั้งหมด ✨</Text>
 
         {/* 2. ส่วนของ Weekly Mission (แสดง 1 อันที่สุ่มมา) */}
         {weeklyMission && (
@@ -240,37 +385,7 @@ const currentYearThai = new Date().getFullYear() + 543;
         )}
 
         {/* 3. ส่วนของ Daily Missions (แสดง 3 อันที่สุ่มมา) */}
-        {dailyMissions.map((item) => (
-          <MissionCard
-            key={item.id}
-            title="ภารกิจประจำวัน"
-            subtitle={item.title}
-            progress={0} // ตรงนี้ควรดึงมาจาก Database ของ User จริง
-            total={item.goal}
-            timeLeft="23 ชม. 59 นาที"
-            color="#4CAF50"
-          />
-        ))}
-
-        <Text style={styles.sectionTitle}>ภารกิจทั้งหมด ✨</Text>
-
-        <MissionCard
-          title="ภารกิจประจำสัปดาห์"
-          subtitle="สะสมครบ 20 แต้มภารกิจ"
-          progress={12}
-          total={20}
-          timeLeft="เหลืออีก 3 วัน"
-          color="#FF9800"
-        />
-
-        <MissionCard
-          title="ภารกิจประจำวัน"
-          subtitle="เรียนให้ครบ 3 ชม.เพื่อแกะสลักรูปปั้น"
-          progress={0}
-          total={3}
-          timeLeft="เหลือเวลา 13 ชั่วโมง"
-          color="#4CAF50"
-        />
+        <DailyMissionGroupCard missions={dailyMissions} />
 
         <View style={styles.dailyTaskContainer}>
           <View style={styles.dailyHeader}>
@@ -309,6 +424,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 25,
     alignItems: 'center',
+    position: 'relative',
   },
 
   headerSmall: {
@@ -338,6 +454,87 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 4,
   },
+  coinWrapper: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexDirection: 'row',
+  zIndex: 1,
+},
+coinRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+coinBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#3F8F66',
+  borderRadius: 999,
+  paddingVertical: 2,
+  paddingHorizontal: 10,
+  paddingRight: 8,
+  paddingLeft: 4,
+  minWidth: 80,
+  justifyContent: 'center',
+  height: 32,
+},
+
+coinIcon: {
+  width: 28,
+  height: 28,
+  borderRadius: 14,
+  backgroundColor: '#FFC83D',
+  borderWidth: 2,
+  borderColor: '#1E1E1E',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 6,
+},
+
+coinStar: {
+  fontSize: 10,
+  color: '#1E1E1E',
+  fontWeight: 'bold',
+},
+
+coinText: {
+  fontSize: 22,
+  color: '#000000',
+  fontWeight: '600',
+  lineHeight: 20,              // ⭐ ต้องเท่ากับ fontSize
+  includeFontPadding: false,   // ⭐ Android fix
+  textAlignVertical: 'center',
+},
+coinImage: {
+  width: 20,
+  height: 20,
+  resizeMode: 'contain',
+},
+dailyItem: {
+  marginTop: 10,
+},
+
+dailyText: {
+  fontSize: 16,
+  fontWeight: '500',
+  color: "#000",
+  marginBottom: 4,
+  includeFontPadding: false,
+  textAlignVertical: 'center',
+  lineHeight: 22,
+},
+dailyCount: {
+  position: 'absolute',
+  top: 10,
+  right: 15,
+  fontSize: 12,
+  fontWeight: 'bold',
+  color: '#4CAF50',
+},
 
   monthlyCard: {
     margin: 20,
@@ -394,6 +591,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     overflow: 'hidden',
     elevation: 2,
+    position: 'relative',
   },
 
   accentBar: { width: 6 },
