@@ -18,7 +18,7 @@ import { useProfile } from '../context/ProfileContext';
 
 
 const MissionScreen = () => {
-  const { profileImage, setProfileImage } = useProfile();
+  const { profile } = useProfile();
   const [streak, setStreak] = useState(0);
   const [activeDays, setActiveDays] = useState([]);
   const [coins, setCoins] = useState(0);

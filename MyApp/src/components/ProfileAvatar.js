@@ -1,58 +1,27 @@
 import React from 'react';
-import { TouchableOpacity, Image, View, StyleSheet, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { TouchableOpacity, Image, View, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useProfile } from '../context/ProfileContext';
+import { useNavigation } from '@react-navigation/native'; // ✅ เพิ่ม
 
 export default function ProfileAvatar({ size = 60 }) {
-  const { profileImage, setProfileImage } = useProfile();
-
-  const pickImage = async () => {
-    try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permission.granted) {
-        Alert.alert('Permission required', 'ต้องอนุญาตให้เข้าถึงรูปภาพ');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets?.length > 0) {
-        setProfileImage(result.assets[0].uri);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const { profile } = useProfile(); // ✅ ใช้ profile.profileImage แทน profileImage
+  const navigation = useNavigation(); // ✅ เพิ่ม
 
   return (
     <TouchableOpacity
       style={[styles.wrapper, { width: size, height: size }]}
-      onPress={pickImage}
+      onPress={() => navigation.navigate('Profile')} // ✅ เปลี่ยนจาก pickImage → navigate
       activeOpacity={0.8}
     >
       <Image
         source={
-          profileImage
-            ? { uri: profileImage }
+          profile.profileImage
+            ? { uri: profile.profileImage }
             : { uri: 'https://cdn-icons-png.flaticon.com/512/4333/4333609.png' }
         }
-        style={[
-          styles.image,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-          },
-        ]}
+        style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
       />
-
       <View style={styles.editIcon}>
         <MaterialCommunityIcons name="pencil" size={12} color="#fff" />
       </View>

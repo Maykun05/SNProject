@@ -68,14 +68,11 @@ export default function BottomTabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackNavigator}
-        options={{ headerShown: false }}
-      />
+      <Tab.Screen name="Home" component={HomeStackNavigator}options={{ headerShown: false }}/>
       <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="BMI" component={BMIScreen} />
       <Tab.Screen name="Stats" component={Homepage} />
       <Tab.Screen name="Mission" component={MissionScreen} />
-      <Tab.Screen name="Profile"  component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

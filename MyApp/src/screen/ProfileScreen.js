@@ -29,11 +29,11 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleLogout = () => {
-    Alert.alert('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', [
-      { text: 'ยกเลิก', style: 'cancel' },
-      { text: 'ตกลง', onPress: () => logout(), style: 'destructive' },
-    ]);
-  };
+  Alert.alert('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', [
+    { text: 'ยกเลิก', style: 'cancel' },
+    { text: 'ตกลง', onPress: () => logout(navigation), style: 'destructive' },
+  ]);
+};
 
   return (
     <SafeAreaView style={styles.container}>

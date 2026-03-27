@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// ✅ ลบ useNavigation ออก
 
 const ProfileContext = createContext();
 
 const DEFAULT_PROFILE = {
-  name: 'Maykun', // ชื่อเริ่มต้นตาม UI
+  name: 'ธนาพล เจริญสุข',
   email: 'example@email.com',
   phone: '08X-XXX-XXXX',
   profileImage: null,
   coins: 3,
-  // เพิ่มส่วนของเป้าหมายตาม UI
   goals: {
     dailyStep: 5000,
     weeklyStep: 15000,
@@ -30,9 +30,13 @@ export const ProfileProvider = ({ children }) => {
       try {
         const saved = await AsyncStorage.getItem('PROFILE_DATA');
         if (saved) {
-          // ผสมข้อมูลเก่ากับโครงสร้างใหม่ เพื่อป้องกัน error กรณีเพิ่มฟิลด์ใหม่
           const parsed = JSON.parse(saved);
-          setProfile({ ...DEFAULT_PROFILE, ...parsed });
+          setProfile({
+            ...DEFAULT_PROFILE,
+            ...parsed,
+            goals:    { ...DEFAULT_PROFILE.goals,    ...parsed.goals    },
+            settings: { ...DEFAULT_PROFILE.settings, ...parsed.settings },
+          });
         }
       } catch (e) {
         console.error('Load profile error:', e);
@@ -43,7 +47,6 @@ export const ProfileProvider = ({ children }) => {
     loadProfile();
   }, []);
 
-  // บันทึกข้อมูลเมื่อมีการเปลี่ยนแปลง
   useEffect(() => {
     if (!loading) {
       AsyncStorage.setItem('PROFILE_DATA', JSON.stringify(profile));
@@ -57,7 +60,7 @@ export const ProfileProvider = ({ children }) => {
   const updateGoals = (newGoals) => {
     setProfile(prev => ({
       ...prev,
-      goals: { ...prev.goals, ...newGoals }
+      goals: { ...prev.goals, ...newGoals },
     }));
   };
 
@@ -68,17 +71,29 @@ export const ProfileProvider = ({ children }) => {
     }));
   };
 
-  const logout = async () => {
+  // ✅ รับ navigation เป็น parameter แทน
+  const logout = async (navigation) => {
     try {
-      await AsyncStorage.removeItem('PROFILE_DATA'); // ลบเฉพาะข้อมูลโปรไฟล์
+      await AsyncStorage.removeItem('PROFILE_DATA');
       setProfile(DEFAULT_PROFILE);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
     } catch (e) {
       console.error('Logout error:', e);
     }
   };
 
   return (
-    <ProfileContext.Provider value={{ profile, updateProfile, updateGoals, logout, loading }}>
+    <ProfileContext.Provider value={{
+      profile,
+      updateProfile,
+      updateGoals,
+      updateSettings,
+      logout,
+      loading,
+    }}>
       {children}
     </ProfileContext.Provider>
   );
