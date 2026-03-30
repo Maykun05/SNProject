@@ -12,7 +12,6 @@ const todayKey = () => getLocalDateKey();
 
 export default function useHomeState() {
   const navigation = useNavigation();
-
   const [doneMap, setDoneMap] = useState({});
   const [enabledFeatures, setEnabledFeatures] = useState({});
   const [showMoodPicker, setShowMoodPicker] = useState(false);
@@ -21,32 +20,32 @@ export default function useHomeState() {
   const [lastSleepHours, setLastSleepHours] = useState(6);
 
   const loadTodayStatus = async (featuresOverride) => {
-  const today = todayKey();
-  const result = {};
+    const today = todayKey();
+    const result = {};
 
-  // 🔥 ใช้ตัวใหม่ ถ้ามี
-  const activeFeatures = featuresOverride || enabledFeatures;
+    // 🔹 ใช้เฉพาะฟีเจอร์ที่เลือก (enabledFeatures)
+    const activeFeatures = featuresOverride || enabledFeatures;
 
-  for (const f of FEATURES.filter(f => activeFeatures[f.key])) {
-    if (f.key === 'mood') {
-      const mood = await getMoodByDate(today);
-      result.mood = !!mood;
-    } else if (f.key === 'sleep') {
-      try {
-        const latest = await getLatestSleep();
-        result.sleep = !!latest;
-        setLastSleepHours(latest?.hours || 6);
-      } catch (err) {
-        result.sleep = false;
+    for (const f of FEATURES.filter(f => activeFeatures[f.key])) {
+      if (f.key === 'mood') {
+        const mood = await getMoodByDate(today);
+        result.mood = !!mood;
+      } else if (f.key === 'sleep') {
+        try {
+          const latest = await getLatestSleep();
+          result.sleep = !!latest;
+          setLastSleepHours(latest?.hours || 6);
+        } catch (err) {
+          result.sleep = false;
+        }
+      } else {
+        const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
+        result[f.key] = !!value;
       }
-    } else {
-      const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
-      result[f.key] = !!value;
     }
-  }
 
-  setDoneMap(result);
-};
+    setDoneMap(result); // ✅ อัปเดตเฉพาะฟีเจอร์ที่เลือก
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -61,20 +60,18 @@ export default function useHomeState() {
   );
 
   const onPressFeature = (f) => {
-  if (f.key === 'mood') {
-    setShowMoodPicker(prev => !prev);
-    setShowSleepPicker(false);
-  } else if (f.key === 'sleep') {
-    setShowSleepPicker(prev => !prev);
-    setShowMoodPicker(false);
-  } else if (f.key === 'water') {
-    navigation.navigate('WaterScreen');
-  }
-    else {
+    if (f.key === 'mood') {
+      setShowMoodPicker(prev => !prev);
+      setShowSleepPicker(false);
+    } else if (f.key === 'sleep') {
+      setShowSleepPicker(prev => !prev);
+      setShowMoodPicker(false);
+    } else if (f.key === 'water') {
+      navigation.navigate('WaterScreen');
+    } else {
       navigation.navigate(f.route);
     }
   };
-
 
   return {
     doneMap,
@@ -83,7 +80,6 @@ export default function useHomeState() {
     showSleepPicker,
     showFeatureModal,
     setShowFeatureModal,
-
     onPressFeature,
     loadTodayStatus,
     setMoodToday: async (key) => {
