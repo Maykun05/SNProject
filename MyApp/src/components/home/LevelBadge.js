@@ -38,7 +38,7 @@ export default function LevelBadge({ onPress }) {
       {/* Name + XP bar */}
       <View style={styles.infoBox}>
         <Text style={[styles.levelName, { color: levelInfo.color }]}>
-          {levelInfo.name}
+          {levelInfo.displayName}
         </Text>
 
         {/* XP Bar */}

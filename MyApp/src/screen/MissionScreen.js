@@ -157,7 +157,7 @@ const MissionScreen = () => {
               backgroundColor: color,
             }]} />
           </View>
-          <Text style={styles.progressValue}>{progress} / {total}</Text>
+          <Text style={styles.progressValue}>{String(progress)} / {String(total)}</Text>
         </View>
         <Text style={styles.arrow}>›</Text>
       </View>

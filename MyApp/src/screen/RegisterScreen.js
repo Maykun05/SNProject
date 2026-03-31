@@ -54,15 +54,11 @@ const RegisterScreen = ({ navigation }) => {
 
     } catch (err) {
       console.log("REGISTER ERROR:", err);
-      let errorMessage = "เกิดข้อผิดพลาดในการเชื่อมต่อ";
-
-      if (err.message.includes("Network request failed")) {
-        errorMessage = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
-      } else if (err.message.includes("timeout")) {
-        errorMessage = "การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง";
+      if (err.message === "Network request failed") {
+        Alert.alert("การเชื่อมต่อล้มเหลว", "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง");
+      } else {
+        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง");
       }
-
-      Alert.alert("เกิดข้อผิดพลาด", errorMessage);
     } finally {
       setLoading(false);
     }

@@ -26,9 +26,15 @@ const ProfileScreen = ({ navigation }) => {
   const [inputAge,    setInputAge]    = useState(String(profile.age      ?? ''));
 
   // คำนวณ BMI
-  const bmi = profile.weight && profile.height
-    ? (profile.weight / Math.pow(profile.height / 100, 2)).toFixed(1)
-    : '-';
+  const calculateBMI = () => {
+    if (!profile.weight || !profile.height) return '-';
+    const weight = parseFloat(profile.weight);
+    const height = parseFloat(profile.height);
+    if (isNaN(weight) || isNaN(height) || height <= 0) return '-';
+    const bmiValue = weight / Math.pow(height / 100, 2);
+    return isNaN(bmiValue) ? '-' : bmiValue.toFixed(1);
+  };
+  const bmi = calculateBMI();
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -120,12 +126,12 @@ const ProfileScreen = ({ navigation }) => {
         {/* ── Level Badge ── */}
         <View style={styles.levelBadge}>
           <View style={[styles.levelCircle, { borderColor: levelInfo?.color ?? GREEN }]}>
-            <Text style={styles.levelNum}>{level}</Text>
+            <Text style={styles.levelNum}>{String(level)}</Text>
             <Text style={styles.levelLv}>LV</Text>
           </View>
           <View style={styles.levelInfo}>
             <Text style={[styles.levelName, { color: levelInfo?.color ?? GREEN }]}>
-              {levelInfo?.name ?? 'นักสำรวจมือใหม่'}
+              {levelInfo?.displayName ?? 'นักสำรวจมือใหม่'}
             </Text>
             <View style={styles.xpBarBg}>
               <View style={[styles.xpBarFill, {
@@ -133,7 +139,7 @@ const ProfileScreen = ({ navigation }) => {
                 backgroundColor: levelInfo?.color ?? GREEN,
               }]} />
             </View>
-            <Text style={styles.xpText}>{xp} / {xpRequired} XP</Text>
+            <Text style={styles.xpText}>{String(xp)} / {String(xpRequired)} XP</Text>
           </View>
         </View>
 
@@ -141,7 +147,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.nameCard}>
           <View style={styles.coinBadge}>
             <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-            <Text style={styles.coinText}>{profile.coins ?? 0}</Text>
+            <Text style={styles.coinText}>{String(profile.coins ?? 0)}</Text>
           </View>
           <Text style={styles.userNameText}>{profile.name || 'ชื่อผู้ใช้'}</Text>
           <TouchableOpacity
@@ -164,10 +170,10 @@ const ProfileScreen = ({ navigation }) => {
           }}
         >
           {[
-            { label: 'น้ำหนัก', value: profile.weight ? `${profile.weight} kg` : '-', icon: 'scale-bathroom' },
-            { label: 'ส่วนสูง', value: profile.height ? `${profile.height} cm` : '-', icon: 'human-male-height' },
-            { label: 'BMI',     value: bmi,                                             icon: 'heart-pulse'      },
-            { label: 'อายุ',    value: profile.age    ? `${profile.age} ปี`    : '-', icon: 'calendar-account' },
+            { label: 'น้ำหนัก', value: profile.weight ? `${String(profile.weight)} kg` : '-', icon: 'scale-bathroom' },
+            { label: 'ส่วนสูง', value: profile.height ? `${String(profile.height)} cm` : '-', icon: 'human-male-height' },
+            { label: 'BMI',     value: bmi,                                                     icon: 'heart-pulse'      },
+            { label: 'อายุ',    value: profile.age    ? `${String(profile.age)} ปี`    : '-', icon: 'calendar-account' },
           ].map((item, index) => (
             <View key={index} style={styles.healthCard}>
               <MaterialCommunityIcons name={item.icon} size={18} color={GREEN} />
@@ -203,7 +209,7 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.value}>{(profile.goals?.dailyStep ?? 5000).toLocaleString()} ก้าว</Text>
             <View style={styles.divider} />
             <Text style={styles.label}>น้ำหนักเป้าหมาย</Text>
-            <Text style={styles.value}>{profile.goals?.weightGoal ? `${profile.goals.weightGoal} kg` : '-'}</Text>
+            <Text style={styles.value}>{profile.goals?.weightGoal ? `${String(profile.goals.weightGoal)} kg` : '-'}</Text>
           </TouchableOpacity>
         </View>
 

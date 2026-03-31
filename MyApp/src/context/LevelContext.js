@@ -5,16 +5,16 @@ const LevelContext = createContext();
 
 // ── ชื่อเลเวลตาม level ──
 const LEVEL_NAMES = [
-  { min: 1,  max: 3,   name: '🌱 นักสำรวจมือใหม่',    color: '#81C784' },
-  { min: 4,  max: 7,   name: '🚶 ผู้เริ่มต้นสุขภาพ',   color: '#4FC3F7' },
-  { min: 8,  max: 12,  name: '💪 นักสะสมสุขภาพ',       color: '#FFB74D' },
-  { min: 13, max: 18,  name: '🏃 นักวิ่งชีวิต',         color: '#F06292' },
-  { min: 19, max: 25,  name: '⚡ ผู้เชี่ยวชาญสุขภาพ',  color: '#BA68C8' },
-  { min: 26, max: 35,  name: '🔥 นักรบสุขภาพ',          color: '#FF7043' },
-  { min: 36, max: 50,  name: '🌟 ผู้พิชิตร่างกาย',      color: '#FFD700' },
-  { min: 51, max: 75,  name: '👑 เจ้าแห่งสุขภาพ',       color: '#00BCD4' },
-  { min: 76, max: 99,  name: '🏆 ตำนานสุขภาพ',          color: '#FF6F00' },
-  { min: 100,max: 999, name: '✨ เทพสุขภาพ',             color: '#E91E63' },
+  { min: 1,   max: 3,   emoji: '🌱', name: 'นักสำรวจมือใหม่',   color: '#81C784' },
+  { min: 4,   max: 7,   emoji: '🚶', name: 'ผู้เริ่มต้นสุขภาพ',  color: '#4FC3F7' },
+  { min: 8,   max: 12,  emoji: '💪', name: 'นักสะสมสุขภาพ',      color: '#FFB74D' },
+  { min: 13,  max: 18,  emoji: '🏃', name: 'นักวิ่งชีวิต',        color: '#F06292' },
+  { min: 19,  max: 25,  emoji: '⚡', name: 'ผู้เชี่ยวชาญสุขภาพ', color: '#BA68C8' },
+  { min: 26,  max: 35,  emoji: '🔥', name: 'นักรบสุขภาพ',         color: '#FF7043' },
+  { min: 36,  max: 50,  emoji: '🌟', name: 'ผู้พิชิตร่างกาย',     color: '#FFD700' },
+  { min: 51,  max: 75,  emoji: '👑', name: 'เจ้าแห่งสุขภาพ',      color: '#00BCD4' },
+  { min: 76,  max: 99,  emoji: '🏆', name: 'ตำนานสุขภาพ',         color: '#FF6F00' },
+  { min: 100, max: 999, emoji: '✨', name: 'เทพสุขภาพ',            color: '#E91E63' },
 ];
 
 // XP ที่ต้องการต่อเลเวล (เพิ่มขึ้นเรื่อยๆ)
@@ -22,8 +22,11 @@ export const xpForLevel = (level) => Math.floor(100 * Math.pow(1.3, level - 1));
 
 export const getLevelInfo = (level) => {
   const info = LEVEL_NAMES.find(l => level >= l.min && level <= l.max)
-    || LEVEL_NAMES[LEVEL_NAMES.length - 1];
-  return info;
+    ?? LEVEL_NAMES[LEVEL_NAMES.length - 1];
+  return {
+    ...info,
+    displayName: `${info.emoji} ${info.name}`, // ✅ รวมเป็น string เดียว
+  };
 };
 
 // XP ที่ได้จากแต่ละกิจกรรม
