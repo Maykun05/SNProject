@@ -1,5 +1,12 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
+
 }
 
 datasource db {
@@ -8,46 +15,52 @@ datasource db {
 }
 
 model User {
-  id       Int             @id @default(autoincrement())
-  username String
-  email    String          @unique
-  password String
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  username  String
 
-  coins    Int @default(0)
+  profile   Profile?
 
-  progress DailyProgress[]
-  moods    MoodLog[]
-  profile  Profile?
-  sleeps   Sleep[]
-  features UserFeature[]
-
-  missions MissionProgress[]   
-  transactions CoinTransaction[]
+  features  UserFeature[]
+  moods     MoodLog[]
+  sleeps    Sleep[]
+  progress  DailyProgress[]
 }
 
 model Profile {
-  id            Int       @id @default(autoincrement())
-  userId        Int       @unique
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
   weight        Float?
   height        Float?
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
-  user          User      @relation(fields: [userId], references: [id])
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 model Feature {
-  id    Int           @id @default(autoincrement())
-  name  String        @unique
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
   users UserFeature[]
 }
 
 model UserFeature {
-  id        Int     @id @default(autoincrement())
+  id        Int @id @default(autoincrement())
+
   userId    Int
   featureId Int
-  feature   Feature @relation(fields: [featureId], references: [id])
+
   user      User    @relation(fields: [userId], references: [id])
+  feature   Feature @relation(fields: [featureId], references: [id])
 }
 
 model MoodLog {
@@ -56,7 +69,8 @@ model MoodLog {
   mood   String
   note   String?
   date   DateTime
-  user   User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
 }
@@ -68,7 +82,8 @@ model DailyProgress {
   completed Int
   total     Int
   treeLevel Int
-  user      User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
 }
@@ -76,46 +91,9 @@ model DailyProgress {
 model Sleep {
   id     Int      @id @default(autoincrement())
   userId Int
-  hours  Int
-  date   DateTime
   user   User     @relation(fields: [userId], references: [id])
+  hours  Int
+  date   DateTime 
 
-  @@unique([userId, date])
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-}
-
-model MissionProgress {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  missionId   String    // อ้างอิงจาก ALL_MISSIONS
-  type        String    // daily | weekly | monthly
-  progress    Int       @default(0)
-  goal        Int
-  isCompleted Boolean   @default(false)
-  completedAt DateTime?
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, missionId]) // ❗ กันซ้ำ
-}
-
-model CoinTransaction {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  amount    Int
-  source    String   // daily | weekly | monthly
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model MissionReward {
-  id     Int    @id @default(autoincrement())
-  type   String @unique  // daily / weekly / monthly
-  reward Int
+  @@unique([userId, date])  
 }

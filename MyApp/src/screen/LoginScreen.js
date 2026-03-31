@@ -18,13 +18,11 @@ const { width } = Dimensions.get('window');
 
 
 const LoginScreen = ({ navigation }) => {
-
   // const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async() => {
-
     try {
       const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
@@ -122,13 +120,13 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
           
           <View style={styles.footer}>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.signUpText}>สมัครสมาชิก</Text>
-            </TouchableOpacity>
             <TouchableOpacity>
               <Text style={styles.forgotText}>ลืมรหัสผ่าน?</Text>
             </TouchableOpacity>
-          
+            
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.signUpText}>สมัครสมาชิก</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
