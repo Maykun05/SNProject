@@ -1,23 +1,12 @@
-import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+import Navigator from './src/navigation/stacknavigator'
 import { NavigationContainer } from '@react-navigation/native';
-import Navigator from './src/navigation/stacknavigator';
-import { ProfileProvider } from './src/context/ProfileContext';
-import { WaterProvider }   from './src/context/WaterContext';
-import { StepProvider }    from './src/context/StepContext';
-import { LevelProvider }   from './src/context/LevelContext'; // ✅ เพิ่ม
-
 export default function App() {
-  return (
-    <ProfileProvider>
-      <WaterProvider>
-        <StepProvider>
-          <LevelProvider> {/* ✅ เพิ่ม */}
-            <NavigationContainer>
-              <Navigator />
-            </NavigationContainer>
-          </LevelProvider>
-        </StepProvider>
-      </WaterProvider>
-    </ProfileProvider>
-  );
+    return(
+      <NavigationContainer>
+         <Navigator />
+      </NavigationContainer>
+    );
 }
+
