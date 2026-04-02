@@ -9,17 +9,16 @@ datasource db {
 
 model User {
   id       Int             @id @default(autoincrement())
-  username String
   email    String          @unique
   password String
-
-  coins    Int @default(0)
-
-  progress DailyProgress[]
-  moods    MoodLog[]
-  profile  Profile?
-  sleeps   Sleep[]
+  username String
+  
+  profile   Profile?
+  
   features UserFeature[]
+  moods    MoodLog[]
+  sleeps   Sleep[]
+  progress DailyProgress[]
 
   missions MissionProgress[]   
   transactions CoinTransaction[]
@@ -33,21 +32,33 @@ model Profile {
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
+
   user          User      @relation(fields: [userId], references: [id])
+
+  coins    Int @default(0)
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 model Feature {
   id    Int           @id @default(autoincrement())
   name  String        @unique
+
   users UserFeature[]
 }
 
 model UserFeature {
   id        Int     @id @default(autoincrement())
+
   userId    Int
   featureId Int
-  feature   Feature @relation(fields: [featureId], references: [id])
+
   user      User    @relation(fields: [userId], references: [id])
+  feature   Feature @relation(fields: [featureId], references: [id])
 }
 
 model MoodLog {
@@ -56,6 +67,7 @@ model MoodLog {
   mood   String
   note   String?
   date   DateTime
+
   user   User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
@@ -68,6 +80,7 @@ model DailyProgress {
   completed Int
   total     Int
   treeLevel Int
+
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
@@ -76,17 +89,12 @@ model DailyProgress {
 model Sleep {
   id     Int      @id @default(autoincrement())
   userId Int
+  user   User     @relation(fields: [userId], references: [id])
   hours  Int
   date   DateTime
-  user   User     @relation(fields: [userId], references: [id])
+  
 
   @@unique([userId, date])
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
 }
 
 model MissionProgress {

@@ -38,11 +38,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapper: {
-    width: 36, height: 36,
-    justifyContent: 'center', alignItems: 'center',
+    width: 36, 
+    height: 36,
+    justifyContent: 'center', 
+    alignItems: 'center',
   },
   text: { fontSize: 12, marginTop: 4, textAlign: 'center' },
-  // ✅ style สำหรับรูปภาพ
+  // style สำหรับรูปภาพ
   featureImage: {
     width: 30,
     height: 30,

@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withSpring
-} from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring} from 'react-native-reanimated';
 
 function CircleIcon({ f, index, total, onPressFeature }) {
   const circleSize = 240;
@@ -49,8 +47,12 @@ function CircleIcon({ f, index, total, onPressFeature }) {
 }
 
 export default function HomeCircle({
-  features, doneMap, doneCount,
-  totalCount, treeImage, onPressFeature,
+  features, 
+  doneMap, 
+  doneCount,
+  totalCount, 
+  treeImage, 
+  onPressFeature,
 }) {
   const activeFeatures = features.filter(f => !doneMap[f.key]);
 
@@ -77,24 +79,33 @@ export default function HomeCircle({
 const styles = StyleSheet.create({
   wrapper: {
     alignSelf: 'center',
-    width: 260, height: 260,
-    justifyContent: 'center', alignItems: 'center',
+    width: 260, 
+    height: 260,
+    justifyContent: 'center', 
+    alignItems: 'center',
     position: 'relative',
   },
   circle: {
-    width: 240, height: 240, borderRadius: 120,
-    borderWidth: 3, justifyContent: 'center', alignItems: 'center',
+    width: 240, 
+    height: 240, 
+    borderRadius: 120,
+    borderWidth: 3, 
+    justifyContent: 'center', 
+    alignItems: 'center',
   },
   image: { width: 100, height: 100 },
   text: { marginTop: 6, fontSize: 15 },
   icon: {
     position: 'absolute',
-    width: 44, height: 44, borderRadius: 22,
+    width: 44, 
+    height: 44, 
+    borderRadius: 22,
     backgroundColor: '#abb9a7ff',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center', 
+    alignItems: 'center',
     elevation: 4,
   },
-  // ✅ style สำหรับรูปภาพใน icon
+  // style สำหรับรูปภาพใน icon
   featureImage: {
     width: 30,
     height: 30,

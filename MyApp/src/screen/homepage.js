@@ -8,9 +8,10 @@ import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
+
 import ProfileAvatar from '../components/ProfileAvatar';
 import { useWater } from '../context/WaterContext';
 import { useProfile } from '../context/ProfileContext'; // ✅ เพิ่ม
@@ -28,10 +29,17 @@ const TREE_IMAGES = [
 
 export default function HomeScreen({ navigation }) { // ✅ รับ navigation
   const {
-    doneMap, enabledFeatures,
-    showMoodPicker, showSleepPicker, showFeatureModal,
-    setShowFeatureModal, onPressFeature,
-    setMoodToday, setSleepToday, toggleFeature,
+    doneMap, 
+    enabledFeatures,
+    showMoodPicker, 
+    showSleepPicker, 
+    showFeatureModal,
+    setShowFeatureModal, 
+    onPressFeature,
+    setMoodToday, 
+    setSleepToday, 
+    toggleFeature,
+    lastSleepHours,
   } = useHomeState();
 
   const { consumed: waterConsumed, waterGoal } = useWater();

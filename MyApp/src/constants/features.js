@@ -30,7 +30,6 @@ export const FEATURES = [
     key: 'water',
     label: 'น้ำ',
     icon: 'water',
-    image: require('../assets/water.png'), // ✅ เพิ่ม
     route: 'Water',
     position: { bottom: 24, left: 24 },
   },
