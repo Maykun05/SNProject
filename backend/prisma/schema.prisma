@@ -35,7 +35,7 @@ model Profile {
 
   user          User      @relation(fields: [userId], references: [id])
 
-  coins    Int @default(0)
+  coins         Int @default(0)
 }
 
 enum Gender {

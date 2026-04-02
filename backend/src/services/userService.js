@@ -134,3 +134,36 @@ export const loginUser = async ({ email, password }) => {
   };
 };
 
+export const getProfileStatsService = async (userId) => {
+  const [profile, missions, progress, mood, sleep] = await Promise.all([
+    prisma.profile.findUnique({ where: { userId } }),
+    prisma.missionProgress.count({ where: { userId, isCompleted: true } }),
+    prisma.dailyProgress.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+    prisma.moodLog.findFirst({
+      where: { userId },
+      orderBy: { date: "desc" },
+    }),
+    prisma.sleep.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+  ]);
+
+  const avgSleep = sleep.length
+    ? sleep.reduce((sum, s) => sum + s.hours, 0) / sleep.length
+    : null;
+
+  return {
+    coins: profile?.coins ?? 0,
+    totalMissionsCompleted: missions,
+    latestMood: mood?.mood ?? null,
+    avgSleepHours: avgSleep,
+    recentProgress: progress,
+  };
+};
+

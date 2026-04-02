@@ -1,4 +1,4 @@
-import { registerUser, loginUser, getUserProfile, updateUserProfile } from "../services/userService.js";
+import { registerUser, loginUser, getUserProfile, updateUserProfile, getProfileStatsService } from "../services/userService.js";
 import { getUserFeatures, updateUserFeatures } from "../services/featureService.js";
 
 export const register = async (req, res) => {
@@ -83,6 +83,17 @@ export const saveFeatures = async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("SAVE FEATURES ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// GET /user/profile/stats
+export const getProfileStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const stats = await getProfileStatsService(userId);
+    res.json(stats);
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
