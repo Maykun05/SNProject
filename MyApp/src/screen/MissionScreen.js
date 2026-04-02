@@ -209,7 +209,7 @@ const MissionScreen = () => {
           <View style={styles.coinWrapper}>
             <View style={styles.coinIcon}>
               <Image
-                source={require('../../assets/crown.png')} // ✅ แก้ path
+                source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')} // ✅ แก้ path
                 style={styles.coinImage}
               />
             </View>

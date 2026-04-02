@@ -10,8 +10,6 @@ import EditPersonalInfoScreen from '../screen/EditPersonalInfoScreen.js';
 import EditGoalsScreen from '../screen/EditGoalsScreen.js';
 import PrivacyPolicyScreen from '../screen/PrivacyPolicyScreen.js';
 import NotificationsScreen from '../screen/NotificationsScreen.js';
-import ThemeScreen from '../screen/ThemeScreen.js';
-import LanguageScreen from '../screen/LanguageScreen.js';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,8 +29,6 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="EditGoals"        component={EditGoalsScreen} />
       <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} />
       <Stack.Screen name="Notifications"    component={NotificationsScreen} />
-      <Stack.Screen name="Theme"            component={ThemeScreen} />
-      <Stack.Screen name="Language"         component={LanguageScreen} />
 
     </Stack.Navigator>
   );

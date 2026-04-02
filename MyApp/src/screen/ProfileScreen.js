@@ -8,6 +8,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
+import CoinBadge from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/component/CoinBadge.js';
 
 const GREEN = '#1E4D2B';
 
@@ -123,6 +124,18 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.changePhotoText}>เปลี่ยนรูป</Text>
         </View>
 
+        {/* ── Name Card ── */}
+        <View style={styles.nameCard}>
+          <CoinBadge amount={profile.coins} />
+          <Text style={styles.userNameText}>{profile.name || 'ชื่อผู้ใช้'}</Text>
+          <TouchableOpacity
+            style={styles.editIcon}
+            onPress={() => { setInputName(profile.name || ''); setShowNameModal(true); }}
+          >
+            <Ionicons name="pencil" size={16} color="#3d644a" />
+          </TouchableOpacity>
+        </View>
+
         {/* ── Level Badge ── */}
         <View style={styles.levelBadge}>
           <View style={[styles.levelCircle, { borderColor: levelInfo?.color ?? GREEN }]}>
@@ -141,21 +154,6 @@ const ProfileScreen = ({ navigation }) => {
             </View>
             <Text style={styles.xpText}>{String(xp)} / {String(xpRequired)} XP</Text>
           </View>
-        </View>
-
-        {/* ── Name Card ── */}
-        <View style={styles.nameCard}>
-          <View style={styles.coinBadge}>
-            <MaterialCommunityIcons name="star" size={16} color="#FFD700" />
-            <Text style={styles.coinText}>{String(profile.coins ?? 0)}</Text>
-          </View>
-          <Text style={styles.userNameText}>{profile.name || 'ชื่อผู้ใช้'}</Text>
-          <TouchableOpacity
-            style={styles.editIcon}
-            onPress={() => { setInputName(profile.name || ''); setShowNameModal(true); }}
-          >
-            <Ionicons name="pencil" size={16} color="#999" />
-          </TouchableOpacity>
         </View>
 
         {/* ── ข้อมูลสุขภาพ ── */}
@@ -403,7 +401,7 @@ const styles = StyleSheet.create({
 
   /* ── Name Card ── */
   nameCard: {
-    backgroundColor: '#FFF4E6',
+    backgroundColor: '#8FBC8F',
     marginHorizontal: 20, marginTop: 12,
     paddingVertical: 14, paddingHorizontal: 20,
     borderRadius: 20, flexDirection: 'row',
@@ -412,15 +410,6 @@ const styles = StyleSheet.create({
   },
   userNameText: { fontSize: 18, fontWeight: '700', marginRight: 8, color: '#1a1a1a' },
   editIcon: { padding: 4 },
-  coinBadge: {
-    position: 'absolute', top: -10, right: 12,
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFF', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 20, elevation: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15, shadowRadius: 3, gap: 4,
-  },
-  coinText: { fontWeight: '700', fontSize: 15, color: '#C8861A' },
 
   /* ── Section Label ── */
   sectionLabel: {
@@ -523,6 +512,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3 }, shadowRadius: 5,
   },
   confirmBtnText: { fontSize: 14, color: '#FFF', fontWeight: '700' },
+  coinBadge: {
+    position: 'absolute',   // 👈 เพิ่มตรงนี้
+    top: -10,               // 👈 เพิ่มตรงนี้
+    right: 12,              // 👈 เพิ่มตรงนี้
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFF', paddingHorizontal: 10,
+    paddingVertical: 4, borderRadius: 20, elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 3, gap: 4,
+  },
+  coinIcon: {
+    width: 20,
+    height: 20,
+  },
+  coinText: { fontWeight: '700', fontSize: 15, color: '#C8861A' },
 });
 
 export default ProfileScreen;
