@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'react-native';
 
 export default function HomeFeatureRow({ features, onPress }) {
   return (
@@ -12,7 +13,7 @@ export default function HomeFeatureRow({ features, onPress }) {
           onPress={() => onPress?.(f)}
         >
           <View style={styles.iconWrapper}>
-            <MaterialCommunityIcons name={f.icon} size={26} />
+            <Image source={f.image} style={{ width: 26, height: 26 }} />
           </View>
           <Text style={styles.text}>{f.label}</Text>
         </TouchableOpacity>

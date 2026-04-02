@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View,TouchableOpacity, StyleSheet, Image, 
+  Pressable } from 'react-native';
 import { MOODS } from '../../constants/moods';
 
 export default function MoodQuickPicker({ visible, onSelect }) {
@@ -7,15 +8,14 @@ export default function MoodQuickPicker({ visible, onSelect }) {
 
   return (
     <View style={styles.bar}>
-      {Object.entries(MOODS).map(([key, emoji]) => (
+      {MOODS.map(({ key, image }) => (
         <TouchableOpacity key={key} onPress={() => onSelect(key)}>
-          <Text style={styles.emoji}>{emoji}</Text>
+          <Image source={image} style={styles.icon} />
         </TouchableOpacity>
       ))}
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
@@ -26,5 +26,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 18,
   },
-  emoji: { fontSize: 28 },
+  icon: {
+    width: 40,
+    height: 40,
+    resizeMode: 'contain',
+  },
 });

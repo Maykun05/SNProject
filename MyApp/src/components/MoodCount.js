@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet,Image } from 'react-native';
 import { MOODS } from '../constants/moods';
 
 export default function MoodCount({ moods }) {
@@ -13,9 +13,9 @@ export default function MoodCount({ moods }) {
       <Text style={styles.title}>Mood Count</Text>
 
       <View style={styles.row}>
-        {Object.keys(MOODS).map(key => (
+        {MOODS.map(({ key, image }) => (
           <View key={key} style={styles.item}>
-            <Text style={styles.emoji}>{MOODS[key]}</Text>
+            <Image source={image} style={styles.icon} />
             <Text style={styles.number}>
               {count[key] || 0}
             </Text>
@@ -46,8 +46,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  emoji: {
-    fontSize: 22,
+  icon: { 
+    width: 32, 
+    height: 32, 
+    resizeMode: 'contain' 
   },
   number: {
     marginTop: 4,

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Modal,
-  View,
+  Image,
   Text,
   TouchableOpacity,
   Pressable,
@@ -18,13 +18,13 @@ export default function MoodPickerModal({
     <Modal transparent visible={visible} animationType="fade">
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modal}>
-          {Object.entries(MOODS).map(([key, emoji]) => (
+          {MOODS.map(({ key, image }) => (
             <TouchableOpacity
               key={key}
               onPress={() => onSelect(key)}
               style={styles.item}
             >
-              <Text style={styles.emoji}>{emoji}</Text>
+              <Image source={image} style={styles.icon} />
             </TouchableOpacity>
           ))}
         </Pressable>
@@ -49,7 +49,13 @@ const styles = StyleSheet.create({
   item: {
     marginHorizontal: 8,
   },
-  emoji: {
-    fontSize: 32,
+  image: {
+    width: 40,
+    height: 40,
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    resizeMode: 'contain',
   },
 });
