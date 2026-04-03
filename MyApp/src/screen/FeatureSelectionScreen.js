@@ -6,6 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,11 +34,11 @@ const FeatureSelectionScreen = ({ navigation }) => {
     }
   };
   const features = [
-    { id: 1, label: 'บันทึกการดื่มน้ำ', icon: 'water-outline' },
-    { id: 2, label: 'บันทึกแคลอรี่', icon: 'fast-food-outline' },
-    { id: 3, label: 'บันทึกอารมณ์', icon: 'happy-outline' },
-    { id: 5, label: 'บันทึกการออกกำลังกาย', icon: 'walk-outline' },
-    { id: 4, label: 'บันทึกการนอนหลับ', icon: 'bed-outline' },
+    { id: 1, label: 'บันทึกการดื่มน้ำ', image: require ('../assets/featureIcons/water.png') },
+    { id: 2, label: 'บันทึกแคลอรี่', image: require ('../assets/featureIcons/ffood.png') },
+    { id: 3, label: 'บันทึกอารมณ์', image: require ('../assets/featureIcons/mood.png') },
+    { id: 5, label: 'บันทึกการออกกำลังกาย', image: require ('../assets/featureIcons/step.png') },
+    { id: 4, label: 'บันทึกการนอนหลับ', image: require ('../assets/featureIcons/sleep.png') },
   ];
 
   const toggleFeature = (id) => {
@@ -86,10 +87,11 @@ const FeatureSelectionScreen = ({ navigation }) => {
                       {item.label}
                     </Text>
                   </View>
-                  <Ionicons 
-                    name={item.icon} 
-                    size={22} 
-                    color={isSelected ? "#FFF" : "#999"} 
+                  <Image 
+                    source={item.image} 
+                    style={[
+                      styles.icon, 
+                    ]}
                   />
                 </TouchableOpacity>
               );
@@ -109,6 +111,11 @@ const FeatureSelectionScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  icon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
+  },
   container: { flex: 1, backgroundColor: '#2D4F45' },
   greenHeader: {
     height: 120,

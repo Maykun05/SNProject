@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet,Image } from 'react-native';
-import { MOODS } from '../constants/moods';
-import { getLocalDateKey } from '../utils/dateUtils';
+import { MOODS } from '../../constants/moods';
+import { getLocalDateKey } from '../../utils/dateUtils';
 
 /* ===== utils ===== */
 const getEmptyDays = (year, month) => {

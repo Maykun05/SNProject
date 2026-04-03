@@ -2,9 +2,9 @@ import React, { useCallback, useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import CalendarGrid from '../components/CalendarGrid';
-import MoodPickerModal from '../components/MoodPickerModal';
-import MoodCount from '../components/MoodCount';
+import CalendarGrid from '../components/calender/CalendarGrid';
+import MoodPickerModal from '../components/calender/MoodPickerModal';
+import MoodCount from '../components/calender/MoodCount';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllMoods, setMoodByDate, getLocalMoodsForMonth } from '../services/moodService';
 
@@ -16,36 +16,12 @@ export default function CalendarScreen() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  /* ===== โหลด mood ทั้งหมดครั้งเดียว ===== */
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     loadMoods();
-  //   }, [])
-  // );
-
-  // useEffect(() => { 
-  //   loadMoods(month + 1, year); // 🔥 +1 สำคัญมาก แบบที่2
-  // }, [month, year]);
-
   useFocusEffect(
-  useCallback(() => {
-    loadMoods(month + 1, year);
-  }, [month, year])
-);
+    useCallback(() => {
+      loadMoods(month + 1, year);
+    }, [month, year])
+  );
 
-  // const loadMoods = async () => {
-  //   const data = await getAllMoods();
-  //   setMoods(data);
-  // };
-//   const loadMoods = async (m, y) => {
-//   // 🔥 1. โหลด local ก่อน (เร็ว)
-//   const local = await getLocalMoodsForMonth(m, y);
-//   setMoods(local);
-
-//   // 🔥 2. แล้วค่อยโหลด API
-//   const server = await getAllMoods(m, y);
-//   setMoods(server);
-// };
   const loadMoods = async (m, y) => {
     try {
       const local = await getLocalMoodsForMonth(m, y);
@@ -81,19 +57,6 @@ export default function CalendarScreen() {
       setCurrentDate(next);
     }
   };
-
-  /* =====  filter moods เฉพาะเดือนที่กำลังดู ===== */
-  // const monthlyMoods = useMemo(() => {
-  //   return Object.fromEntries(
-  //     Object.entries(moods).filter(([dateKey]) => {
-  //       const date = new Date(dateKey);
-  //       return (
-  //         date.getFullYear() === year &&
-  //         date.getMonth() === month
-  //       );
-  //     })
-  //   );
-  // }, [moods, year, month]);
 
   return (
     <SafeAreaView style={styles.container}>

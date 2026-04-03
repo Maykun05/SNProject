@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet,Image } from 'react-native';
-import { MOODS } from '../constants/moods';
+import { MOODS } from '../../constants/moods';
 
 export default function MoodCount({ moods }) {
   const count = Object.values(moods).reduce((acc, mood) => {

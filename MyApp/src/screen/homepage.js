@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'react-native-svg';
 import HomeHeader from '../components/home/HomeHeader';
 import HomeCircle from '../components/home/HomeCircle';
 import HomeFeatureRow from '../components/home/HomeFeatureRow';
@@ -49,8 +48,6 @@ export default function HomeScreen({ navigation }) {
   const doneCount = visibleFeatures.filter(
     f => doneMap[f.key]
   ).length;
-
-
 
   const treeImage =
     TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];

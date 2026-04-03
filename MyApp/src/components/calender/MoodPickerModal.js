@@ -7,7 +7,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { MOODS } from '../constants/moods';
+import { MOODS } from '../../constants/moods';
 
 export default function MoodPickerModal({
   visible,
