@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { AuthContext } from "../context/AuthProvider";
 
 const PersonalInfoScreen = ({ navigation }) => {
+  const { userToken } = useContext(AuthContext);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [birthDateText, setBirthDateText] = useState('เลือกวันเกิด');
@@ -42,21 +44,17 @@ const PersonalInfoScreen = ({ navigation }) => {
   ];
 
   const handleSave = async () => {
-    // if (loading) return;
-    //   setLoading(true);
     try {
       if (!isFormValid) {
         console.log("Form not complete");
         return;
       }
 
-      const token = await AsyncStorage.getItem("token");
-
       const res = await fetch(`${API_URL}/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userToken}`,
         },
         body: JSON.stringify({
           weight: Number(weight),

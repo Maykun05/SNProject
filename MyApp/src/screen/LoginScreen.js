@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,14 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
+import { AuthContext } from '../context/AuthProvider';
 import { API_URL } from  "../config"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width } = Dimensions.get('window');
 
 
 const LoginScreen = ({ navigation }) => {
-  // const [username, setUsername] = useState('');
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -37,26 +38,23 @@ const LoginScreen = ({ navigation }) => {
       });
 
       const data = await res.json();
-
-
       if (!res.ok) {
         alert(data.message || "Login failed");
         return;
       }
 
       const { token, user } = data;
-      
       if (!token) {
         throw new Error("Token not found in response");
       }
 
-      // ✅ save token
-      await AsyncStorage.setItem("token", token);
+      // // ✅ save token
+      // await AsyncStorage.setItem("token", token);
 
-      // ✅ save userId (สำคัญมาก)
-      await AsyncStorage.setItem("userId", user.id.toString());
-
-      navigation.replace('MainTabs');
+      // // ✅ save userId (สำคัญมาก)
+      // await AsyncStorage.setItem("userId", user.id.toString());
+      await login(token, user.id);
+      // navigation.replace('MainTabs');
 
     } catch (err) {
       console.log("LOGIN ERROR:", err);

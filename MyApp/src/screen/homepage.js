@@ -7,9 +7,10 @@ import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthProvider';
 
 const TREE_IMAGES = [
   require('../assets/tree_0.png'),
@@ -35,11 +36,11 @@ export default function HomeScreen({ navigation }) {
     lastSleepHours,
   } = useHomeState();
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    navigation.replace("Login");
-  }; //เทสล้อกเอ้า
+  const { logout } = useContext(AuthContext);
 
+  const handleLogout = async () => {
+    await logout();   // เทสล้อกเอ้า
+  };
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
     .map(key => FEATURES.find(f => f.key === key))
@@ -72,7 +73,6 @@ export default function HomeScreen({ navigation }) {
         onPressFeature={onPressFeature}
       />
 
-
       <TouchableOpacity
         style={styles.plusCircle}
         onPress={() => setShowFeatureModal(true)}
@@ -84,8 +84,7 @@ export default function HomeScreen({ navigation }) {
         features={FEATURES}          // แสดงทุกฟีเจอร์
         onPress={onPressFeature}
       />
-
-
+    
       <MoodQuickPicker
         visible={showMoodPicker}
         onSelect={setMoodToday}

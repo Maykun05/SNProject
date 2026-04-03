@@ -4,31 +4,26 @@ import { API_URL } from '../config';
 /* ======================
    key สำหรับ cache ต่อ user
 ====================== */
-const getUserKey = async () => {
-  const userId = await AsyncStorage.getItem("userId");
+const getUserKey = async (userId) => {
   const key = userId ? `HOME_FEATURES_${userId}` : 'HOME_FEATURES_GUEST';
-
   return key;
 };
 
 /* ======================
    โหลดฟีเจอร์ (DB → fallback local)
 ====================== */
-export const getHomeFeatures = async () => {
-  const token = await AsyncStorage.getItem("token");
-
-  // 🔥 1. โหลด local ก่อน
-  const key = await getUserKey();
+export const getHomeFeatures = async (userId, userToken) => {
+  //  1. โหลด local ก่อน
+  const key = await getUserKey(userId);
   const raw = await AsyncStorage.getItem(key);
   const local = raw ? JSON.parse(raw) : {};
 
-
-  // 🔥 2. ยิง API
+  //  2. ยิง API
   try {
 
     const res = await fetch(`${API_URL}/api/features`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -36,7 +31,7 @@ export const getHomeFeatures = async () => {
 
     const data = await res.json();
 
-    // 🔥 3. sync ลง local
+    // 3. sync ลง local
     await AsyncStorage.setItem(key, JSON.stringify(data));
 
     return data;
@@ -51,11 +46,8 @@ export const getHomeFeatures = async () => {
 /* ======================
    save ฟีเจอร์ (optimistic update)
 ====================== */
-export const saveHomeFeatures = async (features) => {
-  const token = await AsyncStorage.getItem("token");
-  const key = await getUserKey();
-
-
+export const saveHomeFeatures = async (features, userToken) => {
+  const key = await getUserKey(userId);
   // 🔥 1. save local ก่อน
   await AsyncStorage.setItem(key, JSON.stringify(features));
 
@@ -65,7 +57,7 @@ export const saveHomeFeatures = async (features) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
       },
       body: JSON.stringify(features),
     });
@@ -81,16 +73,16 @@ export const saveHomeFeatures = async (features) => {
 /* ======================
    toggle helper
 ====================== */
-export const toggleHomeFeature = async (featureKey) => {
+export const toggleHomeFeature = async (featureKey, userId, userToken) => {
 
-  const current = await getHomeFeatures();
+  const current = await getHomeFeatures(userId, userToken);
 
   const updated = {
     ...current,
     [featureKey]: !current[featureKey],
   };
 
-  await saveHomeFeatures(updated);
+  await saveHomeFeatures(updated, userToken);
 
   return updated;
 };

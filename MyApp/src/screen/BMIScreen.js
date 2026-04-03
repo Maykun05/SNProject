@@ -1,10 +1,11 @@
-import {useEffect, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native"; 
 import { API_URL } from "../config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AuthContext } from "../context/AuthProvider";
 
 const BMIScreen = () => {
   const [userData, setUserData] = useState(null);
+  const { userToken } = useContext(AuthContext);
 
   // ฟังก์ชันคำนวณอายุจากวันเกิด
   const calculateAge = (birthday) => {
@@ -21,12 +22,11 @@ const BMIScreen = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
         const res = await fetch(`${API_URL}/api/profile`,{
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-             Authorization: `Bearer ${token}`,
+             Authorization: `Bearer ${userToken}`,
           },
         });
 

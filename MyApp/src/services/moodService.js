@@ -3,20 +3,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocalDateKey } from '../utils/dateUtils';
 
 const STORAGE_KEY = 'MOODS_BY_DATE';
-const getUserKey = async () => {
-  const userId = await AsyncStorage.getItem("userId");
+const getUserKey = async (userId) => {
   if (!userId) return `${STORAGE_KEY}_GUEST`;
   return `${STORAGE_KEY}_${userId}`;
 };
 /* ================== helper ================== */
-const loadLocal = async () => {
-  const key = await getUserKey(); // เปลี่ยนตรงนี้
+const loadLocal = async (userId) => {
+  const key = await getUserKey(userId); 
   const raw = await AsyncStorage.getItem(key);
   return raw ? JSON.parse(raw) : {};
 };
 
-const saveLocal = async (data) => {
-  const key = await getUserKey(); // เปลี่ยนตรงนี้
+const saveLocal = async (userId, data) => {
+  const key = await getUserKey(userId); 
   await AsyncStorage.setItem(key, JSON.stringify(data));
 };
 
@@ -38,9 +37,7 @@ const mapArrayToObject = (data) => {
   return mapped;
 };
 
-export const getAllMoods = async (month, year) => {
-  const token = await AsyncStorage.getItem("token");
-
+export const getAllMoods = async (month, year, userToken, userId) => {
   // 🔥 1. โหลด local ก่อน (เร็ว)
   const local = await loadLocal();
 
@@ -61,7 +58,7 @@ export const getAllMoods = async (month, year) => {
       `${API_URL}/api/mood/month?month=${month}&year=${year}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userToken}`,
         },
       }
     );
@@ -77,7 +74,7 @@ export const getAllMoods = async (month, year) => {
       ...mapped,
     };
 
-    await saveLocal(merged);
+    await saveLocal(userId, merged);
 
     return mapped; // return ของเดือนนั้น
   } catch (err) {
@@ -87,7 +84,7 @@ export const getAllMoods = async (month, year) => {
 };
 
 // โหลดวันเดียว
-export const getMoodByDate = async (dateKey) => {
+export const getMoodByDate = async (dateKey, userToken, userId) => {
   const local = await loadLocal();
 
   // 🔥 ให้ UI render ก่อนเลย
@@ -95,11 +92,9 @@ export const getMoodByDate = async (dateKey) => {
 
   // ค่อยไป fetch
   try {
-    const token = await AsyncStorage.getItem("token");
-
     const res = await fetch(`${API_URL}/api/mood/today`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
       },
     });
 
@@ -110,7 +105,7 @@ export const getMoodByDate = async (dateKey) => {
         ...local,
         [dateKey]: data.mood,
       };
-      await saveLocal(updated);
+      await saveLocal(userId, updated);
     }
 
     return data?.mood || null;
@@ -119,8 +114,8 @@ export const getMoodByDate = async (dateKey) => {
   }
 };
 
-export const getLocalMoodsForMonth = async (month, year) => {
-  const local = await loadLocal();
+export const getLocalMoodsForMonth = async (month, year, userId) => {
+  const local = await loadLocal(userId);
 
   return Object.fromEntries(
     Object.entries(local).filter(([dateKey]) => {
@@ -133,24 +128,17 @@ export const getLocalMoodsForMonth = async (month, year) => {
   );
 };
 
-export const setMoodByDate = async (dateKey, mood) => {
-  const token = await AsyncStorage.getItem("token");
-
-  const local = await loadLocal();
-
-  const updated = {
-    ...local,
-    [dateKey]: mood,
-  };
-
-  await saveLocal(updated);
+export const setMoodByDate = async (dateKey, mood, userToken, userId) => {
+  const local = await loadLocal(userId);
+  const updated = { ...local, [dateKey]: mood };
+  await saveLocal(userId, updated);
 
   try {
     await fetch(`${API_URL}/api/mood`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
       },
       body: JSON.stringify({
         mood,

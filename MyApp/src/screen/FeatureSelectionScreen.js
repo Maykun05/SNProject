@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -11,20 +11,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
-
-
+import { AuthContext } from "../context/AuthProvider";
 
 const FeatureSelectionScreen = ({ navigation }) => {
+  const { userToken } = useContext(AuthContext);
   // เก็บสถานะฟีเจอร์ที่เลือก (เป็น Array เพื่อให้เลือกได้หลายอย่าง)
   const [selectedFeatures, setSelectedFeatures] = useState([]);
   const handleSave = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
       await fetch(`${API_URL}/api/features`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userToken}`,
         },
       body: JSON.stringify({ features: selectedFeatures })  
       });

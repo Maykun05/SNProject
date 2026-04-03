@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,8 +7,9 @@ import MoodPickerModal from '../components/calender/MoodPickerModal';
 import MoodCount from '../components/calender/MoodCount';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllMoods, setMoodByDate, getLocalMoodsForMonth } from '../services/moodService';
-
+import { AuthContext } from "../context/AuthProvider";
 export default function CalendarScreen() {
+  const { userToken, userId } = useContext(AuthContext);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [moods, setMoods] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
@@ -24,8 +25,8 @@ export default function CalendarScreen() {
 
   const loadMoods = async (m, y) => {
     try {
-      const local = await getLocalMoodsForMonth(m, y);
-      const server = await getAllMoods(m, y);
+      const local = await getLocalMoodsForMonth(m, y, userId);
+      const server = await getAllMoods(m, y, userToken, userId);
 
       // 🔥 รวมกัน
       setMoods({
@@ -40,7 +41,7 @@ export default function CalendarScreen() {
 
   /* ===== บันทึก / แก้ mood ===== */
   const onSelectMood = async (mood) => {
-    await setMoodByDate(selectedDate, mood);
+    await setMoodByDate(selectedDate, mood, userToken, userId);
     await loadMoods(month + 1, year);
 
     setSelectedDate(null);
@@ -115,8 +116,8 @@ const styles = StyleSheet.create({
   },
 
   arrow: {
-    fontSize: 22,
-    color: '#2EC4B6',
+    fontSize: 30,
+    color: '#2D4F45',
     paddingHorizontal: 12,
   },
 
