@@ -6,7 +6,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ALL_MISSIONS } from '../constants/missions';
-import ProfileAvatar from '../components/ProfileAvatar.js'; // ✅ แก้ path
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel, XP_REWARDS } from '../context/LevelContext';
@@ -141,9 +140,6 @@ const MissionScreen = () => {
       <View style={[styles.accentBar, { backgroundColor: color }]} />
       <View style={styles.cardContent}>
         <View style={styles.iconContainer}>
-          <View style={[styles.mockIcon, { backgroundColor: `${color}22` }]}>
-            <Text style={{ fontSize: 24 }}>📅</Text>
-          </View>
         </View>
         <View style={styles.infoContainer}>
           <View style={styles.cardHeaderRow}>
@@ -180,9 +176,14 @@ const MissionScreen = () => {
                 style={styles.dailyItem}
                 onPress={() => toggleMission(item.id)}
               >
-                <Text style={styles.dailyText}>
-                  {item.title} (+{item.reward} 🪙)
-                </Text>
+                <View style={styles.dailyRewardRow}>
+                <Text style={styles.dailyText}>{item.title} </Text>
+                <Text style={styles.dailyRewardText}>+{item.reward}</Text>
+                <Image
+                  source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')}
+                  style={styles.inlineCoinImage}
+                />
+              </View>
                 <View style={styles.progressBarBg}>
                   <View style={[styles.progressBarFill, {
                     width: item.completed ? '100%' : '0%',
@@ -216,7 +217,6 @@ const MissionScreen = () => {
             <Text style={styles.coinText}>{profile.coins ?? 0}</Text>
           </View>
 
-          <ProfileAvatar />
         </View>
 
         {monthlyMission && (
@@ -240,9 +240,16 @@ const MissionScreen = () => {
               </View>
               <Text style={styles.arrowWhite}>›</Text>
             </View>
-            <View style={styles.monthlyBadge}>
-              <Text style={styles.monthlyBadgeText}>
-                เป้าหมาย: {monthlyMission.goal} {monthlyMission.unit}
+
+            {/* ✅ เพิ่ม progress bar */}
+            <View style={styles.monthlyProgressRow}>
+              <View style={styles.monthlyProgressBg}>
+                <View style={[styles.monthlyProgressFill, {
+                  width: `${(0 / monthlyMission.goal) * 100}%`, // เปลี่ยน 0 เป็นค่า progress จริงเมื่อมีข้อมูล
+                }]} />
+              </View>
+              <Text style={styles.monthlyProgressText}>
+                0 / {monthlyMission.goal} {monthlyMission.unit}
               </Text>
             </View>
           </LinearGradient>
@@ -291,14 +298,14 @@ const MissionScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between',
+    flexDirection: 'row', justifyContent: 'center',
     padding: 25, alignItems: 'center', position: 'relative',
   },
-  headerSmall: { fontSize: 32, fontWeight: '800', color: '#2E7D5B', opacity: 0.8 },
+  headerSmall: { fontSize: 32, fontWeight: '800', color: '#2E7D5B', opacity: 0.8,textAlign: 'center', flex: 1,},
   coinWrapper: {
-    position: 'absolute', left: 0, right: 0,
-    alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', zIndex: 1,
+    position: 'absolute', right: 25,
+    alignItems: 'center', 
+    flexDirection: 'row', 
   },
   coinIcon: {
     width: 28, height: 28, borderRadius: 14,
@@ -325,11 +332,20 @@ const styles = StyleSheet.create({
   monthlyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   calendarIconBg: { backgroundColor: '#fff', padding: 8, borderRadius: 12 },
   monthlyTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1, marginLeft: 15 },
-  monthlyBadge: {
-    backgroundColor: '#ffffff44', alignSelf: 'flex-start',
-    paddingHorizontal: 12, paddingVertical: 4,
-    borderRadius: 15, marginTop: 10, marginLeft: 50,
-  },
+  monthlyProgressRow: {
+  marginTop: 12,
+  marginLeft: 50,
+},
+monthlyProgressBg: {
+  height: 8, backgroundColor: '#ffffff44',
+  borderRadius: 4, overflow: 'hidden', marginBottom: 4,
+},
+monthlyProgressFill: {
+  height: 8, backgroundColor: '#fff', borderRadius: 4,
+},
+monthlyProgressText: {
+  color: '#ffffffcc', fontSize: 11,
+},
   monthlyBadgeText: { color: '#fff', fontSize: 12 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 25, marginBottom: 15, color: '#1B4332' },
   card: {
@@ -361,6 +377,23 @@ const styles = StyleSheet.create({
   stepDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E0' },
   stepActive: { backgroundColor: '#4CAF50', transform: [{ scale: 1.25 }] },
   stepToday: { borderWidth: 2, borderColor: '#2E7D5B' },
+  // Daily mission styles
+  dailyRewardRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 4,
+},
+dailyRewardText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#C8861A',
+  marginRight: 3,
+},
+inlineCoinImage: {
+  width: 16,
+  height: 16,
+  resizeMode: 'contain',
+},
 });
 
 export default MissionScreen;

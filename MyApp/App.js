@@ -11,7 +11,7 @@ export default function App() {
     <ProfileProvider>
       <WaterProvider>
         <StepProvider>
-          <LevelProvider> {/* ✅ เพิ่ม */}
+          <LevelProvider> 
             <NavigationContainer>
               <Navigator />
             </NavigationContainer>

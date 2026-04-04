@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect  } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
   Alert, ScrollView, Image, Modal, TextInput,
@@ -9,12 +9,59 @@ import * as ImagePicker from 'expo-image-picker';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
 import CoinBadge from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/component/CoinBadge.js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
 
 const GREEN = '#1E4D2B';
+
 
 const ProfileScreen = ({ navigation }) => {
   const { profile, updateProfile, logout } = useProfile();
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
+
+  const [username, setUsername] = useState('');
+
+  const [email, setEmailState] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
+
+// ✅ เพิ่มตรงนี้
+useEffect(() => {
+  const fetchUsername = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('token:', token); // ✅ เช็คว่ามี token ไหม
+
+      if (!token) {
+        console.log('ไม่มี token');
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('res.status:', res.status); // ✅ เช็ค status code
+      const data = await res.json();
+      console.log('data:', data); // ✅ เช็คว่า backend return อะไร
+
+      setUsername(data.username ?? '');
+      setEmailState(data.email ?? '');
+    } catch (err) {
+      console.error('fetchUsername error:', err);
+    }
+  };
+
+  fetchUsername();
+}, []);
+  
 
   // ── Modal states ──
   const [showNameModal,   setShowNameModal]   = useState(false);
@@ -24,7 +71,7 @@ const ProfileScreen = ({ navigation }) => {
   // ── Health inputs ──
   const [inputWeight, setInputWeight] = useState(String(profile.weight   ?? ''));
   const [inputHeight, setInputHeight] = useState(String(profile.height   ?? ''));
-  const [inputAge,    setInputAge]    = useState(String(profile.age      ?? ''));
+  const [inputBirthDate, setInputBirthDate] = useState(''); 
 
   // คำนวณ BMI
   const calculateBMI = () => {
@@ -61,25 +108,77 @@ const ProfileScreen = ({ navigation }) => {
     setShowNameModal(false);
   };
 
+  const calculateAge = (birthDateStr) => {
+  const [day, month, year] = birthDateStr.split('/').map(Number);
+  if (!day || !month || !year) return NaN;
+  const birth = new Date(year, month - 1, day);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};
+
   const handleSaveHealth = () => {
-    const w = parseFloat(inputWeight);
-    const h = parseFloat(inputHeight);
-    const a = parseInt(inputAge);
-    if (isNaN(w) || w < 20 || w > 300) {
-      Alert.alert('น้ำหนักไม่ถูกต้อง', 'กรุณากรอกน้ำหนัก 20-300 กก.');
+  const w = parseFloat(inputWeight);
+  const h = parseFloat(inputHeight);
+  const age = calculateAge(inputBirthDate);
+
+  if (isNaN(w) || w < 20 || w > 300) {
+    Alert.alert('น้ำหนักไม่ถูกต้อง', 'กรุณากรอกน้ำหนัก 20-300 กก.');
+    return;
+  }
+  if (isNaN(h) || h < 50 || h > 250) {
+    Alert.alert('ส่วนสูงไม่ถูกต้อง', 'กรุณากรอกส่วนสูง 50-250 ซม.');
+    return;
+  }
+  if (isNaN(age) || age < 1 || age > 120) {
+    Alert.alert('วันเกิดไม่ถูกต้อง', 'กรุณากรอกวันเกิด เช่น 15/06/2000');
+    return;
+  }
+
+  updateProfile({ weight: w, height: h, age, birthDate: inputBirthDate });
+  setShowHealthModal(false);
+};
+
+const handleChangePassword = async () => {
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    Alert.alert('กรุณากรอกข้อมูลให้ครบ');
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    Alert.alert('รหัสผ่านใหม่ไม่ตรงกัน');
+    return;
+  }
+  if (newPassword.length < 6) {
+    Alert.alert('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    return;
+  }
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const res = await fetch(`${API_URL}/api/profile`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      Alert.alert('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
       return;
     }
-    if (isNaN(h) || h < 50 || h > 250) {
-      Alert.alert('ส่วนสูงไม่ถูกต้อง', 'กรุณากรอกส่วนสูง 50-250 ซม.');
-      return;
-    }
-    if (isNaN(a) || a < 1 || a > 120) {
-      Alert.alert('อายุไม่ถูกต้อง', 'กรุณากรอกอายุ 1-120 ปี');
-      return;
-    }
-    updateProfile({ weight: w, height: h, age: a });
-    setShowHealthModal(false);
-  };
+    Alert.alert('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordModal(false);
+  } catch (err) {
+    Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อ server ได้');
+  }
+};
+
 
   const handleLogout = () => {
     Alert.alert('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', [
@@ -127,7 +226,7 @@ const ProfileScreen = ({ navigation }) => {
         {/* ── Name Card ── */}
         <View style={styles.nameCard}>
           <CoinBadge amount={profile.coins} />
-          <Text style={styles.userNameText}>{profile.name || 'ชื่อผู้ใช้'}</Text>
+          <Text style={styles.userNameText}>{username || profile.name || 'ชื่อผู้ใช้'}</Text>
           <TouchableOpacity
             style={styles.editIcon}
             onPress={() => { setInputName(profile.name || ''); setShowNameModal(true); }}
@@ -163,7 +262,7 @@ const ProfileScreen = ({ navigation }) => {
           onPress={() => {
             setInputWeight(String(profile.weight ?? ''));
             setInputHeight(String(profile.height ?? ''));
-            setInputAge(String(profile.age ?? ''));
+            setInputBirthDate(profile.birthDate ?? '');
             setShowHealthModal(true);
           }}
         >
@@ -182,32 +281,19 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* ── ข้อมูลและเป้าหมาย ── */}
-        <Text style={styles.sectionLabel}>ข้อมูลและเป้าหมาย</Text>
+        <Text style={styles.sectionLabel}>ข้อมูลส่วนตัว</Text>
         <View style={styles.gridContainer}>
           <TouchableOpacity
-            style={styles.cardHalf}
-            onPress={() => navigation.navigate('EditPersonalInfo')}
+            style={[styles.cardHalf, { flex: 1 }]}
+            onPress={() => setShowPasswordModal(true)}
           >
             <View style={styles.cardHeaderIndicator} />
             <Text style={styles.cardTitle}>ข้อมูลส่วนตัว</Text>
             <Text style={styles.label}>อีเมล</Text>
-            <Text style={styles.value} numberOfLines={1}>{profile.email || '-'}</Text>
+            <Text style={styles.value} numberOfLines={1}>{email || profile.email || '-'}</Text>
             <View style={styles.divider} />
-            <Text style={styles.label}>เบอร์โทร</Text>
-            <Text style={styles.value}>{profile.phone || '-'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.cardHalf}
-            onPress={() => navigation.navigate('EditGoals')}
-          >
-            <View style={[styles.cardHeaderIndicator, { backgroundColor: '#E9DCC9' }]} />
-            <Text style={styles.cardTitle}>เป้าหมาย</Text>
-            <Text style={styles.label}>ก้าวเดินรายวัน</Text>
-            <Text style={styles.value}>{(profile.goals?.dailyStep ?? 5000).toLocaleString()} ก้าว</Text>
-            <View style={styles.divider} />
-            <Text style={styles.label}>น้ำหนักเป้าหมาย</Text>
-            <Text style={styles.value}>{profile.goals?.weightGoal ? `${String(profile.goals.weightGoal)} kg` : '-'}</Text>
+            <Text style={styles.label}>รหัสผ่าน</Text>
+            <Text style={styles.value}>••••••••</Text>
           </TouchableOpacity>
         </View>
 
@@ -215,24 +301,17 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.sectionLabel}>ตั้งค่าแอป</Text>
         <View style={styles.cardFull}>
           <View style={styles.cardHeaderIndicator} />
-          <View style={styles.settingOptions}>
-            {[
-              { label: 'การแจ้งเตือน', icon: 'notifications-outline', screen: 'Notifications' },
-              { label: 'ธีม',           icon: 'contrast-outline',       screen: 'Theme'         },
-              { label: 'ภาษา',          icon: 'language-outline',       screen: 'Language'      },
-              { label: 'หน่วยวัด',      icon: 'options-outline',        screen: 'Units'         },
-            ].map((item, index, arr) => (
-              <React.Fragment key={item.label}>
-                <TouchableOpacity
-                  style={styles.settingOption}
-                  onPress={() => navigation.navigate(item.screen)}
-                >
-                  <Ionicons name={item.icon} size={20} color={GREEN} />
-                  <Text style={styles.optionText}>{item.label}</Text>
-                </TouchableOpacity>
-                {index < arr.length - 1 && <View style={styles.verticalDivider} />}
-              </React.Fragment>
-            ))}
+          <View style={styles.notificationRow}>
+            <View style={styles.notificationLeft}>
+              <Ionicons name="notifications-outline" size={20} color={GREEN} />
+              <Text style={styles.optionText}>การแจ้งเตือน</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.toggleBtn, notificationEnabled && styles.toggleBtnOn]}
+              onPress={() => setNotificationEnabled(prev => !prev)}
+            >
+              <View style={[styles.toggleCircle, notificationEnabled && styles.toggleCircleOn]} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -246,17 +325,6 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.privacyRow}>
             <Text style={[styles.cardTitle, { marginBottom: 0 }]}>นโยบายความเป็นส่วนตัว</Text>
             <Ionicons name="chevron-forward" size={18} color="#ccc" />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.cardFull, { marginTop: 8 }]}
-          onPress={handleDeleteAccount}
-        >
-          <View style={[styles.cardHeaderIndicator, { backgroundColor: '#FF6347' }]} />
-          <View style={styles.privacyRow}>
-            <Text style={[styles.cardTitle, { marginBottom: 0, color: '#FF6347' }]}>ลบบัญชี</Text>
-            <Ionicons name="chevron-forward" size={18} color="#FF6347" />
           </View>
         </TouchableOpacity>
 
@@ -318,9 +386,9 @@ const ProfileScreen = ({ navigation }) => {
             </View>
 
             {[
-              { label: 'น้ำหนัก (กก.)', value: inputWeight, setter: setInputWeight, placeholder: 'เช่น 65' },
-              { label: 'ส่วนสูง (ซม.)', value: inputHeight, setter: setInputHeight, placeholder: 'เช่น 172' },
-              { label: 'อายุ (ปี)',      value: inputAge,    setter: setInputAge,    placeholder: 'เช่น 25'  },
+              { label: 'น้ำหนัก (กก.)',       value: inputWeight,    setter: setInputWeight,    placeholder: 'เช่น 65',         keyboard: 'numeric', max: 5  },
+              { label: 'ส่วนสูง (ซม.)',       value: inputHeight,    setter: setInputHeight,    placeholder: 'เช่น 172',        keyboard: 'numeric', max: 5  },
+              { label: 'วันเกิด (DD/MM/YYYY)', value: inputBirthDate, setter: null,              placeholder: 'เช่น 15/06/2000', keyboard: 'numeric', max: 10 },
             ].map((field) => (
               <View key={field.label}>
                 <Text style={styles.fieldLabel}>{field.label}</Text>
@@ -328,11 +396,19 @@ const ProfileScreen = ({ navigation }) => {
                   <TextInput
                     style={styles.input}
                     value={field.value}
-                    onChangeText={field.setter}
+                    onChangeText={field.setter ?? ((text) => {
+                      const cleaned = text.replace(/[^0-9]/g, '');
+                      let formatted = cleaned;
+                      if (cleaned.length >= 3 && cleaned.length <= 4)
+                        formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+                      else if (cleaned.length >= 5)
+                        formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4) + '/' + cleaned.slice(4, 8);
+                      setInputBirthDate(formatted);
+                    })}
                     placeholder={field.placeholder}
                     placeholderTextColor="#bbb"
-                    keyboardType="numeric"
-                    maxLength={5}
+                    keyboardType={field.keyboard}
+                    maxLength={field.max}
                   />
                 </View>
               </View>
@@ -350,6 +426,49 @@ const ProfileScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* ── Modal เปลี่ยนรหัสผ่าน ── */}
+      <Modal visible={showPasswordModal} transparent animationType="fade"
+        onRequestClose={() => setShowPasswordModal(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="lock-closed-outline" size={22} color={GREEN} />
+              <Text style={styles.modalTitle}>เปลี่ยนรหัสผ่าน</Text>
+            </View>
+            {[
+              { label: 'รหัสผ่านเดิม',   value: oldPassword,     setter: setOldPassword     },
+              { label: 'รหัสผ่านใหม่',   value: newPassword,     setter: setNewPassword     },
+              { label: 'ยืนยันรหัสผ่าน', value: confirmPassword, setter: setConfirmPassword },
+            ].map((field) => (
+              <View key={field.label}>
+                <Text style={styles.fieldLabel}>{field.label}</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    value={field.value}
+                    onChangeText={field.setter}
+                    placeholder="••••••••"
+                    placeholderTextColor="#bbb"
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+            ))}
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPasswordModal(false)}>
+                <Text style={styles.cancelBtnText}>ยกเลิก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleChangePassword}>
+                <Text style={styles.confirmBtnText}>บันทึก</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -360,11 +479,7 @@ const styles = StyleSheet.create({
 
   /* ── Avatar ── */
   avatarSection: { alignItems: 'center', marginTop: 30 },
-  avatarContainer: {
-    width: 110, height: 110, borderRadius: 55,
-    borderWidth: 3, borderColor: GREEN,
-    overflow: 'hidden', backgroundColor: '#E9DCC9',
-    justifyContent: 'center', alignItems: 'center',
+  avatarContainer: {width: 110, height: 110, borderRadius: 55,borderWidth: 3, borderColor: GREEN,overflow: 'hidden', backgroundColor: '#E9DCC9',justifyContent: 'center', alignItems: 'center',
   },
   avatarImg: { width: '100%', height: '100%' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
@@ -513,8 +628,8 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: { fontSize: 14, color: '#FFF', fontWeight: '700' },
   coinBadge: {
-    position: 'absolute',   // 👈 เพิ่มตรงนี้
-    top: -10,               // 👈 เพิ่มตรงนี้
+    position: 'absolute',   
+    top: -10,               
     right: 12,              // 👈 เพิ่มตรงนี้
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#FFF', paddingHorizontal: 10,
@@ -527,6 +642,23 @@ const styles = StyleSheet.create({
     height: 20,
   },
   coinText: { fontWeight: '700', fontSize: 15, color: '#C8861A' },
+  notificationRow: {
+  flexDirection: 'row', alignItems: 'center',
+  justifyContent: 'space-between', paddingVertical: 6,
+},
+notificationLeft: {
+  flexDirection: 'row', alignItems: 'center', gap: 8,
+},
+toggleBtn: {
+  width: 48, height: 26, borderRadius: 13,
+  backgroundColor: '#E0E0E0', justifyContent: 'center',
+  paddingHorizontal: 3,
+},
+toggleBtnOn: { backgroundColor: GREEN },
+toggleCircle: {
+  width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff',
+},
+toggleCircleOn: { alignSelf: 'flex-end' },
 });
 
 export default ProfileScreen;
