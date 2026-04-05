@@ -144,7 +144,9 @@ export const setMoodByDate = async (dateKey, mood, userToken, userId) => {
         mood,
         date: dateKey,
       }),
+      
     });
+    console.log(userToken)
   } catch {}
 
   return updated;

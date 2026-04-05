@@ -53,7 +53,7 @@ const LoginScreen = ({ navigation }) => {
 
       // // ✅ save userId (สำคัญมาก)
       // await AsyncStorage.setItem("userId", user.id.toString());
-      await login(token, user.id);
+      await login(token, user.id, false);
       // navigation.replace('MainTabs');
 
     } catch (err) {

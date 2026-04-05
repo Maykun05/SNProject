@@ -9,6 +9,7 @@ import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
+import useFeatures from '../hooks/ีuseFeature';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthProvider';
 
@@ -36,10 +37,23 @@ export default function HomeScreen({ navigation }) {
     lastSleepHours,
   } = useHomeState();
 
+  const {
+    selectedFeatures,
+    setSelectedFeatures,
+    saveFeatures,
+    reload,
+  } = useFeatures();
+
+  const saveFeaturesAndClose = async () => {
+    await saveFeatures();
+    setShowFeatureModal(false); 
+  };
+
   const { logout } = useContext(AuthContext);
 
   const handleLogout = async () => {
     await logout();   // เทสล้อกเอ้า
+    navigation.replace("Login");
   };
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
@@ -75,7 +89,10 @@ export default function HomeScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.plusCircle}
-        onPress={() => setShowFeatureModal(true)}
+        onPress={async () => {
+          await reload(); 
+          setShowFeatureModal(true);
+        }}
       >
         <Ionicons name="add" size={24} color="#fff" />
       </TouchableOpacity>
@@ -99,9 +116,13 @@ export default function HomeScreen({ navigation }) {
       <FeatureSelectorModal
         visible={showFeatureModal}
         features={FEATURES}
-        enabledFeatures={enabledFeatures}
-        onToggle={toggleFeature}
+        enabledFeatures={enabledFeatures} 
+        onToggle={toggleFeature}  
         onClose={() => setShowFeatureModal(false)}
+        onSave={() => {
+          saveFeatures(enabledFeatures);  
+          setShowFeatureModal(false);
+        }}      
       />
       
     </View>

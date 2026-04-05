@@ -11,19 +11,23 @@ import PersonalInfoScreen from '../screen/PersonalInfoScreen.js';
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigator() {
-  const { userToken } = useContext(AuthContext);
-  
+  const { userToken, isRegisterFlow } = useContext(AuthContext);
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {userToken ? (
-        // ถ้า login แล้ว
-        <>
-          <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
-          <Stack.Screen name="Select" component={FeatureSelectionScreen} />
-          <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-        </>
+        isRegisterFlow ? (
+          <>
+            <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
+            <Stack.Screen name="Select" component={FeatureSelectionScreen} />
+            <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
+          </>
+        )
       ) : (
-        // ถ้ายังไม่ login
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
@@ -32,3 +36,5 @@ export default function StackNavigator() {
     </Stack.Navigator>
   );
 }
+
+

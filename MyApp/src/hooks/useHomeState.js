@@ -75,6 +75,18 @@ export default function useHomeState() {
     }
   };
 
+  const saveFeatures = async (featuresMap) => {
+    try {
+      await saveHomeFeatures(featuresMap, userToken);
+      const fresh = await getHomeFeatures(userId, userToken);
+      setEnabledFeatures(fresh);
+      await loadTodayStatus(fresh);
+    } catch (err) {
+      console.log("SAVE FEATURES ERROR:", err);
+    }
+  };
+
+
   return {
     doneMap,
     enabledFeatures,
@@ -96,19 +108,13 @@ export default function useHomeState() {
       setShowSleepPicker(false);
     },
 
-    toggleFeature: async (key) => {
-      const updated = {
-        ...enabledFeatures,
-        [key]: !enabledFeatures[key],
-      };
-      await saveHomeFeatures(updated, userToken);
-
-      // 🔥 ดึงจาก backend ใหม่
-      const fresh = await getHomeFeatures(userId, userToken);
-
-      setEnabledFeatures(fresh);
-      await loadTodayStatus(fresh);
+    toggleFeature: (key) => {
+      setEnabledFeatures(prev => ({
+        ...prev,
+        [key]: !prev[key],   // ✅ flip ค่าใน local state เท่านั้น
+      }));
     },
+
     lastSleepHours,
 
   };

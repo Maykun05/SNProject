@@ -46,29 +46,55 @@ export const getHomeFeatures = async (userId, userToken) => {
 /* ======================
    save ฟีเจอร์ (optimistic update)
 ====================== */
-export const saveHomeFeatures = async (features, userToken) => {
-  const key = await getUserKey(userId);
-  // 🔥 1. save local ก่อน
-  await AsyncStorage.setItem(key, JSON.stringify(features));
+// export const saveHomeFeatures = async (features,userId, userToken) => {
+//   const key = await getUserKey(userId);
+//   // 🔥 1. save local ก่อน
+//   await AsyncStorage.setItem(key, JSON.stringify(features));
 
-  // 🔥 2. ยิง API
+//   // 🔥 2. ยิง API
+//   try {
+//     const res = await fetch(`${API_URL}/api/features`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${userToken}`,
+//       },
+//       body: JSON.stringify(features),
+//     });
+
+//   } catch (err) {
+//     console.log("SAVE API ERROR:", err);
+//     console.log("LOCAL ONLY (API FAIL)");
+//   }
+
+//   return features;
+// };
+export const saveHomeFeatures = async (featuresMap, userId, userToken) => {
+  const key = await getUserKey(userId);
+  await AsyncStorage.setItem(key, JSON.stringify(featuresMap));
+
   try {
-    const res = await fetch(`${API_URL}/api/features`, {
+    const featureIds = Object.keys(featuresMap)
+      .filter(key => featuresMap[key]) // เอาเฉพาะที่ true
+      .map(key => FEATURES.find(f => f.key === key)?.id); // map ไปเป็น id
+
+    const res = await fetch(`${API_URL}/user/features`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${userToken}`,
       },
-      body: JSON.stringify(features),
+      body: JSON.stringify({ features: featureIds }), // ✅ ส่ง array
     });
 
+    if (!res.ok) throw new Error("API fail");
   } catch (err) {
     console.log("SAVE API ERROR:", err);
-    console.log("LOCAL ONLY (API FAIL)");
   }
 
-  return features;
+  return featuresMap;
 };
+
 
 /* ======================
    toggle helper

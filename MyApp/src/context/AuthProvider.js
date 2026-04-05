@@ -6,6 +6,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isRegisterFlow, setIsRegisterFlow] = useState(false);
 
   // โหลด token + userId จาก AsyncStorage ตอนเปิดแอป
   useEffect(() => {
@@ -19,11 +20,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // login → เก็บ token + userId ลง AsyncStorage และอัปเดต state
-  const login = async (token, id) => {
+  const login = async (token, id, fromRegister = false) => {
     await AsyncStorage.setItem('token', token);
     await AsyncStorage.setItem('userId', id.toString());
     setUserToken(token);
     setUserId(id);
+    setIsRegisterFlow(fromRegister); // ✅ บอกว่า login มาจาก register หรือไม่
   };
 
   // logout → ลบข้อมูลออก
@@ -35,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ userToken, userId, login, logout }}>
+    <AuthContext.Provider value={{ userToken, userId, isRegisterFlow,login, logout }}>
       {children}
     </AuthContext.Provider>
   );
