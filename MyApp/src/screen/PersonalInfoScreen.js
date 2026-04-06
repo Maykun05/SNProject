@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { AuthContext } from "../context/AuthProvider";
 
 const PersonalInfoScreen = ({ navigation }) => {
+  const { userToken } = useContext(AuthContext);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [birthDateText, setBirthDateText] = useState('เลือกวันเกิด');
@@ -42,21 +44,17 @@ const PersonalInfoScreen = ({ navigation }) => {
   ];
 
   const handleSave = async () => {
-    // if (loading) return;
-    //   setLoading(true);
     try {
       if (!isFormValid) {
         console.log("Form not complete");
         return;
       }
 
-      const token = await AsyncStorage.getItem("token");
-
       const res = await fetch(`${API_URL}/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userToken}`,
         },
         body: JSON.stringify({
           weight: Number(weight),
@@ -80,15 +78,6 @@ const PersonalInfoScreen = ({ navigation }) => {
     }
   };
 
-  const onDateChange = (event, selectedDate) => {
-    if (Platform.OS === 'android') setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-      const fDate = `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`;
-      setBirthDateText(fDate);
-    }
-  };
-
   // ตรวจสอบว่ากรอกข้อมูลครบหรือยัง (Validation)
   const isFormValid = weight !== '' && height !== '' && exerciseLevel !== null && birthDateText !== 'เลือกวันเกิด';
 
@@ -96,7 +85,12 @@ const PersonalInfoScreen = ({ navigation }) => {
     <View style={styles.mainContainer}>
       <SafeAreaView style={{ backgroundColor: '#2D4F45' }} />
       
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <TouchableWithoutFeedback 
+        onPress={() => {
+          Keyboard.dismiss();       
+          setShowDatePicker(false); 
+        }}
+      >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -143,7 +137,7 @@ const PersonalInfoScreen = ({ navigation }) => {
               />
 
               <Text style={styles.label}>วันเกิด</Text>
-              <TouchableOpacity style={styles.inputBox} onPress={() => setShowDatePicker(true)}>
+              <TouchableOpacity style={styles.inputBox} onPress={() => setShowDatePicker(prev => !prev)}>
                 <Text style={{ color: birthDateText === 'เลือกวันเกิด' ? '#999' : '#333' }}>
                   {birthDateText}
                 </Text>
@@ -202,14 +196,20 @@ const PersonalInfoScreen = ({ navigation }) => {
       </TouchableWithoutFeedback>
 
       {showDatePicker && (
-        <DateTimePicker 
-          value={date} 
-          mode="date" 
+        <DateTimePicker
+          value={date}
+          mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'} 
-          onChange={onDateChange}
-          maximumDate={new Date()} 
+          maximumDate={new Date()}
+          onChange={(event, selectedDate) => {
+            if (selectedDate) {
+              setDate(selectedDate);
+              setBirthDateText(selectedDate.toLocaleDateString('th-TH'));
+            }
+          }}
         />
       )}
+
     </View>
   );
 };

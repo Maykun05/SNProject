@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native'; // ✅ เพิ่ม Image
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'react-native';
 
 export default function HomeFeatureRow({ features, onPress }) {
   return (
@@ -12,12 +12,7 @@ export default function HomeFeatureRow({ features, onPress }) {
           onPress={() => onPress?.(f)}
         >
           <View style={styles.iconWrapper}>
-            {/* ✅ ถ้ามี image ใช้ Image แทน Icon */}
-            {f.image ? (
-              <Image source={f.image} style={styles.featureImage} />
-            ) : (
-              <MaterialCommunityIcons name={f.icon} size={26} />
-            )}
+            <Image source={f.image} style={{ width: 26, height: 26 }} />
           </View>
           <Text style={styles.text}>{f.label}</Text>
         </TouchableOpacity>
@@ -29,7 +24,7 @@ export default function HomeFeatureRow({ features, onPress }) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    width: '100%',
+    width: '100%',          // แนะนำให้ใส่
     marginTop: 25,
     paddingHorizontal: 10,
   },
@@ -38,16 +33,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapper: {
-    width: 36, 
+    width: 36,
     height: 36,
-    justifyContent: 'center', 
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  text: { fontSize: 12, marginTop: 4, textAlign: 'center' },
-  // style สำหรับรูปภาพ
-  featureImage: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
+  text: {
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

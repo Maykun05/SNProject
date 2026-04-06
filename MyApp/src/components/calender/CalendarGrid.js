@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { MOODS } from '../constants/moods';
-import { getLocalDateKey } from '../utils/dateUtils';
+import { View, Text, TouchableOpacity, StyleSheet,Image } from 'react-native';
+import { MOODS } from '../../constants/moods';
+import { getLocalDateKey } from '../../utils/dateUtils';
 
 /* ===== utils ===== */
 const getEmptyDays = (year, month) => {
@@ -42,12 +42,12 @@ export default function CalendarGrid({
           const date = new Date(year, month, day);
           date.setHours(0, 0, 0, 0);
 
-          // 🔥 ใช้ local date key
           const dateKey = getLocalDateKey(date);
 
           const isPastOrToday = date <= today;
           const isToday = date.getTime() === today.getTime();
-          const mood = moods[dateKey];
+          const moodKey = moods[dateKey];
+          const moodObj = MOODS.find(m => m.key === moodKey);
 
           return (
             <View key={day} style={styles.dayCell}>
@@ -60,8 +60,8 @@ export default function CalendarGrid({
                   !isPastOrToday && styles.disabled,
                 ]}
               >
-                {mood ? (
-                  <Text style={styles.emoji}>{MOODS[mood]}</Text>
+                {moodObj ? (
+                  <Image source={moodObj.image} style={styles.icon} />
                 ) : isPastOrToday ? (
                   <Text style={styles.plus}>+</Text>
                 ) : null}
@@ -112,9 +112,6 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.3,
   },
-  emoji: {
-    fontSize: 20,
-  },
   plus: {
     fontSize: 20,
     color: '#666',
@@ -124,4 +121,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#555',
   },
+  icon: { width: 24, height: 24, resizeMode: 'contain' },
 });

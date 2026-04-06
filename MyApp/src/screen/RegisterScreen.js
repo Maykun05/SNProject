@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { AuthContext } from '../context/AuthProvider';
 
 const RegisterScreen = ({ navigation }) => {
+  const { login } = useContext(AuthContext);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,6 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
-      setLoading(true);
-
       const res = await fetch(`${API_URL}/api/register`, {
         method: "POST",
         headers: {
@@ -48,17 +48,12 @@ const RegisterScreen = ({ navigation }) => {
         return;
       }
 
-      await AsyncStorage.setItem("token", data.token);
-      await AsyncStorage.setItem("userId", data.user.id.toString()); 
-      navigation.replace("PersonalInfo");
+      await AsyncStorage.clear();
 
+      await login(data.token, data.user.id, true);
+      
     } catch (err) {
       console.log("REGISTER ERROR:", err);
-      if (err.message === "Network request failed") {
-        Alert.alert("การเชื่อมต่อล้มเหลว", "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง");
-      } else {
-        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง");
-      }
     } finally {
       setLoading(false);
     }

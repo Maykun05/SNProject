@@ -1,8 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Image, SafeAreaView, Alert,
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ALL_MISSIONS } from '../constants/missions';
@@ -11,151 +8,28 @@ import { useProfile } from '../context/ProfileContext';
 import { useLevel, XP_REWARDS } from '../context/LevelContext';
 
 const MissionScreen = () => {
-  const { profile, addCoins } = useProfile(); // ✅ ดึง addCoins + profile.coins
-  const { addXp } = useLevel();
-
-  const [streak, setStreak]           = useState(0);
-  const [activeDays, setActiveDays]   = useState([]);
-  const [dailyMissions, setDailyMissions] = useState([]);
-  const [weeklyMission, setWeeklyMission] = useState(null);
-  const [monthlyMission, setMonthlyMission] = useState(null);
-
-  // ✅ ลบ coins state และ coinsLoaded ออกทั้งหมด
-  // ✅ ใช้ profile.coins แทน
-
-  const toggleMission = (id) => {
-    setDailyMissions(prev => {
-      const updated = prev.map(m => {
-        if (m.id === id) {
-          const newCompleted = !m.completed;
-          if (newCompleted && !m.rewarded) {
-            // ✅ เพิ่มเหรียญผ่าน ProfileContext แทน setCoins
-            addCoins(m.reward);
-            addXp(XP_REWARDS.dailyMission, (newLevel) => {
-              Alert.alert('🎉 เลเวลอัพ!', `คุณขึ้นเป็น เลเวล ${newLevel} แล้ว!`);
-            });
-            return { ...m, completed: true, rewarded: true };
-          }
-          return { ...m, completed: newCompleted };
-        }
-        return m;
-      });
-
-      const allDone = updated.every(m => m.completed);
-      if (allDone) {
-        addXp(XP_REWARDS.allDailyMission, (newLevel) => {
-          Alert.alert('🎉 เลเวลอัพ!', `คุณขึ้นเป็น เลเวล ${newLevel} แล้ว!`);
-        });
-      }
-
-      // ✅ บันทึก missions state ลง AsyncStorage
-      AsyncStorage.setItem('DAILY_MISSIONS', JSON.stringify({
-        date: getLocalDateString(),
-        missions: updated,
-      }));
-
-      return updated;
-    });
-  };
-
-  const getLocalDateString = (date = new Date()) => {
-    const year  = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day   = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const updateStreak = async () => {
-    const today = getLocalDateString();
-    try {
-      const data = await AsyncStorage.getItem('STREAK_DATA');
-      let parsed = data
-        ? JSON.parse(data)
-        : { lastActiveDate: null, streakCount: 0, history: [] };
-
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yDate = getLocalDateString(yesterday);
-
-      if (parsed.lastActiveDate === today) {
-        setStreak(parsed.streakCount || 0);
-        setActiveDays(parsed.history || []);
-        return;
-      }
-
-      parsed.streakCount = parsed.lastActiveDate === yDate
-        ? (parsed.streakCount || 0) + 1 : 1;
-
-      if (parsed.lastActiveDate !== yDate) parsed.history = [];
-
-      parsed.lastActiveDate = today;
-      parsed.history.push(today);
-      if (parsed.history.length > 6) parsed.history.shift();
-
-      await AsyncStorage.setItem('STREAK_DATA', JSON.stringify(parsed));
-      setStreak(parsed.streakCount);
-      setActiveDays(parsed.history);
-    } catch (e) {
-      console.error('streak error:', e);
-    }
-  };
-
-  useEffect(() => {
-    updateStreak();
-  }, []);
-
-  useEffect(() => {
-    const loadDaily = async () => {
-      const today = getLocalDateString();
-      const saved = await AsyncStorage.getItem('DAILY_MISSIONS');
-      const getRandom = (arr, n) =>
-        [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
-
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.date === today) {
-          setDailyMissions(parsed.missions);
-          return;
-        }
-      }
-
-      const newMissions = getRandom(ALL_MISSIONS.daily, 3).map(m => ({
-        ...m, completed: false, rewarded: false,
-      }));
-      setDailyMissions(newMissions);
-      await AsyncStorage.setItem('DAILY_MISSIONS', JSON.stringify({
-        date: today, missions: newMissions,
-      }));
-    };
-    loadDaily();
-
-    const getRandom = (arr, n) =>
-      [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
-    setWeeklyMission(getRandom(ALL_MISSIONS.weekly, 1)[0]);
-    setMonthlyMission(getRandom(ALL_MISSIONS.monthly, 1)[0]);
-  }, []);
-
-  const MissionCard = ({ title, subtitle, progress, total, timeLeft, color }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+  
+  // คอมโพเนนต์ย่อยสำหรับภารกิจแต่ละใบ
+  const MissionCard = ({ title, subtitle, progress, total, timeLeft, color, iconName }) => (
+    <TouchableOpacity style={styles.card}>
       <View style={[styles.accentBar, { backgroundColor: color }]} />
       <View style={styles.cardContent}>
         <View style={styles.iconContainer}>
         </View>
+        
         <View style={styles.infoContainer}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardTitle}>{title}</Text>
-            <Text style={[styles.timeText, { color }]}>{timeLeft}</Text>
+            <Text style={[styles.timeText, { color: color }]}>🕒 {timeLeft}</Text>
           </View>
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
+          
           <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, {
-              width: `${(progress / total) * 100}%`,
-              backgroundColor: color,
-            }]} />
+            <View style={[styles.progressBarFill, { width: `${(progress/total)*100}%`, backgroundColor: color }]} />
           </View>
-          <Text style={styles.progressValue}>{String(progress)} / {String(total)}</Text>
+          <Text style={styles.progressValue}>{progress} / {total}</Text>
         </View>
-        <Text style={styles.arrow}>›</Text>
+        <Text style={styles.arrow}>〉</Text>
       </View>
     </TouchableOpacity>
   );
@@ -203,6 +77,8 @@ const MissionScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        
+        {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.headerSmall}>ภารกิจ</Text>
 
@@ -257,44 +133,42 @@ const MissionScreen = () => {
 
         <Text style={styles.sectionTitle}>ภารกิจทั้งหมด ✨</Text>
 
-        {weeklyMission && (
-          <MissionCard
-            title="ภารกิจรายสัปดาห์"
-            subtitle={weeklyMission.title}
-            progress={0}
-            total={weeklyMission.goal}
-            timeLeft="เหลืออีก 6 วัน"
-            color="#FF9800"
-          />
-        )}
+        {/* Mission List */}
+        <MissionCard 
+          title="ภารกิจประจำสัปดาห์" 
+          subtitle="สะสมครบ 20 แต้มภารกิจ" 
+          progress={12} 
+          total={20} 
+          timeLeft="เหลืออีก 3 วัน" 
+          color="#FF9800"
+        />
 
-        <DailyMissionGroupCard missions={dailyMissions} />
+        <MissionCard 
+          title="ภารกิจประจำวัน" 
+          subtitle="เรียนให้ครบ 3 ชม.เพื่อแกะสลักรูปปั้น" 
+          progress={0} 
+          total={3} 
+          timeLeft="เหลือเวลา 13 ชั่วโมง" 
+          color="#4CAF50"
+        />
 
         <View style={styles.dailyTaskContainer}>
-          <View style={styles.dailyHeader}>
-            <Text style={styles.cardTitle}>ความต่อเนื่อง</Text>
-            <Text style={styles.timeTextGreen}>🔥 {streak} วัน</Text>
-          </View>
-          <View style={styles.stepContainer}>
-            {Array.from({ length: 7 }, (_, i) => {
-              const isActive = i < streak;
-              const isToday  = i === Math.min(streak - 1, 6);
-              return (
-                <View key={i} style={[
-                  styles.stepDot,
-                  isActive && styles.stepActive,
-                  isToday  && styles.stepToday,
-                ]} />
-              );
-            })}
-          </View>
+            <View style={styles.dailyHeader}>
+                <Text style={styles.cardTitle}>ความต่อเนื่อง</Text>
+                <Text style={styles.timeTextGreen}>🔥 3 วัน</Text>
+            </View>
+            <View style={styles.stepContainer}>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <View key={i} style={[styles.stepDot, i <= 3 ? styles.stepActive : null]} />
+                ))}
+            </View>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// styles เหมือนเดิมทุกอย่าง ไม่ต้องเปลี่ยน
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
   header: {
@@ -347,12 +221,10 @@ monthlyProgressText: {
   color: '#ffffffcc', fontSize: 11,
 },
   monthlyBadgeText: { color: '#fff', fontSize: 12 },
+  
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 25, marginBottom: 15, color: '#1B4332' },
-  card: {
-    backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 15,
-    borderRadius: 20, flexDirection: 'row', overflow: 'hidden',
-    elevation: 2, position: 'relative',
-  },
+  
+  card: { backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 15, borderRadius: 20, flexDirection: 'row', overflow: 'hidden', elevation: 2 },
   accentBar: { width: 6 },
   cardContent: { flex: 1, flexDirection: 'row', padding: 15, alignItems: 'center' },
   iconContainer: { marginRight: 15 },
@@ -362,15 +234,13 @@ monthlyProgressText: {
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1B4332' },
   cardSubtitle: { fontSize: 13, color: '#666', marginVertical: 4 },
   timeText: { fontSize: 12, fontWeight: 'bold' },
-  progressBarBg: { height: 8, backgroundColor: '#EEE', borderRadius: 4, marginTop: 8, overflow: 'hidden' },
+  progressBarBg: { height: 8, backgroundColor: '#EEE', borderRadius: 4, marginTop: 8 },
   progressBarFill: { height: 8, borderRadius: 4 },
   progressValue: { fontSize: 12, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
-  arrow: { fontSize: 20, color: '#CCC', marginLeft: 10, marginRight: 5 },
+  arrow: { fontSize: 20, color: '#CCC', marginLeft: 10 },
   arrowWhite: { fontSize: 20, color: '#FFF' },
-  dailyTaskContainer: {
-    backgroundColor: '#fff', marginHorizontal: 20,
-    padding: 20, borderRadius: 20, elevation: 2, marginBottom: 20,
-  },
+
+  dailyTaskContainer: { backgroundColor: '#fff', marginHorizontal: 20, padding: 20, borderRadius: 20, elevation: 2 },
   dailyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   timeTextGreen: { color: '#4CAF50', fontWeight: 'bold' },
   stepContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

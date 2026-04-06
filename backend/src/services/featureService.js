@@ -39,3 +39,12 @@ export const getUserFeatures = async (userId) => {
 
   return features; // ✅ คืนค่าเฉพาะ relation ที่ user มีจริง
 };
+
+//เอาไว้แก้ไขฟีเจ้อหน้าโฮม
+export const getUserFeatureIds = async (userId) => {
+  const features = await prisma.userFeature.findMany({
+    where: { userId },
+  });
+
+  return features.map(f => f.featureId);
+};

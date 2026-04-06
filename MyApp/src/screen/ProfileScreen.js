@@ -181,23 +181,20 @@ const handleChangePassword = async () => {
 
 
   const handleLogout = () => {
-    Alert.alert('ออกจากระบบ', 'คุณต้องการออกจากระบบใช่หรือไม่?', [
-      { text: 'ยกเลิก', style: 'cancel' },
-      { text: 'ตกลง', onPress: () => logout(navigation), style: 'destructive' },
-    ]);
-  };
-
-  const handleDeleteAccount = () => {
     Alert.alert(
-      'ลบบัญชี',
-      'การลบบัญชีจะลบข้อมูลทั้งหมดของคุณและไม่สามารถกู้คืนได้ ต้องการดำเนินการต่อหรือไม่?',
+      "ยืนยันการออกจากระบบ",
+      "คุณต้องการออกจากระบบใช่หรือไม่?",
       [
-        { text: 'ยกเลิก', style: 'cancel' },
-        {
-          text: 'ลบบัญชี',
-          style: 'destructive',
-          onPress: () => logout(navigation),
-        },
+        { text: "ยกเลิก", style: "cancel" },
+        { 
+          text: "ออกจากระบบ", 
+          style: "destructive",
+          // ใช้ reset เพื่อล้าง stack ทั้งหมดและกลับไปหน้า Login
+          onPress: () => navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          }) 
+        }
       ]
     );
   };
@@ -472,6 +469,17 @@ const handleChangePassword = async () => {
     </SafeAreaView>
   );
 };
+
+// แก้ไข Component SettingItem ให้รับ onPress
+const SettingItem = ({ icon, label, color = "black", onPress }) => (
+  <TouchableOpacity style={styles.item} onPress={onPress}>
+    <View style={styles.itemLeft}>
+      <Ionicons name={icon} size={22} color={color} />
+      <Text style={[styles.itemLabel, { color }]}>{label}</Text>
+    </View>
+    <Ionicons name="chevron-forward" size={20} color="#CCC" />
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },

@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,6 +13,7 @@ const todayKey = () => getLocalDateKey();
 
 export default function useHomeState() {
   const navigation = useNavigation();
+  const { userToken, userId } = useContext(AuthContext);
   const [doneMap, setDoneMap] = useState({});
   const [enabledFeatures, setEnabledFeatures] = useState({});
   const [showMoodPicker, setShowMoodPicker] = useState(false);
@@ -28,11 +30,11 @@ export default function useHomeState() {
 
     for (const f of FEATURES.filter(f => activeFeatures[f.key])) {
       if (f.key === 'mood') {
-        const mood = await getMoodByDate(today);
+        const mood = await getMoodByDate(today, userToken, userId);
         result.mood = !!mood;
       } else if (f.key === 'sleep') {
         try {
-          const latest = await getLatestSleep();
+          const latest = await getLatestSleep(userToken);
           result.sleep = !!latest;
           setLastSleepHours(latest?.hours || 6);
         } catch (err) {
@@ -50,7 +52,7 @@ export default function useHomeState() {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const features = await getHomeFeatures();
+        const features = await getHomeFeatures(userId, userToken);
 
         setEnabledFeatures(features);
         await loadTodayStatus(features);
@@ -73,40 +75,47 @@ export default function useHomeState() {
     }
   };
 
+  const saveFeatures = async (featuresMap) => {
+    try {
+      await saveHomeFeatures(featuresMap, userId, userToken);
+      const fresh = await getHomeFeatures(userId, userToken);
+      setEnabledFeatures(fresh);
+      await loadTodayStatus(fresh);
+    } catch (err) {
+      console.log("SAVE FEATURES ERROR:", err);
+    }
+  };
+
+
   return {
     doneMap,
     enabledFeatures,
     showMoodPicker,
     showSleepPicker,
     showFeatureModal,
+    saveFeatures,
     setShowFeatureModal,
     onPressFeature,
     loadTodayStatus,
     setMoodToday: async (key) => {
       console.log("SELECT MOOD:", key);
-      await setMoodByDate(todayKey(), key);
+      await setMoodByDate(todayKey(), key, userToken, userId);
       await loadTodayStatus();
       setShowMoodPicker(false);
     },
     setSleepToday: async (hours) => {
-      await saveSleepToDB(hours); // เรียก service
+      await saveSleepToDB(hours, userToken); // เรียก service
       await loadTodayStatus();
       setShowSleepPicker(false);
     },
 
-    toggleFeature: async (key) => {
-      const updated = {
-        ...enabledFeatures,
-        [key]: !enabledFeatures[key],
-      };
-      await saveHomeFeatures(updated);
-
-      // 🔥 ดึงจาก backend ใหม่
-      const fresh = await getHomeFeatures();
-
-      setEnabledFeatures(fresh);
-      await loadTodayStatus(fresh);
+    toggleFeature: (key) => {
+      setEnabledFeatures(prev => ({
+        ...prev,
+        [key]: !prev[key],   // ✅ flip ค่าใน local state เท่านั้น
+      }));
     },
+
     lastSleepHours,
 
   };

@@ -1,5 +1,5 @@
 import { registerUser, loginUser, getUserProfile, updateUserProfile, getProfileStatsService } from "../services/userService.js";
-import { getUserFeatures, updateUserFeatures } from "../services/featureService.js";
+import { getUserFeatures, updateUserFeatures, getUserFeatureIds } from "../services/featureService.js";
 
 export const register = async (req, res) => {
   try {
@@ -93,6 +93,19 @@ export const getProfileStats = async (req, res) => {
     const userId = req.user.id;
     const stats = await getProfileStatsService(userId);
     res.json(stats);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+ 
+export const getFeatureIds = async (req, res) => { //เอาไว้แก้ไขฟีเจ้อหน้าโฮม
+  try {
+    const userId = req.user.id;
+
+    const ids = await getUserFeatureIds(userId);
+
+    res.json(ids); // 👈 [1,3,5]
+
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
