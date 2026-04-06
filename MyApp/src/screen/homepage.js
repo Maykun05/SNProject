@@ -9,7 +9,6 @@ import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
-import useFeatures from '../hooks/ีuseFeature';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthProvider';
 
@@ -35,14 +34,8 @@ export default function HomeScreen({ navigation }) {
     setSleepToday,
     toggleFeature,
     lastSleepHours,
-  } = useHomeState();
-
-  const {
-    selectedFeatures,
-    setSelectedFeatures,
     saveFeatures,
-    reload,
-  } = useFeatures();
+  } = useHomeState();
 
   const saveFeaturesAndClose = async () => {
     await saveFeatures();
@@ -87,20 +80,19 @@ export default function HomeScreen({ navigation }) {
         onPressFeature={onPressFeature}
       />
 
-      <TouchableOpacity
-        style={styles.plusCircle}
-        onPress={async () => {
-          await reload(); 
-          setShowFeatureModal(true);
-        }}
-      >
-        <Ionicons name="add" size={24} color="#fff" />
-      </TouchableOpacity>
+      <View style={{ position: 'relative' }}>
+        <HomeFeatureRow
+          features={FEATURES}
+          onPress={onPressFeature}
+        />
 
-      <HomeFeatureRow
-        features={FEATURES}          // แสดงทุกฟีเจอร์
-        onPress={onPressFeature}
-      />
+        <TouchableOpacity
+          style={styles.plusCircle}
+          onPress={() => setShowFeatureModal(true)}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
     
       <MoodQuickPicker
         visible={showMoodPicker}
@@ -133,8 +125,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: 40 },
   plusCircle: {
     position: 'absolute',
-    bottom: 550,
-    right: 20,
+    top: -30,
+    right: 40,
     width: 44,
     height: 44,
     borderRadius: 22,

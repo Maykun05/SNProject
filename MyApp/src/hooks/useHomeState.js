@@ -77,7 +77,7 @@ export default function useHomeState() {
 
   const saveFeatures = async (featuresMap) => {
     try {
-      await saveHomeFeatures(featuresMap, userToken);
+      await saveHomeFeatures(featuresMap, userId, userToken);
       const fresh = await getHomeFeatures(userId, userToken);
       setEnabledFeatures(fresh);
       await loadTodayStatus(fresh);
@@ -93,6 +93,7 @@ export default function useHomeState() {
     showMoodPicker,
     showSleepPicker,
     showFeatureModal,
+    saveFeatures,
     setShowFeatureModal,
     onPressFeature,
     loadTodayStatus,

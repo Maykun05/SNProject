@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { FEATURES } from '../constants/features';
 
 /* ======================
    key สำหรับ cache ต่อ user
@@ -78,7 +79,7 @@ export const saveHomeFeatures = async (featuresMap, userId, userToken) => {
       .filter(key => featuresMap[key]) // เอาเฉพาะที่ true
       .map(key => FEATURES.find(f => f.key === key)?.id); // map ไปเป็น id
 
-    const res = await fetch(`${API_URL}/user/features`, {
+    const res = await fetch(`${API_URL}/api/features`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -19,7 +19,7 @@ export default function FeatureSelectorModal({
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.title}>เลือกฟีเจอร์</Text>
+          <Text style={styles.title}>แก้ำขฟีเจอร์ที่สนใจ</Text>
 
           {features.map(f => {
             const active = enabledFeatures[f.key]; // ✅ ใช้ key
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 25,
     width: '80%',
   },
 
@@ -84,7 +84,12 @@ const styles = StyleSheet.create({
   },
 
   rowActive: {
-    backgroundColor: '#E6F7F5', // 🔥 เขียวอ่อน
+    backgroundColor: '#abb9a7ff', 
+    height: 50,          // ความสูงของ row
+    width: '100%',       // ความกว้างเต็ม
+    padding: 10,         // ระยะห่างด้านใน
+    marginVertical: 4,   // ระยะห่างด้านบน/ล่าง
+    borderRadius: 30,  
   },
 
   label: {
@@ -93,7 +98,7 @@ const styles = StyleSheet.create({
   },
 
   labelActive: {
-    color: '#2EC4B6',
+    color: '#000000',
     fontWeight: '600',
   },
 
@@ -108,8 +113,8 @@ const styles = StyleSheet.create({
   },
 
   checkActive: {
-    backgroundColor: '#2EC4B6',
-    borderColor: '#2EC4B6',
+    backgroundColor: '#2D4F45',
+    borderColor: 'rgb(150, 150, 150)',
   },
 
   /* ===== ปุ่ม ===== */
@@ -126,7 +131,7 @@ const styles = StyleSheet.create({
   },
 
   saveText: {
-    color: '#2EC4B6',
+    color: '#2D4F45',
     fontWeight: 'bold',
     fontSize: 14,
   },
