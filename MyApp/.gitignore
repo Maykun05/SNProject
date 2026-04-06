@@ -37,3 +37,4 @@ yarn-error.*
 *.tsbuildinfo
 
 # .\src\config.js
+src/config.js
