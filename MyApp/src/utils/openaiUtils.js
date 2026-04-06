@@ -1,4 +1,4 @@
-const GEMINI_API_KEY = "AIzaSyBBcKjktjrZyVoa0Lfe6Q34ABhD1f5GbKo";
+import { GEMINI_API_KEY } from "../config";
 export async function sendToAI(text) {
   try {
 

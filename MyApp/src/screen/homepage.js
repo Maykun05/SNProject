@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import HomeHeader from '../components/home/HomeHeader';
 import HomeCircle from '../components/home/HomeCircle';
 import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FEATURES } from '../constants/features';
 import useHomeState from '../hooks/useHomeState';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthProvider';
 
 const TREE_IMAGES = [
   require('../assets/tree_0.png'),
@@ -34,13 +34,20 @@ export default function HomeScreen({ navigation }) {
     setSleepToday,
     toggleFeature,
     lastSleepHours,
+    saveFeatures,
   } = useHomeState();
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    navigation.replace("Login");
-  }; //เทสล้อกเอ้า
+  const saveFeaturesAndClose = async () => {
+    await saveFeatures();
+    setShowFeatureModal(false); 
+  };
 
+  const { logout } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    await logout();   // เทสล้อกเอ้า
+    navigation.replace("Login");
+  };
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
     .map(key => FEATURES.find(f => f.key === key))
@@ -49,8 +56,6 @@ export default function HomeScreen({ navigation }) {
   const doneCount = visibleFeatures.filter(
     f => doneMap[f.key]
   ).length;
-
-
 
   const treeImage =
     TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];
@@ -75,20 +80,20 @@ export default function HomeScreen({ navigation }) {
         onPressFeature={onPressFeature}
       />
 
+      <View style={{ position: 'relative' }}>
+        <HomeFeatureRow
+          features={FEATURES}
+          onPress={onPressFeature}
+        />
 
-      <TouchableOpacity
-        style={styles.plusCircle}
-        onPress={() => setShowFeatureModal(true)}
-      >
-        <Ionicons name="add" size={24} color="#fff" />
-      </TouchableOpacity>
-
-      <HomeFeatureRow
-        features={FEATURES}          // แสดงทุกฟีเจอร์
-        onPress={onPressFeature}
-      />
-
-
+        <TouchableOpacity
+          style={styles.plusCircle}
+          onPress={() => setShowFeatureModal(true)}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    
       <MoodQuickPicker
         visible={showMoodPicker}
         onSelect={setMoodToday}
@@ -103,9 +108,13 @@ export default function HomeScreen({ navigation }) {
       <FeatureSelectorModal
         visible={showFeatureModal}
         features={FEATURES}
-        enabledFeatures={enabledFeatures}
-        onToggle={toggleFeature}
+        enabledFeatures={enabledFeatures} 
+        onToggle={toggleFeature}  
         onClose={() => setShowFeatureModal(false)}
+        onSave={() => {
+          saveFeatures(enabledFeatures);  
+          setShowFeatureModal(false);
+        }}      
       />
       
     </View>
@@ -116,8 +125,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingTop: 40 },
   plusCircle: {
     position: 'absolute',
-    bottom: 550,
-    right: 20,
+    top: -30,
+    right: 40,
     width: 44,
     height: 44,
     borderRadius: 22,

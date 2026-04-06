@@ -4,6 +4,7 @@ import ExerciseScreen from '../screen/exercise';
 import FeatureSelectionScreen from '../screen/FeatureSelectionScreen.js';
 import CalScreen from '../screen/cal';
 import WaterScreen from '../screen/WaterScreen.js';
+import LoginScreen from '../screen/LoginScreen.js';
 const Stack = createNativeStackNavigator();
 
 export default function HomeStackNavigator() {
@@ -18,6 +19,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Exercise" component={ExerciseScreen} />
       <Stack.Screen name="Calorie" component={CalScreen} />
       <Stack.Screen name="WaterScreen" component={WaterScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
 
 
     </Stack.Navigator>

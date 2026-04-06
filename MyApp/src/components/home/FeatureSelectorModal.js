@@ -10,47 +10,48 @@ import {
 export default function FeatureSelectorModal({
   visible,
   features,
-  enabledFeatures,
-  onToggle,
+  enabledFeatures,   // ✅ ใช้ map ของ key → true/false
+  onToggle,          // ✅ toggle ทีละตัว
   onClose,
+  onSave,
 }) {
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.title}>เลือกฟีเจอร์</Text>
+          <Text style={styles.title}>แก้ำขฟีเจอร์ที่สนใจ</Text>
 
           {features.map(f => {
-            const enabled = enabledFeatures[f.key] === true;
+            const active = enabledFeatures[f.key]; // ✅ ใช้ key
 
             return (
               <TouchableOpacity
-                key={f.key}
-                onPress={() => onToggle(f.key)}
-                style={styles.row}
-                activeOpacity={0.7}
+                key={f.id}
+                onPress={() => onToggle(f.key)}   // ✅ toggle ด้วย key
+                style={[styles.row, active && styles.rowActive]}
               >
-                {/* indicator */}
-                <View
-                  style={[
-                    styles.check,
-                    enabled && styles.checkActive,
-                  ]}
-                />
-
-                <Text style={styles.label}>{f.label}</Text>
+                <View style={[styles.check, active && styles.checkActive]} />
+                <Text style={[styles.label, active && styles.labelActive]}>
+                  {f.label}
+                </Text>
               </TouchableOpacity>
             );
           })}
 
-          <TouchableOpacity onPress={onClose} style={styles.close}>
-            <Text style={styles.closeText}>ปิด</Text>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.cancelText}>ยกเลิก</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onSave}>
+              <Text style={styles.saveText}>บันทึก</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
+
 
 const styles = StyleSheet.create({
   overlay: {
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   modal: {
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 25,
     width: '80%',
   },
 
@@ -73,18 +74,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* ===== แถวฟีเจอร์ ===== */
+  /* ===== แถว ===== */
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,   // 👈 ระยะห่างบน-ล่าง
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+
+  rowActive: {
+    backgroundColor: '#abb9a7ff', 
+    height: 50,          // ความสูงของ row
+    width: '100%',       // ความกว้างเต็ม
+    padding: 10,         // ระยะห่างด้านใน
+    marginVertical: 4,   // ระยะห่างด้านบน/ล่าง
+    borderRadius: 30,  
   },
 
   label: {
-    fontSize: 17,
+    fontSize: 16,
+    color: '#333',
   },
 
-  /* ===== วงกลมแทนติ๊ก ===== */
+  labelActive: {
+    color: '#000000',
+    fontWeight: '600',
+  },
+
+  /* ===== วงกลม ===== */
   check: {
     width: 18,
     height: 18,
@@ -95,17 +113,26 @@ const styles = StyleSheet.create({
   },
 
   checkActive: {
-    backgroundColor: '#2EC4B6', // 👈 สีที่คุณต้องการ
-    borderColor: '#2EC4B6',
+    backgroundColor: '#2D4F45',
+    borderColor: 'rgb(150, 150, 150)',
   },
 
-  close: {
-    marginTop: 16,
-    alignSelf: 'flex-end',
+  /* ===== ปุ่ม ===== */
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 20,
+    gap: 16,
   },
 
-  closeText: {
-    color: '#2EC4B6',
-    fontWeight: '600',
+  cancelText: {
+    color: '#888',
+    fontSize: 14,
+  },
+
+  saveText: {
+    color: '#2D4F45',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
