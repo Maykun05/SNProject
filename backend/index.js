@@ -6,10 +6,12 @@ import dotenv from "dotenv";
 import userRoutes from "./src/routes/userRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import sleepRoutes from "./src/routes/sleepRoutes.js";
+import stepRoutes from "./src/routes/stepRoutes.js";
 
 dotenv.config();
 
 const app = express();
+app.use('/api', stepRoutes);
 
 app.use(cors());
 app.use(express.json());

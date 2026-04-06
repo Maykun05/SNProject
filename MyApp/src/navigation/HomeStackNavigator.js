@@ -5,6 +5,8 @@ import CalScreen from '../screen/cal';
 import WaterScreen from '../screen/WaterScreen.js';
 import ProfileScreen from '../screen/ProfileScreen.js'; // ✅ เพิ่ม
 
+import StepTrackerScreen from '../screen/StepTrackerScreen';
+
 // ✅ Profile sub-screens
 import EditPersonalInfoScreen from '../screen/EditPersonalInfoScreen.js';
 import EditGoalsScreen from '../screen/EditGoalsScreen.js';
@@ -22,6 +24,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="Exercise"   component={ExerciseScreen} />
       <Stack.Screen name="Calorie"    component={CalScreen} />
       <Stack.Screen name="WaterScreen" component={WaterScreen} />
+      <Stack.Screen name="StepTracker" component={StepTrackerScreen} />
 
       {/* ✅ Profile ── */}
       <Stack.Screen name="Profile"          component={ProfileScreen} />
