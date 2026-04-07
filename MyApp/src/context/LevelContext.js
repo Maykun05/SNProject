@@ -108,22 +108,27 @@ export const LevelProvider = ({ children }) => {
     });
   };
 
-  // ✅ คำนวณหลัง render ไม่ใช่ระหว่าง render
-  const xpRequired = xpForLevel(level);
-  const xpPercent  = level > 0 && xpRequired > 0
-    ? Math.min(Math.round((xp / xpRequired) * 100), 100)
-    : 0;
-  const levelInfo  = getLevelInfo(level);
+  // ✅ แก้ไขส่วนนี้ — ให้ return number เสมอ ไม่มีทางเป็น boolean
+const xpRequired = xpForLevel(level);
+const xpPercent = (level > 0 && xpRequired > 0)
+  ? Math.min(Math.round((xp / xpRequired) * 100), 100)
+  : 0;
+const levelInfo = getLevelInfo(level);
 
   return (
-    <LevelContext.Provider value={{
-      xp, level, totalXp,
-      xpRequired, xpPercent,
+  <LevelContext.Provider
+    value={{
+      xp,
+      level,
+      totalXp,
+      xpRequired,
+      xpPercent,
       levelInfo,
       addXp,
-    }}>
-      {children}
-    </LevelContext.Provider>
+    }}
+  >
+    {children}
+  </LevelContext.Provider>
   );
 };
 

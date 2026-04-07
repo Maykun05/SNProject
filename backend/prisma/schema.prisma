@@ -129,12 +129,6 @@ model MissionReward {
   reward Int
 }
 
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
-}
-
 model StepSession {
   id        Int      @id @default(autoincrement())
   userId    Int

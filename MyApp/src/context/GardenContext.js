@@ -1,0 +1,134 @@
+// src/context/GardenContext.js
+
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const GardenContext = createContext(null);
+
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+export const GardenProvider = ({ children }) => {
+  const [gardenData, setGardenData]       = useState(null);
+  const [todayProgress, setTodayProgress] = useState(null);
+  const [summary, setSummary]             = useState([]);
+  const [loading, setLoading]             = useState(false);
+
+  const getAuthHeader = async () => {
+    const token = await AsyncStorage.getItem('token');
+    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  };
+
+  // ดึงสวนรายเดือน
+  const fetchGardenMonth = useCallback(async (year, month) => {
+    setLoading(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/garden/month?year=${year}&month=${month}`, { headers });
+      const json = await res.json();
+      if (json.success) setGardenData(json.data);
+      return json.data;
+    } catch (err) {
+      console.error('fetchGardenMonth:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ดึง progress วันนี้
+  const fetchTodayProgress = useCallback(async () => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/garden/today-progress`, { headers });
+      const json = await res.json();
+      if (json.success) setTodayProgress(json.data);
+      return json.data;
+    } catch (err) {
+      console.error('fetchTodayProgress:', err);
+    }
+  }, []);
+
+  // ดึงสรุปทุกเดือน
+  const fetchSummary = useCallback(async () => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/garden/summary`, { headers });
+      const json = await res.json();
+      if (json.success) setSummary(json.data.months);
+      return json.data.months;
+    } catch (err) {
+      console.error('fetchSummary:', err);
+    }
+  }, []);
+
+  // บันทึก feature ที่ใช้ และคืน { treeGrown, treeCount }
+  const logFeature = useCallback(async (featureKey) => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/garden/log-feature`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ featureKey }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // อัพเดท today progress
+        setTodayProgress(prev => ({
+          ...prev,
+          completedFeatures: json.data.completedToday,
+          completedCount: json.data.targetFeatures.filter(k =>
+            json.data.completedToday.includes(k)
+          ).length,
+          treeEarnedToday: json.data.treeGrown || prev?.treeEarnedToday,
+        }));
+
+        // อัพเดท treeCount ใน gardenData ถ้ามีต้นไม้งอกใหม่
+        if (json.data.treeGrown) {
+          setGardenData(prev =>
+            prev ? { ...prev, treeCount: json.data.treeCount } : prev
+          );
+        }
+      }
+      return json.data;
+    } catch (err) {
+      console.error('logFeature:', err);
+    }
+  }, []);
+
+  // เลือก features เป้าหมาย
+  const selectFeatures = useCallback(async (featureKeys) => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/garden/select-features`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ featureKeys }),
+      });
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      console.error('selectFeatures:', err);
+    }
+  }, []);
+
+  return (
+    <GardenContext.Provider value={{
+      gardenData,
+      todayProgress,
+      summary,
+      loading,
+      fetchGardenMonth,
+      fetchTodayProgress,
+      fetchSummary,
+      logFeature,
+      selectFeatures,
+    }}>
+      {children}
+    </GardenContext.Provider>
+  );
+};
+
+export const useGarden = () => {
+  const ctx = useContext(GardenContext);
+  if (!ctx) throw new Error('useGarden must be used within GardenProvider');
+  return ctx;
+};
