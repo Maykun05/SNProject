@@ -24,7 +24,7 @@ export default function BottomTabNavigator() {
           let label;
 
           switch (route.name) {
-            case 'Home':
+            case 'HomeTab':
               iconName = 'home';
               label = 'หน้าหลัก';
               break;
@@ -68,7 +68,7 @@ export default function BottomTabNavigator() {
       })}
     >
       <Tab.Screen
-        name="Home"
+        name="HomeTab"
         component={HomeStackNavigator}
         options={{ headerShown: false }}
       />

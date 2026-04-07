@@ -26,6 +26,7 @@ model User {
   moods     MoodLog[]
   sleeps    Sleep[]
   progress  DailyProgress[]
+  foods     FoodLog[]
 }
 
 model Profile {
@@ -96,4 +97,20 @@ model Sleep {
   date   DateTime 
 
   @@unique([userId, date])  
+}
+
+model FoodLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  name      String
+  calories  Int
+  protein   Float?
+  carbs     Float?
+  fat       Float?
+
+  date      DateTime @default(now())
+
+  @@index([userId, date])
 }
