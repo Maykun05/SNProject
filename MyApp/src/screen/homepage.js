@@ -1,6 +1,7 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'; // ✅ เพิ่ม Text, ScrollView
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import HomeHeader from '../components/home/HomeHeader';
 import HomeCircle from '../components/home/HomeCircle';
@@ -8,11 +9,12 @@ import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
+import TreeSelectorModal from '../components/home/TreeSelectorModal'; // ✅ ใหม่
 import { FEATURES } from '../constants/features';
+import { TREE_ASSETS } from '../constants/treeAssets'; // ✅ ใหม่
 import useHomeState from '../hooks/useHomeState';
 import { AuthContext } from '../context/AuthProvider';
 
-// ✅ [นำมาจากโค้ดแรก] Import ที่เกี่ยวกับ Water, Profile, Step, ProfileAvatar
 import ProfileAvatar from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/components/home/ProfileAvatar.js';
 import { useWater } from '../context/WaterContext';
 import { useStep } from '../context/StepContext';
@@ -20,22 +22,14 @@ import { useLevel } from '../context/LevelContext';
 
 import GardenCard from '../components/home/GardenCard';
 
-const TREE_IMAGES = [
-  require('../assets/tree_0.png'),
-  require('../assets/tree_1.png'),
-  require('../assets/tree_2.png'),
-  require('../assets/tree_3.png'),
-  require('../assets/tree_4.png'),
-  require('../assets/tree_5.png'),
-];
-
-
 export default function HomeScreen({ navigation }) {
   const {
     doneMap,
     enabledFeatures,
     showMoodPicker,
     showSleepPicker,
+    setShowSleepPicker,
+    setShowMoodPicker,
     showFeatureModal,
     setShowFeatureModal,
     onPressFeature,
@@ -46,6 +40,35 @@ export default function HomeScreen({ navigation }) {
     saveFeatures,
   } = useHomeState();
 
+  // ✅ State สำหรับเลือกแบบต้นไม้
+  const [selectedTreeType, setSelectedTreeType] = useState(1);
+  const [showTreeModal, setShowTreeModal] = useState(false);
+
+
+  // ✅ โหลด tree type จาก AsyncStorage แทน backend
+  useEffect(() => {
+    const fetchTreeType = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('selectedTreeType');
+        if (saved !== null) setSelectedTreeType(Number(saved));
+      } catch (err) {
+        console.error('fetchTreeType error:', err);
+      }
+    };
+    fetchTreeType();
+  }, []);
+
+  // ✅ บันทึก tree type ลง AsyncStorage แทน backend
+  const handleSelectTree = async (type) => {
+    try {
+      await AsyncStorage.setItem('selectedTreeType', String(type));
+      setSelectedTreeType(type);
+      setShowTreeModal(false);
+    } catch (err) {
+      console.error('handleSelectTree error:', err);
+    }
+  };
+
   const saveFeaturesAndClose = async () => {
     await saveFeatures();
     setShowFeatureModal(false);
@@ -55,10 +78,9 @@ export default function HomeScreen({ navigation }) {
 
   const handleLogout = async () => {
     await logout();
-    navigation.replace("Login");
+    navigation.replace('Login');
   };
 
-  // ✅ [นำมาจากโค้ดแรก] ดึงข้อมูล Water, Profile, Step
   const { consumed: waterConsumed, waterGoal } = useWater();
   const { steps, stepGoal } = useStep();
 
@@ -68,16 +90,18 @@ export default function HomeScreen({ navigation }) {
     .filter(Boolean);
 
   const doneCount = visibleFeatures.filter(f => doneMap[f.key]).length;
-  const treeImage = TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];
+
+  // ✅ เปลี่ยนมาใช้ TREE_ASSETS แทน TREE_IMAGES เดิม
+  const treeImage = TREE_ASSETS[selectedTreeType][Math.min(doneCount, 5)];
+
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
+  const [sleepHours, setSleepHours] = useState(null);
 
   return (
-    // ✅ [นำมาจากโค้ดแรก] เปลี่ยนจาก View เดี่ยว → View root ครอบ + ScrollView ข้างใน
-    //    เพื่อให้ ProfileAvatar ลอยอยู่เหนือ ScrollView ได้
     <View style={styles.root}>
       <HomeHeader />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
-        
+
         <HomeCircle
           features={visibleFeatures}
           doneMap={doneMap}
@@ -85,11 +109,11 @@ export default function HomeScreen({ navigation }) {
           totalCount={visibleFeatures.length}
           treeImage={treeImage}
           onPressFeature={onPressFeature}
+          onPressTree={() => setShowTreeModal(true)}
         />
 
         <View style={{ position: 'relative' }}>
           <HomeFeatureRow features={FEATURES} onPress={onPressFeature} />
-
           <TouchableOpacity
             style={styles.plusCircle}
             onPress={() => setShowFeatureModal(true)}
@@ -98,10 +122,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ [นำมาจากโค้ดแรก] Summary Cards น้ำ + ก้าวเดิน */}
         <View style={styles.summaryRow}>
-
-          {/* Card น้ำ — กดแล้วไปหน้า WaterScreen */}
           <TouchableOpacity
             style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}
             onPress={() => navigation.navigate('WaterScreen', { weight: 60 })}
@@ -119,7 +140,6 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.summaryTarget}>/ {waterGoal} ml</Text>
           </TouchableOpacity>
 
-          {/* Card ก้าวเดิน */}
           <View style={[styles.summaryCard, { backgroundColor: '#FFF8EC' }]}>
             <Text style={[styles.summaryLabel, { color: '#E07B00' }]}>จำนวนก้าวเดิน</Text>
             <View style={styles.ringWrapper}>
@@ -132,20 +152,11 @@ export default function HomeScreen({ navigation }) {
             <Text style={[styles.summaryValue, { color: '#E07B00' }]}>{steps}</Text>
             <Text style={styles.summaryTarget}>/ {stepGoal}</Text>
           </View>
-
         </View>
 
-        {/* GardenCard */}
         <GardenCard />
 
-        <MoodQuickPicker visible={showMoodPicker} onSelect={setMoodToday} />
-
-        <SleepQuickPicker
-          visible={showSleepPicker}
-          initialHours={lastSleepHours}
-          onSelect={setSleepToday}
-        />
-
+        {/* ✅ Modal ที่ไม่ใช่ overlay ใส่ใน ScrollView ได้ */}
         <FeatureSelectorModal
           visible={showFeatureModal}
           features={FEATURES}
@@ -157,44 +168,57 @@ export default function HomeScreen({ navigation }) {
             setShowFeatureModal(false);
           }}
         />
+
+        <TreeSelectorModal
+          visible={showTreeModal}
+          currentType={selectedTreeType}
+          onSelect={handleSelectTree}
+          onClose={() => setShowTreeModal(false)}
+        />
+
       </ScrollView>
 
-      {/* ProfileAvatar ลอยมุมขวาบน อยู่นอก ScrollView */}
+      {/* ✅ ย้าย SleepQuickPicker และ MoodQuickPicker ออกนอก ScrollView */}
+      <SleepQuickPicker
+        visible={showSleepPicker}
+        initialHours={lastSleepHours}
+        onSelect={setSleepToday}
+        onClose={() => setShowSleepPicker(false)}
+      />
+
+      <MoodQuickPicker
+        visible={showMoodPicker}
+        onSelect={setMoodToday}
+        onClose={() => setShowMoodPicker(false)}  // ✅ เพิ่ม onClose
+      />
+
       <View style={styles.profilePosition}>
         <ProfileAvatar size={60} />
       </View>
 
-      {/* Logout Button ยังคงอยู่ แต่ปรับตำแหน่งให้ไม่ทับ ProfileAvatar */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={24} color="#000" />
       </TouchableOpacity>
 
-      
-      
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // ✅ [นำมาจากโค้ดแรก] root ครอบนอกสุด
   root: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  // ✅ [เปลี่ยนจากโค้ดสอง] container ไม่ต้อง flex: 1 + backgroundColor แล้ว เพราะ root จัดการแทน
   container: {
     flex: 1,
     paddingTop: 40,
   },
-
-  // ✅ [นำมาจากโค้ดแรก] ProfileAvatar ลอยมุมขวาบน
   profilePosition: {
     position: 'absolute',
     top: 50,
     right: 16,
     zIndex: 100,
   },
-
   plusCircle: {
     position: 'absolute',
     top: -30,
@@ -206,8 +230,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // ✅ [นำมาจากโค้ดแรก] ทั้ง block นี้คือ styles ของ Summary Cards
   summaryRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,

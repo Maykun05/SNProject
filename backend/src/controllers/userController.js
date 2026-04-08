@@ -110,3 +110,36 @@ export const getFeatureIds = async (req, res) => { //เอาไว้แก้
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ GET tree type
+export const getTreeType = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    return res.json({ success: true, selectedTreeType: profile?.selectedTreeType ?? 1 });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// ✅ PUT tree type
+export const updateTreeType = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { selectedTreeType } = req.body;
+
+    if (selectedTreeType < 1 || selectedTreeType > 5) {
+      return res.status(400).json({ success: false, message: 'Invalid tree type' });
+    }
+
+    await prisma.profile.upsert({
+      where: { userId },
+      update: { selectedTreeType },
+      create: { userId, selectedTreeType },
+    });
+
+    return res.json({ success: true, selectedTreeType });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

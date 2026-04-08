@@ -38,6 +38,7 @@ model Profile {
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
+  selectedTreeType Int   @default(1)  
 
   user          User     @relation(fields: [userId], references: [id])
 }

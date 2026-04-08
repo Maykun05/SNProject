@@ -1,124 +1,392 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, PanResponder, TouchableOpacity, } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  Modal, Platform, Animated, TouchableWithoutFeedback,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const SLIDER_WIDTH = 260;
+const SLEEP_PRESETS = [5, 6, 7, 8, 9, 10];
 
-export default function SleepQuickPicker({ visible, onSelect, initialHours = 6 }) {
-  const [hours, setHours] = useState(initialHours);
-  const thumbX = useRef((initialHours / 10) * SLIDER_WIDTH);
+const THEME = {
+  primary:      '#2d5a2d',
+  primaryLight: '#3B6D11',
+  surface:      '#f5f7f2',
+  surfaceDeep:  '#e8f0e4',
+  text:         '#1e3a1e',
+  textMuted:    '#7a9e7a',
+  textLight:    '#a0b8a0',
+  border:       '#d0e4c8',
+};
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, g) => {
-        let x = Math.min(
-          SLIDER_WIDTH,
-          Math.max(0, thumbX.current + g.dx)
-        );
-        const value = (x / SLIDER_WIDTH) * 10;
-        setHours(Number(value.toFixed(1)));
-      },
-      onPanResponderRelease: () => {
-        thumbX.current = (hours / 10) * SLIDER_WIDTH;
-      },
-    })
-  ).current;
+export default function SleepQuickPicker({ visible, initialHours, onSelect, onClose }) {
+  const [hours, setHours]     = useState(initialHours || 7);
+  const [minutes, setMinutes] = useState(0);
+  const [done, setDone]       = useState(false);
+  const checkScale             = useState(new Animated.Value(0))[0];
+  const popAnim                = useState(new Animated.Value(0.88))[0];
+  const fadeAnim               = useState(new Animated.Value(0))[0];
 
-  /* 🔥 return หลังจาก hook ครบแล้วเท่านั้น */
-  if (!visible) return null;
+  useEffect(() => {
+    if (visible) {
+      setHours(initialHours || 7);
+      setMinutes(0);
+      setDone(false);
+      popAnim.setValue(0.88);
+      fadeAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(popAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 90,
+          friction: 8,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
 
-  const getSleepKey = (h) => {
-    if (h < 3) return 'less3';
-    if (h < 7) return '3to7';
-    if (h <= 8) return '7to8';
-    return 'more8';
+  const totalHoursDecimal = hours + minutes / 60;
+
+  const getSleepFeedback = () => {
+    if (totalHoursDecimal < 6)  return { text: 'นอนน้อยเกินไป',       color: '#b94040' };
+    if (totalHoursDecimal < 7)  return { text: 'ควรนอนเพิ่มอีกนิด',   color: '#a06020' };
+    if (totalHoursDecimal <= 9) return { text: 'จำนวนการนอนที่ดีมาก', color: THEME.primaryLight };
+    return                              { text: 'นอนมากเกินไปนะ',       color: '#3a6080' };
+  };
+
+  const feedback = getSleepFeedback();
+
+  const handleSave = () => {
+    setDone(true);
+    checkScale.setValue(0);
+    Animated.spring(checkScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 6,
+    }).start();
+    onSelect(totalHoursDecimal);
+  };
+
+  const handleClose = () => {
+    setDone(false);
+    onClose();
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>เมื่อคืนคุณนอนกี่ชั่วโมง?</Text>
+    <Modal visible={visible} transparent animationType="none">
+      {/* Overlay กดปิดได้ */}
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} />
+      </TouchableWithoutFeedback>
 
-      <Text style={styles.value}>{hours.toFixed(1)} ชม.</Text>
+      {/* Card กลางจอ */}
+      <View style={styles.centerWrapper} pointerEvents="box-none">
+        <Animated.View style={[
+          styles.card,
+          { transform: [{ scale: popAnim }], opacity: fadeAnim },
+        ]}>
 
-      <View style={styles.slider}>
-        <View style={styles.track} />
-        <View
-          style={[
-            styles.thumb,
-            { left: (hours / 10) * SLIDER_WIDTH - 10 },
-          ]}
-          {...panResponder.panHandlers}
-        />
+          {done ? (
+            /* ── หน้ายืนยัน ── */
+            <View style={styles.doneContainer}>
+              <Animated.View style={[
+                styles.checkCircle,
+                { transform: [{ scale: checkScale }] },
+              ]}>
+                <Ionicons name="checkmark" size={32} color="#e8f5e0" />
+              </Animated.View>
+
+              <Text style={styles.doneTitle}>
+                บันทึกแล้ว {hours} ชม.{minutes > 0 ? ` ${minutes} นาที` : ''}
+              </Text>
+              <Text style={[styles.doneSub, { color: feedback.color }]}>
+                {feedback.text}
+              </Text>
+
+              <TouchableOpacity style={styles.doneCloseBtn} onPress={handleClose}>
+                <Text style={styles.doneCloseTxt}>เสร็จสิ้น</Text>
+              </TouchableOpacity>
+            </View>
+
+          ) : (
+            /* ── หน้ากรอกข้อมูล ── */
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>การนอนหลับ</Text>
+                <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+                  <Ionicons name="close" size={20} color={THEME.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Display */}
+              <View style={styles.displayBox}>
+                <Text style={styles.displayTime}>
+                  {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}
+                </Text>
+                <Text style={styles.displayLabel}>ชั่วโมง : นาที</Text>
+              </View>
+
+              {/* Feedback */}
+              <View style={[styles.feedbackBox, { backgroundColor: feedback.color + '18' }]}>
+                <View style={[styles.feedbackDot, { backgroundColor: feedback.color }]} />
+                <Text style={[styles.feedbackText, { color: feedback.color }]}>
+                  {feedback.text}
+                </Text>
+              </View>
+
+              {/* ชั่วโมง */}
+              <Text style={styles.sectionLabel}>ชั่วโมง</Text>
+              <View style={styles.stepRow}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setHours(h => Math.max(0, h - 1))}
+                >
+                  <Ionicons name="remove" size={20} color={THEME.primary} />
+                </TouchableOpacity>
+                <Text style={styles.stepValue}>{hours} ชม.</Text>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setHours(h => Math.min(24, h + 1))}
+                >
+                  <Ionicons name="add" size={20} color={THEME.primary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* นาที */}
+              <Text style={styles.sectionLabel}>นาที</Text>
+              <View style={styles.stepRow}>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMinutes(m => Math.max(0, m - 15))}
+                >
+                  <Ionicons name="remove" size={20} color={THEME.primary} />
+                </TouchableOpacity>
+                <Text style={styles.stepValue}>{minutes} นาที</Text>
+                <TouchableOpacity
+                  style={styles.stepBtn}
+                  onPress={() => setMinutes(m => Math.min(45, m + 15))}
+                >
+                  <Ionicons name="add" size={20} color={THEME.primary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Preset */}
+              <Text style={styles.sectionLabel}>เลือกเร็ว</Text>
+              <View style={styles.presetRow}>
+                {SLEEP_PRESETS.map(h => {
+                  const active = hours === h && minutes === 0;
+                  return (
+                    <TouchableOpacity
+                      key={h}
+                      style={[styles.presetBtn, active && styles.presetActive]}
+                      onPress={() => { setHours(h); setMinutes(0); }}
+                    >
+                      <Text style={[styles.presetText, active && styles.presetTextActive]}>
+                        {h}h
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* ปุ่มบันทึก */}
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSave}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="checkmark-circle" size={20} color="#e8f5e0" />
+                <Text style={styles.saveBtnText}>บันทึกการนอนหลับ</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+        </Animated.View>
       </View>
-
-      <TouchableOpacity
-        style={styles.confirmButton}
-        onPress={() => {
-          onSelect(hours);
-        }}
-
-        >
-        <Text style={styles.confirmText}>บันทึกการนอน</Text>
-      </TouchableOpacity>
-
-    </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#abb9a7ff',
-    marginHorizontal: 20,
-    marginTop: 12,
-    padding: 20,
-    borderRadius: 20,
-    elevation: 4,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  value: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  slider: {
-    width: SLIDER_WIDTH,
-    height: 30,
-    alignSelf: 'center',
+  centerWrapper: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
-  },
-  track: {
-    height: 7,
-    borderRadius: 3,
-    backgroundColor: '#ddd',
-  },
-  thumb: {
-    position: 'absolute',
-    top: 5,
-    width: 25,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgb(67, 79, 64)',
-  },
-  confirmButton: {
-    marginTop: 20,
-    borderWidth: 2,                 
-    borderColor: '#ffffff',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    paddingVertical: 12,
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  confirmText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000000',
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 20,
+    gap: 10,
   },
 
+  /* ── Done ── */
+  doneContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 12,
+  },
+  checkCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: THEME.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  doneTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: THEME.text,
+  },
+  doneSub: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  doneCloseBtn: {
+    marginTop: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 48,
+    backgroundColor: THEME.primary,
+    borderRadius: 20,
+  },
+  doneCloseTxt: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#e8f5e0',
+  },
+
+  /* ── Form ── */
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: THEME.text,
+    flex: 1,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  displayBox: {
+    alignItems: 'center',
+    backgroundColor: THEME.surface,
+    borderRadius: 20,
+    paddingVertical: 16,
+  },
+  displayTime: {
+    fontSize: 50,
+    fontWeight: '600',
+    color: THEME.primary,
+    letterSpacing: 3,
+  },
+  displayLabel: {
+    fontSize: 12,
+    color: THEME.textLight,
+    marginTop: 4,
+  },
+  feedbackBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  feedbackDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  feedbackText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    color: THEME.textLight,
+    marginBottom: -4,
+    letterSpacing: 0.3,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: THEME.surface,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  stepBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: THEME.surfaceDeep,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepValue: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: THEME.primary,
+    minWidth: 80,
+    textAlign: 'center',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    alignItems: 'center',
+    backgroundColor: THEME.surface,
+  },
+  presetActive: {
+    backgroundColor: THEME.primary,
+    borderColor: THEME.primary,
+  },
+  presetText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: THEME.textMuted,
+  },
+  presetTextActive: {
+    color: '#e8f5e0',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: THEME.primary,
+    borderRadius: 20,
+    paddingVertical: 14,
+    marginTop: 2,
+  },
+  saveBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#e8f5e0',
+  },
 });
