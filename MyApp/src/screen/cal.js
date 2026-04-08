@@ -1,5 +1,5 @@
 // hybrid
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
 import ProgressRing from "../components/ProgressRing";
 import { Ionicons } from "@expo/vector-icons";
 import { sendToAI } from "../utils/openaiUtils";
+import { API_URL } from "../config";
+import { AuthContext } from "../context/AuthProvider";
 
 export default function CalScreen() {
 
@@ -23,7 +25,7 @@ export default function CalScreen() {
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const { userToken } = useContext(AuthContext);
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
 
   const remaining = recommendedCal - consumedCal;
@@ -67,29 +69,55 @@ export default function CalScreen() {
     setLoading(false);
   };
 
-  /* ===== add food ===== */
-
-  const addFood = () => {
-
-    const newFood = {
-      id: Date.now().toString(),
-      ...previewFood
-    };
-
-    setFoods(prev => [newFood, ...prev]);
-
-    setPreviewFood(null);
+  const addFood = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/food`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${userToken}` 
+        },
+        body: JSON.stringify(previewFood)
+      });
+      const newFood = await res.json();
+      setFoods(prev => [newFood, ...prev]);
+      setPreviewFood(null);
+    } catch (err) {
+      Alert.alert("บันทึกอาหารไม่สำเร็จ");
+    }
   };
 
-  /* ===== delete food ===== */
-
-  const deleteFood = (item) => {
-
-    setFoods(prev =>
-      prev.filter(f => f.id !== item.id)
-    );
+  const getFoodsToday = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/food/today`, {
+        headers: {
+          "Authorization": `Bearer ${userToken}`
+        }
+      });
+      const data = await res.json();
+      setFoods(data);
+    } catch (err) {
+      Alert.alert("โหลดรายการอาหารไม่สำเร็จ");
+    }
   };
 
+  useEffect(() => {
+    getFoodsToday();
+  }, []);
+
+  const deleteFood = async (item) => {
+    try {
+      await fetch(`${API_URL}/api/food/${item.id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${userToken}`
+        }
+      });
+      setFoods(prev => prev.filter(f => f.id !== item.id));
+    } catch (err) {
+      Alert.alert("ลบอาหารไม่สำเร็จ");
+    }
+  };
   /* ===== render list ===== */
 
   const renderItem = ({ item }) => (
