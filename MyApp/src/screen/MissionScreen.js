@@ -2,6 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ALL_MISSIONS } from '../constants/missions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProfile } from '../context/ProfileContext';
+import { useLevel, XP_REWARDS } from '../context/LevelContext';
 
 const MissionScreen = () => {
   
@@ -11,10 +15,6 @@ const MissionScreen = () => {
       <View style={[styles.accentBar, { backgroundColor: color }]} />
       <View style={styles.cardContent}>
         <View style={styles.iconContainer}>
-            {/* ในตัวอย่างเป็นรูปวาด แนะนำให้ใช้ Image source={...} */}
-            <View style={[styles.mockIcon, { backgroundColor: color + '22' }]}>
-                <Text style={{fontSize: 24}}>📅</Text> 
-            </View>
         </View>
         
         <View style={styles.infoContainer}>
@@ -34,38 +34,102 @@ const MissionScreen = () => {
     </TouchableOpacity>
   );
 
+  const DailyMissionGroupCard = ({ missions }) => {
+    const completedCount = missions.filter(m => m.completed).length;
+    const totalCount = missions.length;
+    return (
+      <View style={styles.card}>
+        <View style={[styles.accentBar, { backgroundColor: '#4CAF50' }]} />
+        <Text style={styles.dailyCount}>{completedCount}/{totalCount}</Text>
+        <View style={styles.cardContent}>
+          <View style={styles.infoContainer}>
+            <Text style={styles.cardTitle}>ภารกิจประจำวัน</Text>
+            {missions.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.dailyItem}
+                onPress={() => toggleMission(item.id)}
+              >
+                <View style={styles.dailyRewardRow}>
+                <Text style={styles.dailyText}>{item.title} </Text>
+                <Text style={styles.dailyRewardText}>+{item.reward}</Text>
+                <Image
+                  source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')}
+                  style={styles.inlineCoinImage}
+                />
+              </View>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, {
+                    width: item.completed ? '100%' : '0%',
+                    backgroundColor: '#4CAF50',
+                  }]} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const currentMonthName = new Intl.DateTimeFormat('th-TH', { month: 'long' }).format(new Date());
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         
         {/* Header Section */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerSmall}>ภารกิจ</Text>
+          <Text style={styles.headerSmall}>ภารกิจ</Text>
+
+          {/* ✅ แสดง profile.coins แทน coins state */}
+          <View style={styles.coinWrapper}>
+            <View style={styles.coinIcon}>
+              <Image
+                source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')} // ✅ แก้ path
+                style={styles.coinImage}
+              />
+            </View>
+            <Text style={styles.coinText}>{profile.coins ?? 0}</Text>
           </View>
-          <Image 
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/4333/4333609.png' }} // เปลี่ยนเป็นรูปตัวละครของคุณ
-            style={styles.characterImg} 
-          />
+
         </View>
 
-        {/* Monthly Mission Card (Green Gradient) */}
-        <LinearGradient 
-          colors={['#4CAF50', '#2E7D5B']} 
-          start={{x: 0, y: 0}} end={{x: 1, y: 0}}
-          style={styles.monthlyCard}
-        >
-          <View style={styles.monthlyInfo}>
-            <View style={styles.calendarIconBg}>
-                <Text style={{fontSize: 20}}>📅</Text>
+        {monthlyMission && (
+          <LinearGradient
+            colors={['#4CAF50', '#2E7D5B']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.monthlyCard}
+          >
+            <View style={styles.monthlyInfo}>
+              <View style={styles.calendarIconBg}>
+                <Text style={{ fontSize: 20 }}>📅</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 15 }}>
+                <Text style={{ color: '#ffffffaa', fontSize: 12, fontWeight: 'bold' }}>
+                  ภารกิจประจำเดือน {currentMonthName}
+                </Text>
+                <Text style={styles.monthlyTitle} numberOfLines={1}>
+                  {monthlyMission.title}
+                </Text>
+              </View>
+              <Text style={styles.arrowWhite}>›</Text>
             </View>
-            <Text style={styles.monthlyTitle}>ภารกิจประจำเดือนเมษายน</Text>
-            <Text style={styles.arrowWhite}>〉</Text>
-          </View>
-          <View style={styles.monthlyBadge}>
-            <Text style={styles.monthlyBadgeText}>🕒 16 วันเหลือ</Text>
-          </View>
-        </LinearGradient>
+
+            {/* ✅ เพิ่ม progress bar */}
+            <View style={styles.monthlyProgressRow}>
+              <View style={styles.monthlyProgressBg}>
+                <View style={[styles.monthlyProgressFill, {
+                  width: `${(0 / monthlyMission.goal) * 100}%`, // เปลี่ยน 0 เป็นค่า progress จริงเมื่อมีข้อมูล
+                }]} />
+              </View>
+              <Text style={styles.monthlyProgressText}>
+                0 / {monthlyMission.goal} {monthlyMission.unit}
+              </Text>
+            </View>
+          </LinearGradient>
+        )}
 
         <Text style={styles.sectionTitle}>ภารกิจทั้งหมด ✨</Text>
 
@@ -107,16 +171,55 @@ const MissionScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 25, alignItems: 'center' },
-  headerSmall: { fontSize: 32, fontWeight: '800', color: '#2E7D5B', opacity: 0.8 },
-  headerLarge: { fontSize: 48, fontWeight: 'bold', color: '#1B4332', marginTop: -10 },
-  characterImg: { width: 100, height: 100, borderRadius: 50 },
-  
+  header: {
+    flexDirection: 'row', justifyContent: 'center',
+    padding: 25, alignItems: 'center', position: 'relative',
+  },
+  headerSmall: { fontSize: 32, fontWeight: '800', color: '#2E7D5B', opacity: 0.8,textAlign: 'center', flex: 1,},
+  coinWrapper: {
+    position: 'absolute', right: 25,
+    alignItems: 'center', 
+    flexDirection: 'row', 
+  },
+  coinIcon: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#FFC83D', borderWidth: 2,
+    borderColor: '#1E1E1E', justifyContent: 'center',
+    alignItems: 'center', marginRight: 6,
+  },
+  coinText: {
+    fontSize: 22, color: '#000', fontWeight: '600',
+    lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center',
+  },
+  coinImage: { width: 20, height: 20, resizeMode: 'contain' },
+  dailyItem: { marginTop: 10 },
+  dailyText: {
+    fontSize: 16, fontWeight: '500', color: '#000',
+    marginBottom: 4, includeFontPadding: false,
+    textAlignVertical: 'center', lineHeight: 22,
+  },
+  dailyCount: {
+    position: 'absolute', top: 10, right: 15,
+    fontSize: 12, fontWeight: 'bold', color: '#4CAF50',
+  },
   monthlyCard: { margin: 20, borderRadius: 25, padding: 20, elevation: 5 },
   monthlyInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   calendarIconBg: { backgroundColor: '#fff', padding: 8, borderRadius: 12 },
   monthlyTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1, marginLeft: 15 },
-  monthlyBadge: { backgroundColor: '#ffffff44', alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 15, marginTop: 10, marginLeft: 50 },
+  monthlyProgressRow: {
+  marginTop: 12,
+  marginLeft: 50,
+},
+monthlyProgressBg: {
+  height: 8, backgroundColor: '#ffffff44',
+  borderRadius: 4, overflow: 'hidden', marginBottom: 4,
+},
+monthlyProgressFill: {
+  height: 8, backgroundColor: '#fff', borderRadius: 4,
+},
+monthlyProgressText: {
+  color: '#ffffffcc', fontSize: 11,
+},
   monthlyBadgeText: { color: '#fff', fontSize: 12 },
   
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 25, marginBottom: 15, color: '#1B4332' },
@@ -141,8 +244,26 @@ const styles = StyleSheet.create({
   dailyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   timeTextGreen: { color: '#4CAF50', fontWeight: 'bold' },
   stepContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stepDot: { width: 15, height: 15, borderRadius: 10, backgroundColor: '#EEE' },
-  stepActive: { backgroundColor: '#4CAF50', width: 20, height: 20 }
+  stepDot: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E0' },
+  stepActive: { backgroundColor: '#4CAF50', transform: [{ scale: 1.25 }] },
+  stepToday: { borderWidth: 2, borderColor: '#2E7D5B' },
+  // Daily mission styles
+  dailyRewardRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 4,
+},
+dailyRewardText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#C8861A',
+  marginRight: 3,
+},
+inlineCoinImage: {
+  width: 16,
+  height: 16,
+  resizeMode: 'contain',
+},
 });
 
 export default MissionScreen;

@@ -15,18 +15,22 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  username  String
+  id           Int               @id @default(autoincrement())
+  email        String            @unique
+  username     String
+  password     String
 
-  profile   Profile?
+  profile      Profile?
 
-  features  UserFeature[]
-  moods     MoodLog[]
-  sleeps    Sleep[]
-  progress  DailyProgress[]
-  foods     FoodLog[]
+  coins        Int               @default(0)
+  transactions CoinTransaction[]
+  progress     DailyProgress[]
+  missions     MissionProgress[]
+  moods        MoodLog[]
+  sleeps       Sleep[]
+  features     UserFeature[]
+  stepSessions StepSession[]
+  foods        FoodLog[]
 }
 
 model Profile {
@@ -37,6 +41,7 @@ model Profile {
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
+  selectedTreeType Int   @default(1)  
 
   user          User     @relation(fields: [userId], references: [id])
 }
@@ -97,6 +102,48 @@ model Sleep {
   date   DateTime 
 
   @@unique([userId, date])  
+}
+
+model MissionProgress {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  missionId   String
+  type        String
+  progress    Int       @default(0)
+  goal        Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, missionId])
+}
+
+model CoinTransaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Int
+  source    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model MissionReward {
+  id     Int    @id @default(autoincrement())
+  type   String @unique
+  reward Int
+}
+
+model StepSession {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  steps     Int
+  distance  Float
+  calories  Int
+  duration  Int
+  date      DateTime
+  route     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model FoodLog {

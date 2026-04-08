@@ -1,12 +1,14 @@
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
+// Import Routes
 import userRoutes from "./src/routes/userRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import sleepRoutes from "./src/routes/sleepRoutes.js";
 import foodRoutes from "./src/routes/foodRoutes.js";
+import stepRoutes from "./src/routes/stepRoutes.js";
+import gardenRoutes from './src/routes/gardenRoutes.js';
 
 dotenv.config();
 
@@ -21,12 +23,13 @@ app.get("/", (req, res) => {
 });
 
 // routes
+app.use('/api', stepRoutes);
+app.use('/api/garden', gardenRoutes);
 app.use("/api", userRoutes);
 app.use("/api/mood", moodRoutes);
 app.use("/api/sleep", sleepRoutes);
 app.use("/api/food", foodRoutes);
 
-
-app.listen(3000,'0.0.0.0',() => {
+app.listen(3000, '0.0.0.0', () => {
   console.log("SERVER STARTED ON 3000");
 });

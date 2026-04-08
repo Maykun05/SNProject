@@ -15,16 +15,28 @@ export const createUser = async ({ username, email, password }) => {
 };
 
 export const getUserProfile = async (userId) => {
-  return prisma.profile.findUnique({
-    where: { userId },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     select: {
-      weight: true,
-      height: true,
-      birthDate: true,
-      activityLevel: true,
-      gender: true,
+      username: true,
+      email: true,
+      profile: {
+        select: {
+          weight: true,
+          height: true,
+          birthDate: true,
+          activityLevel: true,
+          gender: true,
+        },
+      },
     },
   });
+
+  return {
+    username: user?.username,
+    email: user?.email,
+    ...user?.profile,
+  };
 };
 
 export const findUserByEmail = async (email) => {
@@ -131,6 +143,39 @@ export const loginUser = async ({ email, password }) => {
       email: user.email,
       username: user.username,
     }, 
+  };
+};
+
+export const getProfileStatsService = async (userId) => {
+  const [profile, missions, progress, mood, sleep] = await Promise.all([
+    prisma.profile.findUnique({ where: { userId } }),
+    prisma.missionProgress.count({ where: { userId, isCompleted: true } }),
+    prisma.dailyProgress.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+    prisma.moodLog.findFirst({
+      where: { userId },
+      orderBy: { date: "desc" },
+    }),
+    prisma.sleep.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+  ]);
+
+  const avgSleep = sleep.length
+    ? sleep.reduce((sum, s) => sum + s.hours, 0) / sleep.length
+    : null;
+
+  return {
+    coins: profile?.coins ?? 0,
+    totalMissionsCompleted: missions,
+    latestMood: mood?.mood ?? null,
+    avgSleepHours: avgSleep,
+    recentProgress: progress,
   };
 };
 

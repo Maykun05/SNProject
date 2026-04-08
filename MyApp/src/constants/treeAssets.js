@@ -1,0 +1,42 @@
+export const TREE_ASSETS = {
+  1: [
+    require('../assets/tree_1_0.png'),
+    require('../assets/tree_1_1.png'),
+    require('../assets/tree_1_2.png'),
+    require('../assets/tree_1_3.png'),
+    require('../assets/tree_1_4.png'),
+    require('../assets/tree_1_5.png'),
+  ],
+  2: [
+    require('../assets/tree_2_0.png'),
+    require('../assets/tree_2_1.png'),
+    require('../assets/tree_2_2.png'),
+    require('../assets/tree_2_3.png'),
+    require('../assets/tree_2_4.png'),
+    require('../assets/tree_2_5.png'),
+  ],
+  3: [
+    require('../assets/tree_3_0.png'),
+    require('../assets/tree_3_1.png'),
+    require('../assets/tree_3_2.png'),
+    require('../assets/tree_3_3.png'),
+    require('../assets/tree_3_4.png'),
+    require('../assets/tree_3_5.png'),
+  ],
+  4: [
+    require('../assets/tree_4_0.png'),
+    require('../assets/tree_4_1.png'),
+    require('../assets/tree_4_2.png'),
+    require('../assets/tree_4_3.png'),
+    require('../assets/tree_4_4.png'),
+    require('../assets/tree_4_5.png'),
+  ],
+  5: [
+    require('../assets/tree_5_0.png'),
+    require('../assets/tree_5_1.png'),
+    require('../assets/tree_5_2.png'),
+    require('../assets/tree_5_3.png'),
+    require('../assets/tree_5_4.png'),
+    require('../assets/tree_5_5.png'),
+  ],
+};

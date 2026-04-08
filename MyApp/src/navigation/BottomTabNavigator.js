@@ -41,7 +41,7 @@ export default function BottomTabNavigator() {
               label = 'สถิติ';
               break;
             case 'Mission':
-              iconName = 'person';
+              iconName = 'trophy';
               label = 'ภารกิจ';
               break;
           }

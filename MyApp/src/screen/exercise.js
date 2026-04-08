@@ -22,7 +22,7 @@ const STORAGE_KEY = 'exercise_goals_';
    screen
 ====================== */
 
-export default function ExerciseScreen() {
+export default function ExerciseScreen({ navigation }) {
   const [goals, setGoals] = useState([]);
   const [text, setText] = useState('');
 
@@ -144,6 +144,15 @@ export default function ExerciseScreen() {
           {doneCount}/{total || 0}
         </Text>
       </View>
+
+      {/* ===== ปุ่มนับก้าว ===== */}
+      <TouchableOpacity
+        style={styles.stepBtn}
+        onPress={() => navigation.navigate('StepTracker')}
+      >
+        <Ionicons name="footsteps" size={22} color="#fff" />
+        <Text style={styles.stepBtnText}>เริ่มนับก้าว</Text>
+      </TouchableOpacity>
 
       {/* ===== add goal ===== */}
       <View style={styles.addRow}>
@@ -290,4 +299,19 @@ const styles = StyleSheet.create({
   iconBtn: {
     marginLeft: 10,
   },
+  stepBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#2E7D5B',
+  borderRadius: 20,
+  paddingVertical: 12,
+  marginBottom: 16,
+  gap: 8,
+},
+stepBtnText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '700',
+},
 });

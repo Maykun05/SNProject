@@ -1,4 +1,4 @@
-import { registerUser, loginUser, getUserProfile, updateUserProfile } from "../services/userService.js";
+import { registerUser, loginUser, getUserProfile, updateUserProfile, getProfileStatsService } from "../services/userService.js";
 import { getUserFeatures, updateUserFeatures, getUserFeatureIds } from "../services/featureService.js";
 
 export const register = async (req, res) => {
@@ -86,6 +86,17 @@ export const saveFeatures = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// GET /user/profile/stats
+export const getProfileStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const stats = await getProfileStatsService(userId);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
  
 export const getFeatureIds = async (req, res) => { //เอาไว้แก้ไขฟีเจ้อหน้าโฮม
   try {
@@ -97,5 +108,38 @@ export const getFeatureIds = async (req, res) => { //เอาไว้แก้
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ GET tree type
+export const getTreeType = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    return res.json({ success: true, selectedTreeType: profile?.selectedTreeType ?? 1 });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// ✅ PUT tree type
+export const updateTreeType = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { selectedTreeType } = req.body;
+
+    if (selectedTreeType < 1 || selectedTreeType > 5) {
+      return res.status(400).json({ success: false, message: 'Invalid tree type' });
+    }
+
+    await prisma.profile.upsert({
+      where: { userId },
+      update: { selectedTreeType },
+      create: { userId, selectedTreeType },
+    });
+
+    return res.json({ success: true, selectedTreeType });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
