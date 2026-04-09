@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { grantDailyTreeIfNeeded } from "../services/treeGardenService.js";
 
 const VALID_FEATURES = ["calorie", "mood", "sleep", "water", "step"];
 
@@ -113,6 +114,11 @@ export const logFeature = async (req, res) => {
       },
     });
 
+    let dailyTreeGrant = null;
+    if (allCompleted) {
+      dailyTreeGrant = await grantDailyTreeIfNeeded(userId, today);
+    }
+
     const monthEarned = await countMonthEarnedDays(userId, today.getFullYear(), today.getMonth() + 1);
 
     return res.json({
@@ -124,6 +130,8 @@ export const logFeature = async (req, res) => {
         allCompleted,
         treeGrown: allCompleted,
         treeCount: monthEarned.length,
+        dailyTreeCreated: Boolean(dailyTreeGrant?.created),
+        earnedTree: dailyTreeGrant?.earnedTree ?? null,
       },
     });
   } catch (err) {
