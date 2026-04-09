@@ -1,8 +1,9 @@
 import React, { useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, ScrollView, Animated
+  ScrollView, Animated
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 const GREEN = '#1E4D2B';
@@ -110,9 +111,11 @@ export default function PrivacyPolicyScreen({ navigation }) {
         </Text>
 
         {/* ── Sections ── */}
-        {SECTIONS.map((item) => (
-          <SectionCard key={item.title} item={item} />
-        ))}
+        {Array.isArray(SECTIONS) &&
+          SECTIONS.map((item) => (
+            <SectionCard key={item.title} item={item} />
+          ))
+        }
 
         {/* ── Footer ── */}
         <View style={styles.footer}>

@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { sendToAI } from "../utils/openaiUtils";
 import { API_URL } from "../config";
 import { AuthContext } from "../context/AuthProvider";
+import { useNavigation } from "@react-navigation/native";
 
 export default function CalScreen() {
 
@@ -29,6 +30,17 @@ export default function CalScreen() {
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
 
   const remaining = recommendedCal - consumedCal;
+   const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({
+      onDone: () => {
+        // ✅ ทำงานที่ต้องการ เช่น markDone
+        console.log('Calorie done!');
+        // ถ้าอยากเรียก markDone จาก context/hook ก็ทำตรงนี้
+      },
+    });
+  }, [navigation]);
 
   /* ===== search with AI ===== */
 

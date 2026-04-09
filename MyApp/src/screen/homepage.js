@@ -15,7 +15,7 @@ import { TREE_ASSETS } from '../constants/treeAssets'; // ✅ ใหม่
 import useHomeState from '../hooks/useHomeState';
 import { AuthContext } from '../context/AuthProvider';
 
-import ProfileAvatar from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/components/home/ProfileAvatar.js';
+import ProfileAvatar from '../components/home/ProfileAvatar.js';
 import { useWater } from '../context/WaterContext';
 import { useStep } from '../context/StepContext';
 import { useLevel } from '../context/LevelContext';
@@ -74,12 +74,12 @@ export default function HomeScreen({ navigation }) {
     setShowFeatureModal(false);
   };
 
-  const { logout } = useContext(AuthContext);
+  // const { logout } = useContext(AuthContext);
 
-  const handleLogout = async () => {
-    await logout();
-    navigation.replace('Login');
-  };
+  // const handleLogout = async () => {
+  //   await logout();
+  //   navigation.replace('Login');
+  // };
 
   const { consumed: waterConsumed, waterGoal } = useWater();
   const { steps, stepGoal } = useStep();
@@ -96,7 +96,6 @@ export default function HomeScreen({ navigation }) {
 
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
   const [sleepHours, setSleepHours] = useState(null);
-
   return (
     <View style={styles.root}>
       <HomeHeader />
@@ -179,6 +178,7 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* ✅ ย้าย SleepQuickPicker และ MoodQuickPicker ออกนอก ScrollView */}
+      
       <SleepQuickPicker
         visible={showSleepPicker}
         initialHours={lastSleepHours}
@@ -196,9 +196,9 @@ export default function HomeScreen({ navigation }) {
         <ProfileAvatar size={60} />
       </View>
 
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+      {/* <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={24} color="#000" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
     </View>
   );

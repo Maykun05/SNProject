@@ -39,7 +39,9 @@ function CircleIcon({ f, index, total, onPressFeature }) {
     >
       <TouchableOpacity
         style={styles.iconTouchable}
-        onPress={() => onPressFeature(f)}
+        onPress={() => {
+          console.log("TOUCH ICON:", f.key);
+          onPressFeature(f);}}
         activeOpacity={0.75}
       >
         <Image source={f.image} style={styles.iconImage} />

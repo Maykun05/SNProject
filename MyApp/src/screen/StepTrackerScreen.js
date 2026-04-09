@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, ScrollView, Alert,
+  View, Text, StyleSheet, TouchableOpacity,ScrollView, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Accelerometer } from 'expo-sensors';
 import * as Location from 'expo-location';
 import MapView, { Polyline, Marker } from 'react-native-maps';
@@ -223,10 +223,10 @@ export default function StepTrackerScreen() {
         {/* ── Stats ── */}
         <View style={styles.statsGrid}>
           {[
-            { label: 'ก้าว', value: steps.toLocaleString(), unit: 'steps' },
-            { label: 'ระยะทาง', value: distance.toFixed(2), unit: 'km' },
-            { label: 'แคลอรี่', value: calories, unit: 'kcal' },
-            { label: 'เวลา', value: formatTime(elapsedTime), unit: '' },
+            { label: 'ก้าว', value: (steps ?? 0).toLocaleString(), unit: 'steps' },
+            { label: 'ระยะทาง', value: (distance ?? 0).toFixed(2), unit: 'km' },
+            { label: 'แคลอรี่', value: String(calories ?? 0), unit: 'kcal' },
+            { label: 'เวลา', value: formatTime(elapsedTime ?? 0), unit: '' },
           ].map((item) => (
             <View key={item.label} style={styles.statCard}>
               <Text style={styles.statValue}>{item.value}</Text>

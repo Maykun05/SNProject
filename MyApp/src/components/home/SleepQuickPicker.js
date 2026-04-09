@@ -28,8 +28,10 @@ export default function SleepQuickPicker({ visible, initialHours, onSelect, onCl
 
   useEffect(() => {
     if (visible) {
-      setHours(initialHours || 7);
-      setMinutes(0);
+      if (initialHours !== undefined) {
+        setHours(Math.floor(initialHours));
+        setMinutes(Math.round((initialHours % 1) * 60));
+      }
       setDone(false);
       popAnim.setValue(0.88);
       fadeAnim.setValue(0);

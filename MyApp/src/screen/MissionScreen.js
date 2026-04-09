@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ALL_MISSIONS } from '../constants/missions';
@@ -8,7 +9,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useLevel, XP_REWARDS } from '../context/LevelContext';
 
 const MissionScreen = () => {
-  
+  const{profile} = useProfile();
   // คอมโพเนนต์ย่อยสำหรับภารกิจแต่ละใบ
   const MissionCard = ({ title, subtitle, progress, total, timeLeft, color, iconName }) => (
     <TouchableOpacity style={styles.card}>
@@ -54,7 +55,7 @@ const MissionScreen = () => {
                 <Text style={styles.dailyText}>{item.title} </Text>
                 <Text style={styles.dailyRewardText}>+{item.reward}</Text>
                 <Image
-                  source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')}
+                  source={require('../assets/coin.png')}
                   style={styles.inlineCoinImage}
                 />
               </View>
@@ -86,7 +87,7 @@ const MissionScreen = () => {
           <View style={styles.coinWrapper}>
             <View style={styles.coinIcon}>
               <Image
-                source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')} // ✅ แก้ path
+                source={require('../assets/coin.png')} // ✅ แก้ path
                 style={styles.coinImage}
               />
             </View>

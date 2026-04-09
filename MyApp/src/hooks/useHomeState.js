@@ -35,8 +35,15 @@ export default function useHomeState({ addXp } = {}) {
         try {
           const latest = await getLatestSleep(userToken);
           result.sleep = !!latest;
-          setLastSleepHours(latest?.hours || 6);
-        } catch {
+          if (latest?.hours) {
+            const h = Math.floor(latest.hours);
+            const m = Math.round((latest.hours % 1) * 60);
+            setLastSleepHours(latest.hours);
+          } else {
+            setLastSleepHours(6);
+          }
+          // setLastSleepHours(latest?.hours || 6);
+        } catch (err) {
           result.sleep = false;
         }
       } else {
@@ -83,14 +90,12 @@ export default function useHomeState({ addXp } = {}) {
         setShowMoodPicker(true);
         break;
       case 'exercise':
-        navigation.navigate('ExerciseScreen', {
+        navigation.navigate('Exercise', {
           onDone: () => markDone('exercise'),
         });
         break;
-      case 'calorie':
-        navigation.navigate('CalorieScreen', {
-          onDone: () => markDone('calorie'),
-        });
+      case 'food':
+        navigation.navigate('Calorie');
         break;
       default:
         break;
@@ -109,12 +114,13 @@ export default function useHomeState({ addXp } = {}) {
   };
 
   // ✅ ปิด + อัป UI ทันที → sync DB ใน background
-  const setSleepToday = async (hours) => {
+  const setSleepToday = async (hoursDecimal) => {
     setShowSleepPicker(false);
     setDoneMap(prev => ({ ...prev, sleep: true }));
     if (addXp) addXp(20);
     try {
-      await saveSleepToDB(hours, userToken);
+      await saveSleepToDB(hoursDecimal, userToken);
+      await loadTodayStatus(enabledFeatures);
     } catch (err) {
       console.log('setSleepToday error:', err);
     }

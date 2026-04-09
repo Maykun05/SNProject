@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Image, View, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useProfile } from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/context/ProfileContext.js';
+import { useProfile } from '../../context/ProfileContext.js';
 import { useNavigation } from '@react-navigation/native'; // ✅ เพิ่ม
 
 export default function ProfileAvatar({ size = 60 }) {

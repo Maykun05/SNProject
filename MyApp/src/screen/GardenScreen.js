@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Dimensions, Animated, SafeAreaView, FlatList,
+  Dimensions, Animated, FlatList,
 } from 'react-native';
 import { useGarden } from '../context/GardenContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const { width } = Dimensions.get('window');
 

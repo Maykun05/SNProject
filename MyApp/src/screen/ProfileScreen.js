@@ -1,22 +1,24 @@
-import React, { useState, useEffect  } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity,
   Alert, ScrollView, Image, Modal, TextInput,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
-import CoinBadge from '/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/src/component/CoinBadge.js';
+import CoinBadge from '../component/CoinBadge.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
+import { AuthContext } from '../context/AuthProvider.js';
 
 const GREEN = '#1E4D2B';
 
 
 const ProfileScreen = ({ navigation }) => {
-  const { profile, updateProfile, logout } = useProfile();
+  const { profile, updateProfile} = useProfile();
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
 
   const [username, setUsername] = useState('');
@@ -33,7 +35,7 @@ useEffect(() => {
   const fetchUsername = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('token:', token); // ✅ เช็คว่ามี token ไหม
+      // console.log('token:', token); // ✅ เช็คว่ามี token ไหม
 
       if (!token) {
         console.log('ไม่มี token');
@@ -48,9 +50,8 @@ useEffect(() => {
         },
       });
 
-      console.log('res.status:', res.status); // ✅ เช็ค status code
       const data = await res.json();
-      console.log('data:', data); // ✅ เช็คว่า backend return อะไร
+      // console.log('data:', data); // ✅ เช็คว่า backend return อะไร
 
       setUsername(data.username ?? '');
       setEmailState(data.email ?? '');
@@ -180,23 +181,11 @@ const handleChangePassword = async () => {
 };
 
 
-  const handleLogout = () => {
-    Alert.alert(
-      "ยืนยันการออกจากระบบ",
-      "คุณต้องการออกจากระบบใช่หรือไม่?",
-      [
-        { text: "ยกเลิก", style: "cancel" },
-        { 
-          text: "ออกจากระบบ", 
-          style: "destructive",
-          // ใช้ reset เพื่อล้าง stack ทั้งหมดและกลับไปหน้า Login
-          onPress: () => navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          }) 
-        }
-      ]
-    );
+  const { logout } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    await logout();   // เทสล้อกเอ้า
+    navigation.replace("Login");
   };
 
   return (

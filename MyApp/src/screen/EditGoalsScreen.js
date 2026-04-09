@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  SafeAreaView, TextInput, Alert, ScrollView
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../context/ProfileContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const GREEN = '#1E4D2B';
 

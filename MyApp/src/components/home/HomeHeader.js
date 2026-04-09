@@ -3,7 +3,7 @@ import { View, Image, StyleSheet, Text } from 'react-native';
 import { useLevel } from '../../context/LevelContext'; // ✅ เพิ่ม
 
 export default function HomeHeader() {
-  const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel(); // ✅ เพิ่ม
+  const { level, xp, xpRequired, xpPercent, levelInfo} = useLevel(); // ✅ เพิ่ม
 
   return (
     <View style={styles.header}>
@@ -16,8 +16,8 @@ export default function HomeHeader() {
 
       {/* Level ตรงกลาง */}
       <View style={styles.levelCenter}>
-        <Text style={[styles.levelTitle, { color: levelInfo.color }]}>
-          {levelInfo.emoji} Lv.{level}{levelInfo.name}
+        <Text style={[styles.levelTitle, { color: levelInfo?.color || '#000' }]}>
+          {(levelInfo?.emoji ?? '')} Lv.{level ?? 0} {(levelInfo?.name ?? '')}
         </Text>
         <View style={styles.xpBarBg}>
           <View style={[styles.xpBarFill, {

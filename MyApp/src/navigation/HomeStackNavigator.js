@@ -39,7 +39,6 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="EditGoals"        component={EditGoalsScreen} />
       <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} />
       <Stack.Screen name="Notifications"    component={NotificationsScreen} />
-      
       <Stack.Screen name="GardenScreen"     component={GardenScreen} options={{ title: 'สวนของฉัน', headerShown: true }}/>
 
     </Stack.Navigator>

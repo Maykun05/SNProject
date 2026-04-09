@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 const CoinBadge = ({ amount }) => (
   <View style={styles.coinBadge}>
     <Image 
-      source={require('/Users/kuntidakongkad/Documents/ทำงานทำการ/SNProject/MyApp/assets/coin.png')}
+      source={require('../assets/coin.png')}
       style={styles.coinIcon} 
     />
     <Text style={styles.coinText}>{String(amount ?? 0)}</Text>

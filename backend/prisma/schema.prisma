@@ -98,7 +98,7 @@ model Sleep {
   id     Int      @id @default(autoincrement())
   userId Int
   user   User     @relation(fields: [userId], references: [id])
-  hours  Int
+  hours  Float
   date   DateTime 
 
   @@unique([userId, date])  
