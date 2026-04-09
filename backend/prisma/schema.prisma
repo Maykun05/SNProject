@@ -43,6 +43,9 @@ model Profile {
   gender        Gender?
   selectedTreeType Int   @default(1)  
 
+  calorieGoal     Int?  
+  profileImage    String?
+
   user          User     @relation(fields: [userId], references: [id])
 }
 

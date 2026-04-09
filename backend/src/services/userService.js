@@ -14,36 +14,58 @@ export const createUser = async ({ username, email, password }) => {
   });
 };
 
-export const getUserProfile = async (userId) => {
-  const user = await prisma.user.findUnique({
+export const getUser = async (userId) => {
+  return prisma.user.findUnique({
     where: { id: userId },
     select: {
+      id: true,
       username: true,
       email: true,
-      profile: {
-        select: {
-          weight: true,
-          height: true,
-          birthDate: true,
-          activityLevel: true,
-          gender: true,
-        },
-      },
+      // ❌ ไม่ควรส่ง password ออกไป
     },
   });
-
-  return {
-    username: user?.username,
-    email: user?.email,
-    ...user?.profile,
-  };
 };
 
-export const findUserByEmail = async (email) => {
-  return prisma.user.findUnique({
-    where: { email },
+// ✅ อัปเดตข้อมูล user
+export const updateUser = async (userId, data) => {
+  const updateData = {};
+
+  if (data.username) updateData.username = data.username;
+  if (data.email) updateData.email = data.email;
+  if (data.password) {
+    const hashed = await bcrypt.hash(data.password, 10);
+    updateData.password = hashed;
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: {
+      id: true,
+      username: true,
+      email: true,
+    },
   });
 };
+
+// export const updateProfile = async (userId, data) => {
+//   return prisma.profile.update({
+//     where: { userId },
+//     data,
+//   });
+// };
+
+export const getProfile = async (userId) => {
+  return prisma.profile.findUnique({
+    where: { userId },
+  });
+};
+
+// export const findUserByEmail = async (email) => {
+//   return prisma.user.findUnique({
+//     where: { email },
+//   });
+// };
 
 export const updateUserProfile = async (userId, data) => {
   return prisma.profile.upsert({
@@ -65,18 +87,13 @@ export const updateUserProfile = async (userId, data) => {
     },
   });
 };
-
-export const getUserById = async (userId) => {
+ 
+// ไว้ใช้กับ profileprovider
+export const getUserWithProfile = async (userId) => {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      profile: true,
-      features: { include: { feature: true } },
-      moods: true,
-      progress: true,
+    include: {
+      profile: true, // ดึงข้อมูลทั้งหมดจาก Profile
     },
   });
 };

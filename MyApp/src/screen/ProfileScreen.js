@@ -20,49 +20,30 @@ const GREEN = '#1E4D2B';
 const ProfileScreen = ({ navigation }) => {
   const { profile, updateProfile} = useProfile();
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
-
   const [username, setUsername] = useState('');
-
   const [email, setEmailState] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [editField, setEditField] = useState(null);
+  const {userToken} = useContext(AuthContext);
 
-// ✅ เพิ่มตรงนี้
-useEffect(() => {
-  const fetchUsername = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      // console.log('token:', token); // ✅ เช็คว่ามี token ไหม
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!userToken) return; // ถ้าไม่มี token ไม่ต้องยิง API
 
-      if (!token) {
-        console.log('ไม่มี token');
-        return;
-      }
-
-      const res = await fetch(`${API_URL}/api/profile`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch(`${API_URL}/api/user`, {
+        headers: { Authorization: `Bearer ${userToken}` },
       });
-
       const data = await res.json();
-      // console.log('data:', data); // ✅ เช็คว่า backend return อะไร
+      setUsername(data.username);
+    };
 
-      setUsername(data.username ?? '');
-      setEmailState(data.email ?? '');
-    } catch (err) {
-      console.error('fetchUsername error:', err);
-    }
-  };
-
-  fetchUsername();
-}, []);
-  
+    fetchProfile();
+  }, [userToken]);
+    
 
   // ── Modal states ──
   const [showNameModal,   setShowNameModal]   = useState(false);
@@ -99,14 +80,32 @@ useEffect(() => {
     }
   };
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     const trimmed = inputName.trim();
     if (!trimmed || trimmed.length < 2) {
       Alert.alert('ชื่อไม่ถูกต้อง', 'กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร');
       return;
     }
+
     updateProfile({ name: trimmed });
     setShowNameModal(false);
+
+    try {
+      const res = await fetch(`${API_URL}/api/user`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${userToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: trimmed }),
+      });
+
+      if (!res.ok) {
+        Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกชื่อไปยัง server ได้');
+      }
+    } catch (err) {
+      Alert.alert('เกิดข้อผิดพลาด', 'เชื่อมต่อ server ไม่สำเร็จ');
+    }
   };
 
   const calculateAge = (birthDateStr) => {
@@ -157,7 +156,7 @@ const handleChangePassword = async () => {
   }
   try {
     const token = await AsyncStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/profile`, {
+    const res = await fetch(`${API_URL}/api/user`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -334,7 +333,6 @@ const handleChangePassword = async () => {
               <Ionicons name="person-outline" size={22} color={GREEN} />
               <Text style={styles.modalTitle}>แก้ไขชื่อ</Text>
             </View>
-            <Text style={styles.modalSubtitle}>ชื่อปัจจุบัน: {profile.name || '-'}</Text>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}

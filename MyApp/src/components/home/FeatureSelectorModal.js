@@ -19,7 +19,7 @@ export default function FeatureSelectorModal({
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.title}>แก้ำขฟีเจอร์ที่สนใจ</Text>
+          <Text style={styles.title}>แก้ไขฟีเจอร์ที่สนใจ</Text>
 
           {features.map(f => {
             const active = enabledFeatures[f.key]; // ✅ ใช้ key

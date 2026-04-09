@@ -1,9 +1,9 @@
-import { registerUser, loginUser, getUserProfile, updateUserProfile, getProfileStatsService } from "../services/userService.js";
+import * as userService from "../services/userService.js";
 import { getUserFeatures, updateUserFeatures, getUserFeatureIds } from "../services/featureService.js";
 
 export const register = async (req, res) => {
   try {
-    const result = await registerUser(req.body);
+    const result = await userService.registerUser(req.body);
     res.json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -12,31 +12,52 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const result = await loginUser(req.body);
+    const result = await userService.loginUser(req.body);
     res.json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
+// GET /api/user
+export const getUserController = async (req, res) => {
+  try {
+    const userId = req.user.id; // ดึงจาก token
+    const user = await userService.getUser(userId);
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "โหลดข้อมูลไม่สำเร็จ" });
+  }
+};
+
+// PUT /api/user
+export const updateUserController = async (req, res) => {
+  try {
+    const userId = req.user.id; // ดึงจาก token
+    const { username, email, password } = req.body;
+    const updated = await userService.updateUser(userId, { username, email, password });
+    res.json({ message: "อัปเดตสำเร็จ", user: updated });
+  } catch (err) {
+    res.status(500).json({ message: "อัปเดตไม่สำเร็จ" });
+  }
+};
+
 // GET /user/profile
-export const getUserProfileController = async (req, res) => {
+export const getProfileController = async (req, res) => {
   try {
     const userId = req.user.id;
-    const profile = await getUserProfile(userId);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const profile = await userService.getProfile(userId);
     res.json(profile);
   } catch (err) {
-    console.error("SAVE FEATURES ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: 'โหลดโปรไฟล์ไม่สำเร็จ' });
   }
 };
 
 // PUT /user/profile
-export const updateProfile = async (req, res) => {
+export const updateProfileController = async (req, res) => {
   try {
     const userId = req.user.id;
-    const profile = await updateUserProfile(userId, req.body);
+    const profile = await userService.updateUserProfile(userId, req.body);
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -53,8 +74,6 @@ export const getFeatures = async (req, res) => {
 
     features.forEach((f) => {
       const name = f.feature.name;
-
-      // 🔥 ตัดคำว่า "Feature" ออก
       const key = name.replace("Feature", "").toLowerCase();
 
       result[key] = true;
@@ -87,11 +106,28 @@ export const saveFeatures = async (req, res) => {
   }
 };
 
+ // GET /user/profile
+export const getUserProfileController = async (req, res) => {
+  try {
+    // สมมติว่ามี middleware auth ที่ set req.user.id จาก token
+    const userId = req.user.id;
+
+    const user = await userService.getUserWithProfile(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 // GET /user/profile/stats
 export const getProfileStats = async (req, res) => {
   try {
     const userId = req.user.id;
-    const stats = await getProfileStatsService(userId);
+    const stats = await userService.getProfileStatsService(userId);
     res.json(stats);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
