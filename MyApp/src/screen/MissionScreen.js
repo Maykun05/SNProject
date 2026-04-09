@@ -74,6 +74,10 @@ const MissionScreen = () => {
   };
 
   const currentMonthName = new Intl.DateTimeFormat('th-TH', { month: 'long' }).format(new Date());
+  const monthlyMission = ALL_MISSIONS?.monthly?.[0] ?? null;
+  const monthlyProgress = 0;
+  const monthlyGoal = monthlyMission?.goal ?? 1;
+  const monthlyProgressPercent = Math.min((monthlyProgress / monthlyGoal) * 100, 100);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,11 +126,11 @@ const MissionScreen = () => {
             <View style={styles.monthlyProgressRow}>
               <View style={styles.monthlyProgressBg}>
                 <View style={[styles.monthlyProgressFill, {
-                  width: `${(0 / monthlyMission.goal) * 100}%`, // เปลี่ยน 0 เป็นค่า progress จริงเมื่อมีข้อมูล
+                  width: `${monthlyProgressPercent}%`,
                 }]} />
               </View>
               <Text style={styles.monthlyProgressText}>
-                0 / {monthlyMission.goal} {monthlyMission.unit}
+                {monthlyProgress} / {monthlyGoal} {monthlyMission.unit}
               </Text>
             </View>
           </LinearGradient>
