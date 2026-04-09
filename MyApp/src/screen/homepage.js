@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -21,6 +21,7 @@ import { useStep } from '../context/StepContext';
 import { useLevel } from '../context/LevelContext';
 
 import GardenCard from '../components/home/GardenCard';
+import { API_URL } from '../config';
 
 export default function HomeScreen({ navigation }) {
   const {
@@ -45,27 +46,60 @@ export default function HomeScreen({ navigation }) {
   const [showTreeModal, setShowTreeModal] = useState(false);
 
 
-  // ✅ โหลด tree type จาก AsyncStorage แทน backend
+  // โหลดแบบต้นไม้จาก DB (มี token) — ไม่มี token หรือ error ใช้ AsyncStorage สำรอง
   useEffect(() => {
     const fetchTreeType = async () => {
       try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          const res = await fetch(`${API_URL}/api/tree-type`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.success && json.selectedTreeType != null) {
+            const t = Number(json.selectedTreeType);
+            setSelectedTreeType(t);
+            await AsyncStorage.setItem('selectedTreeType', String(t));
+            return;
+          }
+        }
         const saved = await AsyncStorage.getItem('selectedTreeType');
         if (saved !== null) setSelectedTreeType(Number(saved));
       } catch (err) {
         console.error('fetchTreeType error:', err);
+        try {
+          const saved = await AsyncStorage.getItem('selectedTreeType');
+          if (saved !== null) setSelectedTreeType(Number(saved));
+        } catch (_) {}
       }
     };
     fetchTreeType();
   }, []);
 
-  // ✅ บันทึก tree type ลง AsyncStorage แทน backend
   const handleSelectTree = async (type) => {
     try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        const res = await fetch(`${API_URL}/api/tree-type`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selectedTreeType: type }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          Alert.alert('บันทึกไม่สำเร็จ', json.message || `HTTP ${res.status}`);
+          return;
+        }
+      }
       await AsyncStorage.setItem('selectedTreeType', String(type));
       setSelectedTreeType(type);
       setShowTreeModal(false);
     } catch (err) {
       console.error('handleSelectTree error:', err);
+      Alert.alert('ข้อผิดพลาด', err.message || 'บันทึกต้นไม้ไม่ได้');
     }
   };
 

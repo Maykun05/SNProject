@@ -1,5 +1,7 @@
 import * as userService from "../services/userService.js";
 import { getUserFeatures, updateUserFeatures, getUserFeatureIds } from "../services/featureService.js";
+import prisma from "../config/prisma.js";
+import { isTreeTypeUnlocked } from "../services/treeGardenService.js";
 
 export const register = async (req, res) => {
   try {
@@ -158,14 +160,34 @@ export const getTreeType = async (req, res) => {
   }
 };
 
+/** สอดคล้อง seed TreeType — ใช้เมื่อยังไม่มีแถวใน DB (แอปใช้ fallback แต่ PUT มาได้) */
+const TREE_TYPE_FALLBACK = {
+  1: { id: 1, unlockCoinCost: 0 },
+  2: { id: 2, unlockCoinCost: 200 },
+  3: { id: 3, unlockCoinCost: 350 },
+  4: { id: 4, unlockCoinCost: 500 },
+  5: { id: 5, unlockCoinCost: 700 },
+};
+
 // ✅ PUT tree type
 export const updateTreeType = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { selectedTreeType } = req.body;
+    const selectedTreeType = Number(req.body?.selectedTreeType);
 
-    if (selectedTreeType < 1 || selectedTreeType > 5) {
-      return res.status(400).json({ success: false, message: 'Invalid tree type' });
+    if (!Number.isInteger(selectedTreeType) || selectedTreeType < 1 || selectedTreeType > 5) {
+      return res.status(400).json({ success: false, message: "Invalid tree type" });
+    }
+
+    let treeType = await prisma.treeType.findUnique({ where: { id: selectedTreeType } });
+    if (!treeType) {
+      treeType = TREE_TYPE_FALLBACK[selectedTreeType];
+    }
+    if (!treeType) {
+      return res.status(400).json({ success: false, message: "Unknown tree type" });
+    }
+    if (!(await isTreeTypeUnlocked(userId, treeType))) {
+      return res.status(403).json({ success: false, message: "Tree type not unlocked" });
     }
 
     await prisma.profile.upsert({
@@ -176,6 +198,6 @@ export const updateTreeType = async (req, res) => {
 
     return res.json({ success: true, selectedTreeType });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
