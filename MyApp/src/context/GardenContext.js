@@ -38,14 +38,16 @@ export const GardenProvider = ({ children }) => {
 
   const getAuthHeader = async () => {
     const token = await AsyncStorage.getItem('token');
+    if (!token) return null;
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   };
 
   // ดึงสวนรายเดือน
   const fetchGardenMonth = useCallback(async (year, month) => {
+    const headers = await getAuthHeader();
+    if (!headers) return null;
     setLoading(true);
     try {
-      const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/month?year=${year}&month=${month}`, { headers });
       const json = await parseApiResponse(res, 'fetchGardenMonth');
       if (json.success) setGardenData(json.data);
@@ -59,8 +61,9 @@ export const GardenProvider = ({ children }) => {
 
   // ดึง progress วันนี้
   const fetchTodayProgress = useCallback(async () => {
+    const headers = await getAuthHeader();
+    if (!headers) return null;
     try {
-      const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/today`, { headers });
       const json = await parseApiResponse(res, 'fetchTodayProgress');
       if (json.success) setTodayProgress(json.data);
@@ -72,8 +75,9 @@ export const GardenProvider = ({ children }) => {
 
   // ดึงสรุปทุกเดือน
   const fetchSummary = useCallback(async () => {
+    const headers = await getAuthHeader();
+    if (!headers) return null;
     try {
-      const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/summary`, { headers });
       const json = await parseApiResponse(res, 'fetchSummary');
       if (json.success) setSummary(json.data.months);
@@ -85,8 +89,9 @@ export const GardenProvider = ({ children }) => {
 
   // บันทึก feature ที่ใช้ และคืน { treeGrown, treeCount }
   const logFeature = useCallback(async (featureKey) => {
+    const headers = await getAuthHeader();
+    if (!headers) return null;
     try {
-      const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/log`, {
         method: 'POST',
         headers,
@@ -119,8 +124,9 @@ export const GardenProvider = ({ children }) => {
 
   // เลือก features เป้าหมาย
   const selectFeatures = useCallback(async (featureKeys) => {
+    const headers = await getAuthHeader();
+    if (!headers) return null;
     try {
-      const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/features/select`, {
         method: 'POST',
         headers,
