@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from './AuthProvider';
+import { useProfile } from './ProfileContext';
 import { fetchWaterToday, postWaterLog, deleteWaterLog, putProfileWaterGoal, localCalendarDay } from '../services/waterApi';
 
 const WaterContext = createContext();
@@ -9,6 +10,7 @@ const STORAGE_KEY = 'WATER_DATA';
 
 export const WaterProvider = ({ children }) => {
   const { userToken } = useContext(AuthContext);
+  const { updateProfile } = useProfile();
   const [consumed, setConsumed] = useState(0);
   const [waterGoal, setWaterGoalState] = useState(2000);
   const [logs, setLogs] = useState([]);
@@ -33,16 +35,18 @@ export const WaterProvider = ({ children }) => {
   }, []);
 
   const syncFromApi = useCallback(async () => {
-    if (!userToken) return;
+    if (!userToken) return null;
     const day = localCalendarDay();
     try {
       const data = await fetchWaterToday(userToken, day);
       setConsumed(data.consumed ?? 0);
       setWaterGoalState(data.waterGoal ?? 2000);
       setLogs(Array.isArray(data.logs) ? data.logs : []);
+      return data;
     } catch (e) {
       console.error('Sync water from API error:', e);
       await loadFromStorage();
+      return null;
     }
   }, [userToken, loadFromStorage]);
 
@@ -80,15 +84,20 @@ export const WaterProvider = ({ children }) => {
   const setWaterGoal = async (goal) => {
     const n = Number(goal);
     if (!Number.isFinite(n)) return;
-    setWaterGoalState(n);
+    const rounded = Math.round(n);
+    setWaterGoalState(rounded);
     if (userToken) {
       try {
-        await putProfileWaterGoal(userToken, Math.round(n));
-        await syncFromApi();
+        await putProfileWaterGoal(userToken, rounded);
+        const data = await syncFromApi();
+        const canonical = data?.waterGoal ?? rounded;
+        updateProfile({ waterGoal: canonical });
       } catch (e) {
         console.error('putProfileWaterGoal:', e);
       }
+      return;
     }
+    updateProfile({ waterGoal: rounded });
   };
 
   const addWater = async (amount) => {

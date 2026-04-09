@@ -75,7 +75,7 @@ function formatLogTime(iso) {
 export default function WaterScreen({ route }) {
   const { onDone } = route?.params ?? {};
   const { userToken } = useContext(AuthContext);
-  const { profile, updateProfile } = useProfile();
+  const { profile } = useProfile();
 
   const weightNum = profile.weight != null && profile.weight !== '' ? Number(profile.weight) : null;
   const activityLevel = profile.activityLevel != null ? Number(profile.activityLevel) : 1;
@@ -111,7 +111,6 @@ export default function WaterScreen({ route }) {
   const handleSaveGoal = async (parsed) => {
     if (parsed > consumed) doneCalled.current = false;
     await setWaterGoal(parsed);
-    updateProfile({ waterGoal: parsed });
   };
 
   const confirmDeleteLog = (item) => {
