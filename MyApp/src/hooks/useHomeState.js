@@ -21,6 +21,7 @@ export default function useHomeState({ addXp } = {}) {
   const [showSleepPicker, setShowSleepPicker] = useState(false);
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   const [lastSleepHours, setLastSleepHours]   = useState(6);
+  const [mood, setMood] = useState(null);
 
   const loadTodayStatus = async (featuresOverride) => {
     const today = todayKey();
@@ -129,6 +130,7 @@ export default function useHomeState({ addXp } = {}) {
   // ✅ ปิด + อัป UI ทันที → sync DB ใน background
   const setMoodToday = async (key) => {
     setShowMoodPicker(false);
+    setMood(key); 
     setDoneMap(prev => ({ ...prev, mood: true }));
     if (addXp) addXp(15);
     try {
@@ -153,6 +155,7 @@ export default function useHomeState({ addXp } = {}) {
     loadTodayStatus,
     setSleepToday,
     setMoodToday,
+    mood,
     toggleFeature: (key) => {
       setEnabledFeatures(prev => ({ ...prev, [key]: !prev[key] }));
     },

@@ -39,6 +39,7 @@ export default function HomeScreen({ navigation }) {
     toggleFeature,
     lastSleepHours,
     saveFeatures,
+    mood,
   } = useHomeState();
 
   // ✅ State สำหรับเลือกแบบต้นไม้
@@ -219,11 +220,12 @@ export default function HomeScreen({ navigation }) {
         onSelect={setSleepToday}
         onClose={() => setShowSleepPicker(false)}
       />
-
+      
       <MoodQuickPicker
         visible={showMoodPicker}
+        value={mood}
         onSelect={setMoodToday}
-        onClose={() => setShowMoodPicker(false)}  // ✅ เพิ่ม onClose
+        onClose={() => setShowMoodPicker(false)}  
       />
 
       <View style={styles.profilePosition}>
