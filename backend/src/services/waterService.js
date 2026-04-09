@@ -93,3 +93,31 @@ export async function deleteWaterLogEntry(userId, logId) {
   await waterLog().delete({ where: { id } });
   return getWaterSummaryForDay(userId, day);
 }
+
+/** สรุปยอดรวม (ml) ต่อวันในเดือนปฏิทิน — day เป็น YYYY-MM-DD ตรงกับที่บันทึกใน log */
+export async function getWaterTotalsForMonth(userId, year, month) {
+  const y = Number(year);
+  const m = Number(month);
+  if (!Number.isInteger(y) || y < 1970 || y > 2100) {
+    throw new Error("Invalid year");
+  }
+  if (!Number.isInteger(m) || m < 1 || m > 12) {
+    throw new Error("Invalid month (1–12)");
+  }
+  const prefix = `${y}-${String(m).padStart(2, "0")}-`;
+
+  const rows = await waterLog().groupBy({
+    by: ["day"],
+    where: {
+      userId,
+      day: { startsWith: prefix },
+    },
+    _sum: { amountMl: true },
+  });
+
+  const totals = {};
+  for (const row of rows) {
+    totals[row.day] = row._sum.amountMl ?? 0;
+  }
+  return totals;
+}

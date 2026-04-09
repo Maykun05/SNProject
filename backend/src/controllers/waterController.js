@@ -47,3 +47,20 @@ export const deleteWaterLog = async (req, res) => {
     res.status(400).json({ message: err.message || "Bad request" });
   }
 };
+
+/** GET ?year=2026&month=4 → { "2026-04-01": 500, ... } ยอดรวม ml ต่อวัน */
+export const getWaterMonth = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const year = req.query.year;
+    const month = req.query.month;
+    if (year === undefined || month === undefined) {
+      return res.status(400).json({ message: "Query ?year=&month= (1–12) is required" });
+    }
+    const totals = await waterService.getWaterTotalsForMonth(userId, year, month);
+    res.json(totals);
+  } catch (err) {
+    console.error("getWaterMonth:", err);
+    res.status(400).json({ message: err.message || "Bad request" });
+  }
+};

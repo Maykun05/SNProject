@@ -18,11 +18,16 @@ export default function WaterProgressRing({
   recommendedDaily,
   onEditGoal,
 }) {
-  const progress = recommended === 0 ? 0 : Math.min(consumed / recommended, 1);
+  const rec = Number(recommended) || 0;
+  const use = Number(consumed) || 0;
+  const ratio = rec <= 0 ? 0 : use / rec;
+  /** ครบหรือเกินเป้าให้ถือว่า 1 เต็มวง — กันทศนิยม/SVG ค้างไม่ปิดวง */
+  const progress = ratio >= 1 ? 1 : Math.min(Math.max(ratio, 0), 1);
   const size = 210;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+  const dashOffset = progress >= 1 ? 0 : circumference * (1 - progress);
 
   return (
     <View style={styles.wrapper}>
@@ -43,7 +48,7 @@ export default function WaterProgressRing({
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - progress)}
+          strokeDashoffset={dashOffset}
           strokeLinecap="round"
           rotation="-90"
           origin={`${size / 2}, ${size / 2}`}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useContext } from 'react';
+import React, { useCallback, useState, useContext, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WaterCalendarGrid from '../components/calender/WaterCalenderGrid'
@@ -7,12 +7,16 @@ import MoodPickerModal from '../components/calender/MoodPickerModal';
 import MoodCount from '../components/calender/MoodCount';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllMoods, setMoodByDate, getLocalMoodsForMonth } from '../services/moodService';
+import { fetchWaterMonth } from '../services/waterApi';
+import { getLocalDateKey } from '../utils/dateUtils';
 import { AuthContext } from "../context/AuthProvider";
+import { useWater } from "../context/WaterContext";
+
 export default function CalendarScreen() {
   const [mode, setMode] = useState('mood'); // 'mood' | 'water'
   const [waterData, setWaterData] = useState({});
-  const [todayWater, setTodayWater] = useState(0);
   const { userToken, userId } = useContext(AuthContext);
+  const { waterGoal, consumed } = useWater();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [moods, setMoods] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
@@ -20,41 +24,58 @@ export default function CalendarScreen() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  useFocusEffect(
-    useCallback(() => {
-      loadMoods(month + 1, year);
-      // loadWater(month + 1, year); 
-    }, [month, year])
-  );
-
-  const loadWater = async (m, y) => {
-    try {
-      const data = await getWaterByMonth(m, y, userToken, userId);
-      setWaterData(data);
-
-      const today = new Date().toISOString().slice(0, 10);
-      setTodayWater(data[today] || 0);
-
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const loadMoods = async (m, y) => {
+  const loadMoods = useCallback(async (m, y) => {
     try {
       const local = await getLocalMoodsForMonth(m, y, userId);
       const server = await getAllMoods(m, y, userToken, userId);
-
-      // 🔥 รวมกัน
-      setMoods({
-        ...local,
-        ...server,
-      });
-
+      setMoods({ ...local, ...server });
     } catch (err) {
       console.log(err);
     }
-  };
+  }, [userId, userToken]);
+
+  /** โหมดไม่ล็อกอิน: แสดงเฉพาะวันนี้ในเดือนที่กำลังดู (ตรงกับ WaterContext local) */
+  const applyGuestWaterToCalendar = useCallback(() => {
+    const now = new Date();
+    const viewingCurrentMonth =
+      now.getFullYear() === year && now.getMonth() === month;
+    if (viewingCurrentMonth) {
+      setWaterData({ [getLocalDateKey()]: consumed });
+    } else {
+      setWaterData({});
+    }
+  }, [year, month, consumed]);
+
+  /** โหลดยอดรวมรายวันในเดือนจาก DB — ชุดเดียวกับที่หน้าน้ำใช้บันทึก */
+  const refreshWaterMonthFromApi = useCallback(async () => {
+    const calMonth = month + 1;
+    try {
+      const data = await fetchWaterMonth(userToken, year, calMonth);
+      setWaterData(data && typeof data === 'object' ? data : {});
+    } catch (err) {
+      console.warn('refreshWaterMonthFromApi', err);
+      setWaterData({});
+    }
+  }, [userToken, year, month]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMoods(month + 1, year);
+      if (mode !== 'water') return;
+      if (userToken) refreshWaterMonthFromApi();
+      else applyGuestWaterToCalendar();
+    }, [month, year, mode, loadMoods, userToken, refreshWaterMonthFromApi, applyGuestWaterToCalendar])
+  );
+
+  useEffect(() => {
+    if (mode !== 'water') return;
+    if (!userToken) applyGuestWaterToCalendar();
+  }, [mode, applyGuestWaterToCalendar, userToken]);
+
+  useEffect(() => {
+    if (mode !== 'water' || !userToken) return;
+    refreshWaterMonthFromApi();
+  }, [mode, month, year, userToken, refreshWaterMonthFromApi]);
 
   /* ===== บันทึก / แก้ mood ===== */
   const onSelectMood = async (mood) => {
@@ -169,7 +190,7 @@ export default function CalendarScreen() {
             year={year}
             month={month}
             waterData={waterData}
-            todayWater={todayWater}
+            waterGoal={waterGoal}
           />
         )}
 

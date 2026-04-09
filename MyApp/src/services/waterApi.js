@@ -16,6 +16,19 @@ export async function fetchWaterToday(token, day) {
   return res.json();
 }
 
+/** ยอดรวม ml ต่อวันในเดือน — month เป็น 1–12, คีย์วันที่ YYYY-MM-DD (local ฝั่งลูกค้าควรส่งเดือนที่กำลังดู) */
+export async function fetchWaterMonth(token, year, month) {
+  const res = await fetch(
+    `${API_URL}/api/water/month?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function deleteWaterLog(token, logId) {
   const res = await fetch(`${API_URL}/api/water/log/${logId}`, {
     method: 'DELETE',
