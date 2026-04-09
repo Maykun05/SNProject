@@ -6,48 +6,168 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
+  ScrollView,
   Keyboard,
-  Alert
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import ProgressRing from "../components/ProgressRing";
+import CalProgressRing from "../components/calorie/calProgressRing";
+import CalorieGoalModal from "../components/calorie/CalorieGoalModal";
 import { Ionicons } from "@expo/vector-icons";
 import { sendToAI } from "../utils/openaiUtils";
-import { API_URL } from "../config";
+import { fetchFoodToday, createFood, deleteFood } from "../services/foodService";
+import { putProfileCalorieGoal } from "../services/profileApi";
 import { AuthContext } from "../context/AuthProvider";
+import { useProfile } from "../context/ProfileContext";
 import { useNavigation } from "@react-navigation/native";
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#F5F9FF" },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 28 },
+  loading: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  loadingTxt: { fontSize: 14, color: "#546E7A" },
+  ringCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    marginBottom: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ECEFF1",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  searchWrap: { marginBottom: 16 },
+  searchLabel: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 10 },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFF",
+    borderWidth: 1.5,
+    borderColor: "#BBDEFB",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  searchIcon: { marginRight: 2 },
+  input: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0D47A1",
+  },
+  searchBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#1565C0",
+  },
+  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+  previewCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#ECEFF1",
+  },
+  previewTitle: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 8 },
+  previewBtns: { flexDirection: "row", marginTop: 14, gap: 10 },
+  addBtn: {
+    flex: 1,
+    backgroundColor: "#1565C0",
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  cancelBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#ECEFF1",
+    justifyContent: "center",
+  },
+  btnText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+  cancelBtnText: { color: "#455A64", fontWeight: "700", fontSize: 15 },
+  logs: { marginTop: 8 },
+  logHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
+  logTitle: { fontSize: 17, fontWeight: "800", color: "#263238" },
+  logSum: { fontSize: 14, color: "#78909C", fontWeight: "600" },
+  empty: {
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    padding: 20,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#ECEFF1",
+  },
+  emptyTxt: { fontSize: 14, color: "#78909C", textAlign: "center" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#ECEFF1",
+  },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#42A5F5", marginRight: 12 },
+  foodMain: { flex: 1 },
+  foodName: { fontSize: 15, fontWeight: "700", color: "#263238" },
+  foodCal: { fontSize: 13, fontWeight: "600", color: "#1565C0", marginTop: 2 },
+  macro: { marginTop: 8, color: "#78909C", fontSize: 13 },
+  delBtn: { padding: 8, marginLeft: 4 },
+});
+
+function Empty({ icon, text }) {
+  return (
+    <View style={s.empty}>
+      <Ionicons name={icon} size={32} color="#90A4AE" />
+      <Text style={s.emptyTxt}>{text}</Text>
+    </View>
+  );
+}
 
 export default function CalScreen() {
   const [foods, setFoods] = useState([]);
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(true);
   const { userToken } = useContext(AuthContext);
-  const [userData, setUserData] = useState(null);
+  const { profile, updateProfile } = useProfile();
+  const navigation = useNavigation();
+  const [showCalorieModal, setShowCalorieModal] = useState(false);
+
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
-
-  const remaining = recommendedCal - consumedCal;
-   const navigation = useNavigation();
-
-  useEffect(() => {
-    navigation.setOptions({
-      onDone: () => {
-        // ✅ ทำงานที่ต้องการ เช่น markDone
-        console.log('Calorie done!');
-        // ถ้าอยากเรียก markDone จาก context/hook ก็ทำตรงนี้
-      },
-    });
-  }, [navigation]);
 
   const getActivityFactor = (level) => {
     switch (level) {
-      case 0: return 1.2;
-      case 1: return 1.375;
-      case 2: return 1.55;
-      case 3: return 1.725;
-      case 4: return 1.9;
-      default: return 1.2;
+      case 0:
+        return 1.2;
+      case 1:
+        return 1.375;
+      case 2:
+        return 1.55;
+      case 3:
+        return 1.725;
+      case 4:
+        return 1.9;
+      default:
+        return 1.2;
     }
   };
 
@@ -55,92 +175,85 @@ export default function CalScreen() {
     const today = new Date();
     const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
-
     const m = today.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
-
     return age;
   };
 
-  const calculateCalories = (data) => {
-    if (!data) return 2000;
-
-    const { weight, height, birthDate, gender, activityLevel } = data;
-
-    if (!weight || !height || !birthDate || !gender) return 2000;
-
+  /** คำนวณจากโปรไฟล์ (ข้อมูลเดียวกับ ProfileContext → DB ผ่าน /api/user/profile) */
+  const calculateCalories = (p) => {
+    if (!p) return 2000;
+    const weight = p.weight != null && p.weight !== "" ? Number(p.weight) : NaN;
+    const height = p.height != null && p.height !== "" ? Number(p.height) : NaN;
+    const { birthDate, gender, activityLevel } = p;
+    if (!Number.isFinite(weight) || weight <= 0) return 2000;
+    if (!Number.isFinite(height) || height <= 0) return 2000;
+    if (!birthDate || !gender) return 2000;
     const age = getAge(birthDate);
-    const factor = getActivityFactor(activityLevel);
-
+    const factor = getActivityFactor(
+      activityLevel != null && activityLevel !== "" ? Number(activityLevel) : null
+    );
     let bmr;
-
     if (gender === "MALE") {
       bmr = 10 * weight + 6.25 * height - 5 * age + 5;
     } else {
       bmr = 10 * weight + 6.25 * height - 5 * age - 161;
     }
-
     return Math.round(bmr * factor);
   };
 
-  const autoCal = calculateCalories(userData);
-  const recommendedCal = userData
-    ? (userData.customCalorie ?? autoCal)
+  const autoCal = calculateCalories(profile);
+  const customGoal =
+    profile.calorieGoal != null && profile.calorieGoal !== ""
+      ? Number(profile.calorieGoal)
+      : null;
+  const hasValidCustomGoal =
+    customGoal != null && Number.isFinite(customGoal) && customGoal > 0;
+  const recommendedCal = userToken
+    ? hasValidCustomGoal
+      ? customGoal
+      : autoCal
     : 2000;
 
-  /* ===== search with AI ===== */
+  useEffect(() => {
+    navigation.setOptions({
+      onDone: () => {
+        console.log("Calorie done!");
+      },
+    });
+  }, [navigation]);
 
   const searchFood = async () => {
-
     if (!text.trim()) return;
-
     Keyboard.dismiss();
-
     setLoading(true);
-
     try {
-
       const res = await sendToAI(text);
-
       if (!res) {
         Alert.alert("ไม่พบเมนูอาหารนี้");
         setLoading(false);
         return;
       }
-
       setPreviewFood({
         name: res.name,
         calories: res.calories,
         protein: res.protein,
         carbs: res.carbs,
-        fat: res.fat
+        fat: res.fat,
       });
-
       setText("");
-
     } catch (err) {
-
       Alert.alert("ไม่สามารถวิเคราะห์อาหารได้");
-
     }
-
     setLoading(false);
   };
 
   const addFood = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/food`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}` 
-        },
-        body: JSON.stringify(previewFood)
-      });
-      const newFood = await res.json();
-      setFoods(prev => [newFood, ...prev]);
+      const newFood = await createFood(userToken, previewFood);
+      setFoods((prev) => [newFood, ...prev]);
       setPreviewFood(null);
     } catch (err) {
       Alert.alert("บันทึกอาหารไม่สำเร็จ");
@@ -148,327 +261,155 @@ export default function CalScreen() {
   };
 
   const getFoodsToday = async () => {
+    if (!userToken) {
+      setFoods([]);
+      setListLoading(false);
+      return;
+    }
+    setListLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/food/today`, {
-        headers: {
-          "Authorization": `Bearer ${userToken}`
-        }
-      });
-      const data = await res.json();
+      const data = await fetchFoodToday(userToken);
       setFoods(data);
     } catch (err) {
       Alert.alert("โหลดรายการอาหารไม่สำเร็จ");
-    }
-  };
-
-  const getUserData = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/profile`, {
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-      const data = await res.json();
-      setUserData(data);
-    } catch (err) {
-      console.log("โหลด user ไม่ได้");
+    } finally {
+      setListLoading(false);
     }
   };
 
   useEffect(() => {
     getFoodsToday();
-    getUserData();
-  }, []);
+  }, [userToken]);
 
-  const deleteFood = async (item) => {
+  const deleteFoodItem = async (item) => {
     try {
-      await fetch(`${API_URL}/api/food/${item.id}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${userToken}`
-        }
-      });
-      setFoods(prev => prev.filter(f => f.id !== item.id));
+      await deleteFood(userToken, item.id);
+      setFoods((prev) => prev.filter((f) => f.id !== item.id));
     } catch (err) {
       Alert.alert("ลบอาหารไม่สำเร็จ");
     }
   };
-  /* ===== render list ===== */
 
-  const renderItem = ({ item }) => (
+  const handleSaveCalorieGoal = async (parsed) => {
+    await putProfileCalorieGoal(userToken, parsed);
+    updateProfile({ calorieGoal: parsed });
+  };
 
-    <View style={styles.foodItem}>
-
-      <View>
-        <Text style={styles.foodName}>
-          {item.name}
-        </Text>
-
-        <Text style={styles.foodCal}>
-          {item.calories} kcal
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        onPress={() => deleteFood(item)}
-      >
-        <Ionicons
-          name="trash-outline"
-          size={22}
-          color="#D32F2F"
-        />
-      </TouchableOpacity>
-
-    </View>
-  );
+  const handleUseFormulaCalorieGoal = async () => {
+    await putProfileCalorieGoal(userToken, null);
+    updateProfile({ calorieGoal: null });
+  };
 
   return (
-    <View style={styles.container}>
-
-      {/* progress card */}
-
-      <View style={styles.progressCard}>
-
-        <Text style={styles.label}>
-          ปริมาณแคลลอรี่ที่แนะนำ
-        </Text>
-
-        <Text style={styles.recommend}>
-          {recommendedCal} kcal
-        </Text>
-
-        <ProgressRing
-          consumed={consumedCal}
-          recommended={recommendedCal}
-        />
-
-      </View>
-
-      {/* search */}
-
-      <View style={styles.searchRow}>
-
-        <Ionicons
-          name="search"
-          size={20}
-          color="#777"
-        />
-
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="ค้นหาอาหาร"
-          style={styles.input}
-          returnKeyType="search"
-          onSubmitEditing={searchFood}
-        />
-
-        <TouchableOpacity
-          style={styles.searchBtn}
-          onPress={searchFood}
-        >
-          <Text style={{ color: "#fff" }}>
-            {loading ? "..." : "ค้นหา"}
-          </Text>
-        </TouchableOpacity>
-
-      </View>
-
-      {/* preview */}
-
-      {Boolean(previewFood) && (
-
-        <View style={styles.previewCard}>
-
-          <Text style={styles.previewTitle}>
-            ผลการค้นหา
-          </Text>
-
-          <Text style={styles.foodName}>
-            {previewFood.name}
-          </Text>
-
-          <Text style={styles.foodCal}>
-            {previewFood.calories} kcal
-          </Text>
-
-          {/* macro */}
-
-          {previewFood.protein !== undefined && previewFood.protein !== null && (
-            <Text style={styles.macro}>
-              Protein {previewFood.protein}g  |  
-              Carb {previewFood.carbs}g  |  
-              Fat {previewFood.fat}g
-            </Text>
-          )}
-
-          <View style={styles.previewBtns}>
-
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={addFood}
-            >
-              <Text style={styles.btnText}>
-                เลือก
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() =>
-                setPreviewFood(null)
-              }
-            >
-              <Text>Cancel</Text>
-            </TouchableOpacity>
-
-          </View>
-
-        </View>
-      )}
-
-      {/* today food */}
-
-      <Text style={styles.sectionTitle}>
-        รายการอาหาร
-      </Text>
-
-      <FlatList
-        data={foods}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
+    <SafeAreaView style={s.safe} edges={["bottom"]}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-      />
+      >
+        {listLoading ? (
+          <View style={s.loading}>
+            <ActivityIndicator color="#1565C0" />
+            <Text style={s.loadingTxt}>กำลังโหลด…</Text>
+          </View>
+        ) : null}
 
-    </View>
+        <View style={s.ringCard}>
+          <CalProgressRing
+            consumed={consumedCal}
+            recommended={recommendedCal}
+            accentColor="#1976D2"
+            trackColor="#E8EEF5"
+            recommendedDaily={userToken ? autoCal : undefined}
+            onEditGoal={userToken ? () => setShowCalorieModal(true) : undefined}
+          />
+        </View>
+
+        <View style={s.searchWrap}>
+          <Text style={s.searchLabel}>ค้นหาอาหาร</Text>
+          <View style={s.searchRow}>
+            <Ionicons name="search" size={20} color="#78909C" style={s.searchIcon} />
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
+              placeholderTextColor="#B0BEC5"
+              style={s.input}
+              returnKeyType="search"
+              onSubmitEditing={searchFood}
+            />
+            <TouchableOpacity style={s.searchBtn} onPress={searchFood} activeOpacity={0.9}>
+              <Text style={s.searchBtnText}>{loading ? "…" : "ค้นหา"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {previewFood ? (
+          <View style={s.previewCard}>
+            <Text style={s.previewTitle}>ผลการค้นหา</Text>
+            <Text style={s.foodName}>{previewFood.name}</Text>
+            <Text style={s.foodCal}>{previewFood.calories} kcal</Text>
+            {previewFood.protein !== undefined && previewFood.protein !== null ? (
+              <Text style={s.macro}>
+                Protein {previewFood.protein}g · Carb {previewFood.carbs}g · Fat {previewFood.fat}g
+              </Text>
+            ) : null}
+            <View style={s.previewBtns}>
+              <TouchableOpacity style={s.addBtn} onPress={addFood} activeOpacity={0.9}>
+                <Text style={s.btnText}>บันทึก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.cancelBtn}
+                onPress={() => setPreviewFood(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={s.cancelBtnText}>ยกเลิก</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={s.logs}>
+          <View style={s.logHead}>
+            <Text style={s.logTitle}>วันนี้</Text>
+            <Text style={s.logSum}>{consumedCal} kcal</Text>
+          </View>
+          {!userToken ? (
+            <Empty icon="cloud-offline-outline" text="ล็อกอินเพื่อบันทึกมื้ออาหาร" />
+          ) : foods.length === 0 ? (
+            <Empty icon="restaurant-outline" text="ยังไม่มีรายการ — ค้นหาและบันทึกเมนูด้านบน" />
+          ) : (
+            foods.map((item) => (
+              <View key={item.id} style={s.row}>
+                <View style={s.dot} />
+                <View style={s.foodMain}>
+                  <Text style={s.foodName}>{item.name}</Text>
+                  <Text style={s.foodCal}>{item.calories} kcal</Text>
+                </View>
+                <TouchableOpacity
+                  style={s.delBtn}
+                  onPress={() => deleteFoodItem(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="ลบรายการ"
+                >
+                  <Ionicons name="trash-outline" size={20} color="#C62828" />
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      <CalorieGoalModal
+        visible={showCalorieModal}
+        onClose={() => setShowCalorieModal(false)}
+        recommendedDaily={autoCal}
+        calorieGoal={recommendedCal}
+        onSave={handleSaveCalorieGoal}
+        onUseRecommended={handleUseFormulaCalorieGoal}
+        hasCustomGoal={hasValidCustomGoal}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F7F7F7",
-  },
-
-  progressCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3
-  },
-
-  label: {
-    fontSize: 14,
-    color: "#777",
-  },
-
-  recommend: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
-  remaining: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#555",
-  },
-
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    height: 45,
-    marginBottom: 20
-  },
-
-  input: {
-    flex: 1,
-    marginLeft: 8,
-  },
-
-  searchBtn: {
-    backgroundColor: "#4CAF50",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6
-  },
-
-  previewCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20
-  },
-
-  previewTitle: {
-    fontSize: 13,
-    color: "#777",
-    marginBottom: 6
-  },
-
-  previewBtns: {
-    flexDirection: "row",
-    marginTop: 15,
-  },
-
-  addBtn: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-
-  cancelBtn: {
-    backgroundColor: "#EEE",
-    padding: 10,
-    borderRadius: 8,
-  },
-
-  btnText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#444"
-  },
-
-  foodItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 10,
-  },
-
-  foodName: {
-    fontSize: 16,
-  },
-
-  foodCal: {
-    fontWeight: "bold",
-    color: "#444",
-  },
-
-  macro: {
-    marginTop: 6,
-    color: "#777",
-    fontSize: 13
-  }
-
-});

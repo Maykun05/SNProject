@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ProgressRing from '../component/ProgressRing';
+import WaterProgressRing from '../components/water/waterProgressRing';
 import WaterQuickPick from '../components/water/WaterQuickPick';
 import WaterGoalModal from '../components/water/WaterGoalModal';
 import { useWater } from '../context/WaterContext';
@@ -140,17 +140,12 @@ export default function WaterScreen({ route }) {
         ) : null}
 
         <View style={s.ringCard}>
-          <ProgressRing
+          <WaterProgressRing
             consumed={consumed}
             recommended={waterGoal}
             accentColor="#1976D2"
             trackColor="#E8EEF5"
             recommendedDaily={recommendedWater}
-            metaLine={
-              weightNum != null && weightNum > 0
-                ? `นน. ${weightNum} kg · Lv.${activityLevel}`
-                : `ยังไม่ระบุ นน. · Lv.${activityLevel}`
-            }
             onEditGoal={() => setShowGoalModal(true)}
           />
         </View>

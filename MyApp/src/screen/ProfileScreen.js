@@ -9,7 +9,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
-import CoinBadge from '../component/CoinBadge.js';
+import CoinBadge from '../components/CoinBadge.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from '../context/AuthProvider.js';

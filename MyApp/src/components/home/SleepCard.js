@@ -2,15 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import SleepQuickPicker from './SleepQuickPicker';
 
-/**
- * SleepCard
- * วางแทน card "เมื่อคืนคุณนอนกี่ชั่วโมง?" ในหน้าหลัก
- * กดที่ card ใดก็ได้ → SleepQuickPicker pop up ขึ้นมา
- *
- * Props:
- *   sleepHours  : number | null   ค่าที่บันทึกไว้แล้ว (จาก state ของ parent)
- *   onSave      : (hours) => void  callback เมื่อ user กดบันทึก
- */
 export default function SleepCard({ sleepHours, onSave }) {
   const [pickerVisible, setPickerVisible] = useState(false);
 

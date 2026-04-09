@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     height: 40,
   },
   btn: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#2d5a2d',
     padding: 14,
     borderRadius: 30,
     alignItems: 'center',

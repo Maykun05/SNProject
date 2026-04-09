@@ -4,22 +4,22 @@ import Svg, { Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 
 /**
- * @param {number} consumed — ดื่มแล้ววันนี้ (ml)
- * @param {number} recommended — เป้าหมายรายวัน (ml) ใช้คำนวณความยาววง
- * @param {number} [recommendedDaily] — ปริมาณแนะนำจากสูตร (แสดงในกลางวง)
- * @param {string} [metaLine] — บรรทัดเล็ก เช่น นน. · Lv.
- * @param {() => void} [onEditGoal] — แก้ไขเป้า
+ * วงความคืบหน้าแคลอรี่ (kcal)
+ * @param {number} consumed
+ * @param {number} recommended — เป้าหมายรายวัน (kcal)
+ * @param {number} [recommendedDaily] — แคลลอรี่แนะนำจากสูตร
+ * @param {() => void} [onEditGoal]
  */
-export default function ProgressRing({
+export default function CalProgressRing({
   consumed,
   recommended,
-  accentColor = "#2196F3",
-  trackColor = "#E3F2FD",
+  accentColor = "#1976D2",
+  trackColor = "#E8EEF5",
   recommendedDaily,
-  metaLine,
   onEditGoal,
 }) {
   const progress = recommended === 0 ? 0 : Math.min(consumed / recommended, 1);
+
   const size = 210;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
@@ -50,23 +50,21 @@ export default function ProgressRing({
           origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
+
       <View style={styles.centerWrap} pointerEvents="box-none">
         <Text style={styles.bigText}>{consumed}</Text>
-        <Text style={styles.unitText}>ml วันนี้</Text>
-
+        <Text style={styles.unitText}>kcal วันนี้</Text>
         <View style={styles.goalRow}>
-          <Text style={styles.goalText}>เป้า {recommended} ml</Text>
+          <Text style={styles.goalText}>เป้า {recommended} kcal</Text>
           {onEditGoal ? (
             <TouchableOpacity onPress={onEditGoal} hitSlop={10} style={styles.editHit}>
               <Ionicons name="create-outline" size={17} color="#1565C0" />
             </TouchableOpacity>
           ) : null}
         </View>
-
         {recommendedDaily != null ? (
-          <Text style={styles.recText}>แนะนำ {recommendedDaily} มล./วัน</Text>
+          <Text style={styles.recText}>แนะนำ {recommendedDaily} kcal/วัน</Text>
         ) : null}
-        {metaLine ? <Text style={styles.metaText} numberOfLines={2}>{metaLine}</Text> : null}
       </View>
     </View>
   );
@@ -78,11 +76,21 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
-    maxWidth: 150,
+    maxWidth: 160,
     paddingHorizontal: 4,
   },
-  bigText: { fontSize: 32, fontWeight: "800", color: "#0D47A1", lineHeight: 36 },
-  unitText: { fontSize: 12, fontWeight: "600", color: "#1565C0", marginTop: 0 },
+  bigText: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#0D47A1",
+    lineHeight: 36,
+  },
+  unitText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1565C0",
+    marginTop: 0,
+  },
   goalRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -90,7 +98,12 @@ const styles = StyleSheet.create({
     gap: 4,
     marginTop: 6,
   },
-  goalText: { fontSize: 12, fontWeight: "700", color: "#455A64" },
+  goalText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#455A64",
+    textAlign: "center",
+  },
   editHit: { padding: 2 },
   recText: {
     fontSize: 11,
@@ -98,12 +111,5 @@ const styles = StyleSheet.create({
     color: "#607D8B",
     marginTop: 5,
     textAlign: "center",
-  },
-  metaText: {
-    fontSize: 10,
-    color: "#90A4AE",
-    marginTop: 4,
-    textAlign: "center",
-    lineHeight: 13,
   },
 });
