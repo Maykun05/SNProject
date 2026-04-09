@@ -24,7 +24,7 @@ export const FEATURES = [
   },
   {
     id: 2,
-    key: 'food',
+    key: 'calorie',
     label: 'แคลอรี่',
     image: require('../assets/featureIcons/ffood.png'),
     route: 'Calorie',

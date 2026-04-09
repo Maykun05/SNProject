@@ -9,9 +9,12 @@ import { getMoodByDate, setMoodByDate } from '../services/moodService';
 import { getLocalDateKey } from '../utils/dateUtils';
 import { saveSleepToDB, getLatestSleep } from '../services/sleepService';
 
+import { useRef } from 'react';
+import { DeviceEventEmitter } from 'react-native';
+
 const todayKey = () => getLocalDateKey();
 
-export default function useHomeState({ addXp } = {}) {
+export default function useHomeState({ addXp, openExercisePicker } = {}) {
   const navigation = useNavigation();
   const { userToken, userId } = useContext(AuthContext);
 
@@ -32,14 +35,32 @@ export default function useHomeState({ addXp } = {}) {
         const mood = await getMoodByDate(today, userToken, userId);
         result.mood = !!mood;
       } else if (f.key === 'sleep') {
-        try {
-          const latest = await getLatestSleep(userToken);
-          result.sleep = !!latest;
+  try {
+    const today = todayKey();
+    // ✅ เช็ค local ก่อนเสมอ
+    const localDone = await AsyncStorage.getItem(`daily_sleep_${today}`);
+    if (localDone) {
+      result.sleep = true;
+    } else {
+      const latest = await getLatestSleep(userToken);
+      // ✅ ตรวจว่า sleep นั้นเป็นของวันนี้จริงๆ
+      if (latest) {
+        const sleepDate = getLocalDateKey(new Date(latest.createdAt || latest.date));
+        result.sleep = sleepDate === today;
+        if (result.sleep) {
           setLastSleepHours(latest?.hours || 6);
-        } catch {
-          result.sleep = false;
+          // ✅ บันทึก local ด้วยเพื่อกันเด้งรอบต่อไป
+          await AsyncStorage.setItem(`daily_sleep_${today}`, 'true');
         }
       } else {
+        result.sleep = false;
+      }
+    }
+  } catch {
+    result.sleep = false;
+  }
+}
+else {
         const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
         result[f.key] = !!value;
       }
@@ -83,15 +104,18 @@ export default function useHomeState({ addXp } = {}) {
         setShowMoodPicker(true);
         break;
       case 'exercise':
-        navigation.navigate('ExerciseScreen', {
-          onDone: () => markDone('exercise'),
-        });
-        break;
+      if (openExercisePicker) {
+        openExercisePicker();
+      } else {
+        // ✅ ถ้าไม่มี picker ให้ markDone ตรง (ถูกเรียกจาก onDone callback)
+        markDone('exercise');
+      }
+      break;
       case 'calorie':
-        navigation.navigate('CalorieScreen', {
-          onDone: () => markDone('calorie'),
-        });
-        break;
+      navigation.navigate('CalorieScreen', {  // ✅ ต้องตรงกับ name ใน Stack
+        onDone: () => markDone('calorie'),
+      });
+      break;
       default:
         break;
     }
@@ -110,15 +134,17 @@ export default function useHomeState({ addXp } = {}) {
 
   // ✅ ปิด + อัป UI ทันที → sync DB ใน background
   const setSleepToday = async (hours) => {
-    setShowSleepPicker(false);
-    setDoneMap(prev => ({ ...prev, sleep: true }));
-    if (addXp) addXp(20);
-    try {
-      await saveSleepToDB(hours, userToken);
-    } catch (err) {
-      console.log('setSleepToday error:', err);
-    }
-  };
+  setShowSleepPicker(false);
+  setDoneMap(prev => ({ ...prev, sleep: true }));
+  if (addXp) addXp(20);
+  try {
+    // ✅ บันทึก local ทันที กันเด้ง
+    await AsyncStorage.setItem(`daily_sleep_${todayKey()}`, 'true');
+    await saveSleepToDB(hours, userToken);
+  } catch (err) {
+    console.log('setSleepToday error:', err);
+  }
+};
 
   // ✅ ปิด + อัป UI ทันที → sync DB ใน background
   const setMoodToday = async (key) => {

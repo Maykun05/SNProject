@@ -142,3 +142,12 @@ model StepSession {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
+model CalorieLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  calories  Int
+  amount    Int
+  date      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}

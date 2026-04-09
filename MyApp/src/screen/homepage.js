@@ -69,6 +69,18 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const handlePressFeature = (feature) => {
+  if (feature.key === 'exercise') {
+    navigation.navigate('StepTracker', {
+      onDone: () => {                    // ✅ callback กลับมา markDone
+        onPressFeature(feature);         // เรียก markDone ใน useHomeState
+      },
+    });
+    return;
+  }
+  onPressFeature(feature);
+};
+
   const saveFeaturesAndClose = async () => {
     await saveFeatures();
     setShowFeatureModal(false);
@@ -108,12 +120,12 @@ export default function HomeScreen({ navigation }) {
           doneCount={doneCount}
           totalCount={visibleFeatures.length}
           treeImage={treeImage}
-          onPressFeature={onPressFeature}
+          onPressFeature={handlePressFeature}
           onPressTree={() => setShowTreeModal(true)}
         />
 
         <View style={{ position: 'relative' }}>
-          <HomeFeatureRow features={FEATURES} onPress={onPressFeature} />
+          <HomeFeatureRow features={FEATURES} onPress={handlePressFeature} />
           <TouchableOpacity
             style={styles.plusCircle}
             onPress={() => setShowFeatureModal(true)}

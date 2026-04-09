@@ -8,12 +8,12 @@ import moodRoutes from "./src/routes/moodRoutes.js";
 import sleepRoutes from "./src/routes/sleepRoutes.js";
 import stepRoutes from "./src/routes/stepRoutes.js";
 import gardenRoutes from './src/routes/gardenRoutes.js';
+import calorieRoutes from './src/routes/calorieRoutes.js'; // ✅ import อยู่ที่นี่พอ
 
 dotenv.config();
 
-const app = express();
+const app = express(); // ✅ ประกาศก่อน
 
-// --- ย้าย Middleware มาไว้ตรงนี้ (ก่อน Routes ทั้งหมด) ---
 app.use(cors());
 app.use(express.json());
 
@@ -27,6 +27,7 @@ app.use('/api/garden', gardenRoutes);
 app.use("/api", userRoutes);
 app.use("/api/mood", moodRoutes);
 app.use("/api/sleep", sleepRoutes);
+app.use('/api/calories', calorieRoutes); // ✅ ย้ายมาไว้ตรงนี้
 
 app.listen(3000, '0.0.0.0', () => {
   console.log("SERVER STARTED ON 3000");
