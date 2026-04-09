@@ -15,6 +15,33 @@ const DEFAULT_PROFILE = {
   settings: { notifications: true, theme: 'light', language: 'th' },
 };
 
+/** แปลง payload จาก GET /api/user/profile (user + profile ซ้อน) ให้ใช้ weight / waterGoal ที่ระดับบนสุด */
+function normalizeUserProfilePayload(data) {
+  if (!data || typeof data !== 'object') return { ...DEFAULT_PROFILE };
+  const p = data.profile && typeof data.profile === 'object' ? data.profile : {};
+
+  return {
+    ...DEFAULT_PROFILE,
+    id: data.id,
+    username: data.username ?? '',
+    email: data.email ?? '',
+    name: data.username ?? DEFAULT_PROFILE.name,
+    phone: data.phone ?? p.phone ?? DEFAULT_PROFILE.phone,
+    coins: data.coins ?? DEFAULT_PROFILE.coins,
+    profileImage: p.profileImage ?? data.profileImage ?? null,
+    weight: p.weight ?? data.weight ?? null,
+    height: p.height ?? data.height ?? null,
+    birthDate: p.birthDate ?? data.birthDate ?? null,
+    activityLevel: p.activityLevel ?? data.activityLevel ?? null,
+    gender: p.gender ?? data.gender ?? null,
+    calorieGoal: p.calorieGoal ?? data.calorieGoal ?? null,
+    waterGoal: p.waterGoal ?? data.waterGoal ?? null,
+    selectedTreeType: p.selectedTreeType ?? data.selectedTreeType ?? 1,
+    goals: { ...DEFAULT_PROFILE.goals, ...(data.goals || {}) },
+    settings: { ...DEFAULT_PROFILE.settings, ...(data.settings || {}) },
+  };
+}
+
 export const ProfileProvider = ({ children }) => {
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
@@ -36,24 +63,21 @@ export const ProfileProvider = ({ children }) => {
         if (!res.ok) throw new Error('โหลดโปรไฟล์จาก API ไม่สำเร็จ');
 
         const data = await res.json();
+        const merged = normalizeUserProfilePayload(data);
 
-        // เซ็ตค่า profile จาก backend
-        setProfile({
-          ...DEFAULT_PROFILE,
-          ...data,
-          goals:    { ...DEFAULT_PROFILE.goals,    ...data.goals    },
-          settings: { ...DEFAULT_PROFILE.settings, ...data.settings },
-        });
+        setProfile(merged);
 
-        // เก็บลง AsyncStorage ไว้ offline
-        await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify(data));
+        await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify(merged));
 
       } catch (e) {
         console.error('Load profile error:', e);
 
         // fallback → ใช้ข้อมูลจาก AsyncStorage ถ้า API fail
         const saved = await AsyncStorage.getItem('PROFILE_DATA');
-        if (saved) setProfile(JSON.parse(saved));
+        if (saved) {
+          const raw = JSON.parse(saved);
+          setProfile(normalizeUserProfilePayload(raw));
+        }
       } finally {
         setLoading(false);
       }

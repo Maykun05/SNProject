@@ -157,9 +157,10 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.summaryRow}>
+          {/* น้ำหนัก/เป้าน้ำดึงจากโปรไฟล์ + API — อย่าส่ง weight ฮาร์ดโค้ดที่นี่ */}
           <TouchableOpacity
             style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}
-            onPress={() => navigation.navigate('WaterScreen', { weight: 60 })}
+            onPress={() => navigation.navigate('WaterScreen')}
             activeOpacity={0.8}
           >
             <Text style={[styles.summaryLabel, { color: '#3B5BDB' }]}>น้ำ</Text>

@@ -79,8 +79,8 @@ export default function useHomeState({ addXp } = {}) {
   const onPressFeature = (f) => {
     switch (f.key) {
       case 'water':
+        // น้ำหนักจาก ProfileContext/API — ไม่ส่ง weight ฮาร์ดโค้ด
         navigation.navigate('WaterScreen', {
-          weight: 60,
           onDone: () => markDone('water'),
         });
         break;

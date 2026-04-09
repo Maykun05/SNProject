@@ -68,22 +68,25 @@ export const getProfile = async (userId) => {
 // };
 
 export const updateUserProfile = async (userId, data) => {
+  const patch = {};
+  if (data.weight !== undefined) patch.weight = data.weight;
+  if (data.height !== undefined) patch.height = data.height;
+  if (data.birthDate !== undefined) {
+    patch.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+  }
+  if (data.activityLevel !== undefined) patch.activityLevel = data.activityLevel;
+  if (data.gender !== undefined) patch.gender = data.gender;
+  if (data.calorieGoal !== undefined) patch.calorieGoal = data.calorieGoal;
+  if (data.waterGoal !== undefined) patch.waterGoal = data.waterGoal;
+  if (data.profileImage !== undefined) patch.profileImage = data.profileImage;
+  if (data.selectedTreeType !== undefined) patch.selectedTreeType = data.selectedTreeType;
+
   return prisma.profile.upsert({
     where: { userId },
-    update: {
-      weight: data.weight,
-      height: data.height,
-      birthDate: data.birthDate ? new Date(data.birthDate) : null,
-      activityLevel: data.activityLevel,
-      gender: data.gender,
-    },
+    update: patch,
     create: {
       userId,
-      weight: data.weight,
-      height: data.height,
-      birthDate: data.birthDate ? new Date(data.birthDate) : null,
-      activityLevel: data.activityLevel,
-      gender: data.gender,
+      ...patch,
     },
   });
 };

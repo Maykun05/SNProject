@@ -36,6 +36,7 @@ model User {
   treeUnlocks  UserTreeUnlock[]
   earnedTrees  EarnedTree[]
   gardenSlots  HomeGardenSlot[]
+  waterLogs    WaterLog[]
 }
 
 model TreeType {
@@ -100,9 +101,22 @@ model Profile {
   selectedTreeType Int   @default(1)  
 
   calorieGoal     Int?  
+  waterGoal       Int?
   profileImage    String?
 
   user          User     @relation(fields: [userId], references: [id])
+}
+
+model WaterLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amountMl  Int
+  day       String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, day])
 }
 
 enum Gender {

@@ -1,65 +1,146 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from './AuthProvider';
+import { fetchWaterToday, postWaterLog, deleteWaterLog, putProfileWaterGoal, localCalendarDay } from '../services/waterApi';
 
 const WaterContext = createContext();
 
-const getLocalDateString = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-};
+const STORAGE_KEY = 'WATER_DATA';
 
 export const WaterProvider = ({ children }) => {
+  const { userToken } = useContext(AuthContext);
   const [consumed, setConsumed] = useState(0);
-  const [waterGoal, setWaterGoal] = useState(2000);
+  const [waterGoal, setWaterGoalState] = useState(2000);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // โหลดข้อมูลวันนี้จาก AsyncStorage
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const today = getLocalDateString();
-        const saved = await AsyncStorage.getItem('WATER_DATA');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.date === today) {
-            setConsumed(parsed.consumed ?? 0);
-          } else {
-            // วันใหม่ reset
-            setConsumed(0);
-          }
-          setWaterGoal(parsed.goal ?? 2000);
+  const loadFromStorage = useCallback(async () => {
+    const today = localCalendarDay();
+    try {
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === today) {
+          setConsumed(parsed.consumed ?? 0);
+        } else {
+          setConsumed(0);
         }
-      } catch (e) {
-        console.error('Load water error:', e);
+        setWaterGoalState(parsed.goal ?? 2000);
       }
-    };
-    load();
+    } catch (e) {
+      console.error('Load water (local) error:', e);
+    }
   }, []);
 
-  // บันทึกทุกครั้งที่เปลี่ยน
+  const syncFromApi = useCallback(async () => {
+    if (!userToken) return;
+    const day = localCalendarDay();
+    try {
+      const data = await fetchWaterToday(userToken, day);
+      setConsumed(data.consumed ?? 0);
+      setWaterGoalState(data.waterGoal ?? 2000);
+      setLogs(Array.isArray(data.logs) ? data.logs : []);
+    } catch (e) {
+      console.error('Sync water from API error:', e);
+      await loadFromStorage();
+    }
+  }, [userToken, loadFromStorage]);
+
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      if (userToken) {
+        await syncFromApi();
+      } else {
+        await loadFromStorage();
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [userToken, syncFromApi, loadFromStorage]);
+
+  useEffect(() => {
+    if (userToken) return;
     const save = async () => {
       try {
-        const today = getLocalDateString();
-        await AsyncStorage.setItem('WATER_DATA', JSON.stringify({
+        const today = localCalendarDay();
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
           date: today,
           consumed,
           goal: waterGoal,
         }));
       } catch (e) {
-        console.error('Save water error:', e);
+        console.error('Save water (local) error:', e);
       }
     };
     save();
-  }, [consumed, waterGoal]);
+  }, [consumed, waterGoal, userToken]);
 
-  const addWater = (amount) => {
-    setConsumed(prev => Math.min(prev + amount, waterGoal));
+  const setWaterGoal = async (goal) => {
+    const n = Number(goal);
+    if (!Number.isFinite(n)) return;
+    setWaterGoalState(n);
+    if (userToken) {
+      try {
+        await putProfileWaterGoal(userToken, Math.round(n));
+        await syncFromApi();
+      } catch (e) {
+        console.error('putProfileWaterGoal:', e);
+      }
+    }
   };
+
+  const addWater = async (amount) => {
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) return;
+
+    if (userToken) {
+      try {
+        const day = localCalendarDay();
+        const data = await postWaterLog(userToken, Math.round(amt), day);
+        setConsumed(data.consumed ?? 0);
+        setWaterGoalState(data.waterGoal ?? waterGoal);
+        setLogs(Array.isArray(data.logs) ? data.logs : []);
+      } catch (e) {
+        console.error('postWaterLog:', e);
+        await syncFromApi();
+      }
+      return;
+    }
+
+    setConsumed((prev) => Math.min(prev + Math.round(amt), waterGoal));
+  };
+
+  const removeWaterLog = async (logId) => {
+    if (!userToken) return;
+    try {
+      const data = await deleteWaterLog(userToken, logId);
+      setConsumed(data.consumed ?? 0);
+      setWaterGoalState(data.waterGoal ?? waterGoal);
+      setLogs(Array.isArray(data.logs) ? data.logs : []);
+    } catch (e) {
+      console.error('deleteWaterLog:', e);
+      await syncFromApi();
+    }
+  };
+
+  const refreshWater = syncFromApi;
 
   const resetWater = () => setConsumed(0);
 
   return (
-    <WaterContext.Provider value={{ consumed, waterGoal, setWaterGoal, addWater, resetWater }}>
+    <WaterContext.Provider value={{
+      consumed,
+      waterGoal,
+      setWaterGoal,
+      addWater,
+      removeWaterLog,
+      resetWater,
+      logs,
+      loading,
+      refreshWater,
+    }}>
       {children}
     </WaterContext.Provider>
   );
