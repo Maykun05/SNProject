@@ -2,10 +2,33 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '../config';
 
 const GardenContext = createContext(null);
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE = `${API_URL}/api`;
+
+const parseApiResponse = async (res, endpointName) => {
+  const raw = await res.text();
+  let json = null;
+
+  try {
+    json = raw ? JSON.parse(raw) : {};
+  } catch (parseErr) {
+    const contentType = res.headers?.get?.('content-type') || 'unknown';
+    const snippet = raw ? raw.slice(0, 160).replace(/\s+/g, ' ') : '(empty body)';
+    throw new Error(
+      `[${endpointName}] Invalid JSON response (${res.status}) content-type=${contentType}, body="${snippet}"`
+    );
+  }
+
+  if (!res.ok) {
+    const message = json?.message || `${endpointName} failed with status ${res.status}`;
+    throw new Error(message);
+  }
+
+  return json;
+};
 
 export const GardenProvider = ({ children }) => {
   const [gardenData, setGardenData]       = useState(null);
@@ -24,7 +47,7 @@ export const GardenProvider = ({ children }) => {
     try {
       const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/month?year=${year}&month=${month}`, { headers });
-      const json = await res.json();
+      const json = await parseApiResponse(res, 'fetchGardenMonth');
       if (json.success) setGardenData(json.data);
       return json.data;
     } catch (err) {
@@ -38,8 +61,8 @@ export const GardenProvider = ({ children }) => {
   const fetchTodayProgress = useCallback(async () => {
     try {
       const headers = await getAuthHeader();
-      const res = await fetch(`${API_BASE}/garden/today-progress`, { headers });
-      const json = await res.json();
+      const res = await fetch(`${API_BASE}/garden/today`, { headers });
+      const json = await parseApiResponse(res, 'fetchTodayProgress');
       if (json.success) setTodayProgress(json.data);
       return json.data;
     } catch (err) {
@@ -52,7 +75,7 @@ export const GardenProvider = ({ children }) => {
     try {
       const headers = await getAuthHeader();
       const res = await fetch(`${API_BASE}/garden/summary`, { headers });
-      const json = await res.json();
+      const json = await parseApiResponse(res, 'fetchSummary');
       if (json.success) setSummary(json.data.months);
       return json.data.months;
     } catch (err) {
@@ -64,12 +87,12 @@ export const GardenProvider = ({ children }) => {
   const logFeature = useCallback(async (featureKey) => {
     try {
       const headers = await getAuthHeader();
-      const res = await fetch(`${API_BASE}/garden/log-feature`, {
+      const res = await fetch(`${API_BASE}/garden/log`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ featureKey }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res, 'logFeature');
       if (json.success) {
         // อัพเดท today progress
         setTodayProgress(prev => ({
@@ -98,12 +121,12 @@ export const GardenProvider = ({ children }) => {
   const selectFeatures = useCallback(async (featureKeys) => {
     try {
       const headers = await getAuthHeader();
-      const res = await fetch(`${API_BASE}/garden/select-features`, {
-        method: 'PUT',
+      const res = await fetch(`${API_BASE}/garden/features/select`, {
+        method: 'POST',
         headers,
         body: JSON.stringify({ featureKeys }),
       });
-      const json = await res.json();
+      const json = await parseApiResponse(res, 'selectFeatures');
       return json;
     } catch (err) {
       console.error('selectFeatures:', err);

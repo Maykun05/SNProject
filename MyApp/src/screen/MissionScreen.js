@@ -96,7 +96,7 @@ const MissionScreen = () => {
 
         </View>
 
-        {monthlyMission && (
+        {Boolean(monthlyMission) && (
           <LinearGradient
             colors={['#4CAF50', '#2E7D5B']}
             start={{ x: 0, y: 0 }}

@@ -75,7 +75,7 @@ export default function GardenCard() {
           <Text style={styles.progressLabel}>
             วันนี้: {completedCount}/{totalCount} กิจกรรม
           </Text>
-          {treeEarned && (
+          {Boolean(treeEarned) && (
             <View style={styles.treeEarnedBadge}>
               <Text style={styles.treeEarnedText}>🌱 +1 ต้น!</Text>
             </View>
@@ -86,7 +86,7 @@ export default function GardenCard() {
             style={[
               styles.progressBarFill,
               { width: `${(completedCount / totalCount) * 100}%` },
-              treeEarned && styles.progressBarComplete,
+              Boolean(treeEarned) && styles.progressBarComplete,
             ]}
           />
         </View>

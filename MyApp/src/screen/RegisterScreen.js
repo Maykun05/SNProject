@@ -107,7 +107,7 @@ const RegisterScreen = ({ navigation }) => {
               style={[styles.checkbox, isAgreed && styles.checkboxChecked]}
               onPress={() => setIsAgreed(!isAgreed)}
             >
-              {isAgreed && <Text style={styles.checkmark}>✓</Text>}
+              {Boolean(isAgreed) && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>
               ฉันอนุญาตให้เข้าถึงและใช้งานข้อมูลส่วนตัวตามนโยบายของแอปพลิเคชัน

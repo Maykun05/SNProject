@@ -101,7 +101,7 @@ export default function NotificationsScreen({ navigation }) {
                   disabled={!masterOn}
                 />
               </View>
-              {index < NOTI_ITEMS.length - 1 && <View style={styles.divider} />}
+              {Boolean(index < NOTI_ITEMS.length - 1) && <View style={styles.divider} />}
             </React.Fragment>
           ))}
         </View>

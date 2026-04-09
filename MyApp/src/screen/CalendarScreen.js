@@ -175,9 +175,9 @@ export default function CalendarScreen() {
 
       </View>
 
-      {mode === 'mood' && <MoodCount moods={moods} />}
+      {Boolean(mode === 'mood') && <MoodCount moods={moods} />}
 
-      {mode === 'mood' && (
+      {Boolean(mode === 'mood') && (
       <MoodPickerModal
         visible={!!selectedDate}
         onSelect={onSelectMood}

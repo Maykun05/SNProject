@@ -42,7 +42,7 @@ const TreeItem = ({ index, earnedDay }) => {
   return (
     <Animated.View style={[styles.treeItem, { transform: [{ scale: scaleAnim }] }]}>
       <Text style={styles.treeEmoji}>{getTreeType(index)}</Text>
-      {day && <Text style={styles.treeDay}>{day}</Text>}
+      {day !== null && day !== undefined && <Text style={styles.treeDay}>{day}</Text>}
     </Animated.View>
   );
 };
@@ -172,7 +172,7 @@ export default function GardenScreen() {
         </View>
 
         {/* Earned Days List */}
-        {earnedDays.length > 0 && (
+        {Boolean(earnedDays.length > 0) && (
           <View style={styles.daysSection}>
             <Text style={styles.daysSectionTitle}>วันที่ได้ต้นไม้</Text>
             <View style={styles.daysGrid}>

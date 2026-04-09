@@ -14,7 +14,7 @@ export default function WaterCircle({ value }) {
           { height: `${percent * 100}%` },
         ]}
       />
-      {value > 0 && (
+      {Boolean(value > 0) && (
         <Text style={styles.text}>
           {(value / 1000).toFixed(1)}L
         </Text>

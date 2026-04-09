@@ -10,11 +10,11 @@ import { GardenProvider } from './src/context/GardenContext';
 export default function App() {
   return (
     <AuthProvider>
-      <GardenProvider> 
+      <GardenProvider>
         <ProfileProvider>
           <WaterProvider>
             <StepProvider>
-              <LevelProvider> {/* ✅ เพิ่ม */}
+              <LevelProvider>
                 <NavigationContainer>
                   <Navigator />
                 </NavigationContainer>
@@ -22,7 +22,7 @@ export default function App() {
             </StepProvider>
           </WaterProvider>
         </ProfileProvider>
-      </GardenProvider> 
+      </GardenProvider>
     </AuthProvider>
   );
 }

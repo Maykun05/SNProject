@@ -19,14 +19,12 @@ import { AuthContext } from "../context/AuthProvider";
 import { useNavigation } from "@react-navigation/native";
 
 export default function CalScreen() {
-
-  const recommendedCal = 2100;
-
   const [foods, setFoods] = useState([]);
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
   const [loading, setLoading] = useState(false);
   const { userToken } = useContext(AuthContext);
+  const [userData, setUserData] = useState(null);
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
 
   const remaining = recommendedCal - consumedCal;
@@ -41,6 +39,56 @@ export default function CalScreen() {
       },
     });
   }, [navigation]);
+
+  const getActivityFactor = (level) => {
+    switch (level) {
+      case 0: return 1.2;
+      case 1: return 1.375;
+      case 2: return 1.55;
+      case 3: return 1.725;
+      case 4: return 1.9;
+      default: return 1.2;
+    }
+  };
+
+  const getAge = (birthDate) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
+  const calculateCalories = (data) => {
+    if (!data) return 2000;
+
+    const { weight, height, birthDate, gender, activityLevel } = data;
+
+    if (!weight || !height || !birthDate || !gender) return 2000;
+
+    const age = getAge(birthDate);
+    const factor = getActivityFactor(activityLevel);
+
+    let bmr;
+
+    if (gender === "MALE") {
+      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+
+    return Math.round(bmr * factor);
+  };
+
+  const autoCal = calculateCalories(userData);
+  const recommendedCal = userData
+    ? (userData.customCalorie ?? autoCal)
+    : 2000;
 
   /* ===== search with AI ===== */
 
@@ -113,8 +161,23 @@ export default function CalScreen() {
     }
   };
 
+  const getUserData = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/profile`, {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      const data = await res.json();
+      setUserData(data);
+    } catch (err) {
+      console.log("โหลด user ไม่ได้");
+    }
+  };
+
   useEffect(() => {
     getFoodsToday();
+    getUserData();
   }, []);
 
   const deleteFood = async (item) => {
@@ -213,7 +276,7 @@ export default function CalScreen() {
 
       {/* preview */}
 
-      {previewFood && (
+      {Boolean(previewFood) && (
 
         <View style={styles.previewCard}>
 
@@ -231,7 +294,7 @@ export default function CalScreen() {
 
           {/* macro */}
 
-          {previewFood.protein && (
+          {previewFood.protein !== undefined && previewFood.protein !== null && (
             <Text style={styles.macro}>
               Protein {previewFood.protein}g  |  
               Carb {previewFood.carbs}g  |  

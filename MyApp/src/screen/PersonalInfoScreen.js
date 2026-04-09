@@ -175,7 +175,7 @@ const PersonalInfoScreen = ({ navigation }) => {
                         <Text style={[styles.exTitle, active && styles.txtActive]}>ระดับ {item.level}</Text>
                         <Text style={[styles.exSubtitle, active && styles.txtActive]}>{item.times} {item.desc}</Text>
                       </View>
-                      {active && <Ionicons name="checkmark-circle" size={24} color="#FFF" />}
+                      {Boolean(active) && <Ionicons name="checkmark-circle" size={24} color="#FFF" />}
                     </TouchableOpacity>
                   );
                 })}
@@ -195,7 +195,7 @@ const PersonalInfoScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
 
-      {showDatePicker && (
+      {Boolean(showDatePicker) && (
         <DateTimePicker
           value={date}
           mode="date"

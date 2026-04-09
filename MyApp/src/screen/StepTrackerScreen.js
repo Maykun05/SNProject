@@ -206,14 +206,14 @@ export default function StepTrackerScreen() {
       <ScrollView>
         {/* ── Map ── */}
         <View style={styles.mapContainer}>
-          {currentLocation && (
+          {Boolean(currentLocation) && (
             <MapView style={styles.map} region={currentLocation}>
               <Polyline
                 coordinates={routeCoords}
                 strokeColor="#2E7D5B"
                 strokeWidth={4}
               />
-              {routeCoords.length > 0 && (
+              {Boolean(routeCoords.length > 0) && (
                 <Marker coordinate={routeCoords[0]} title="เริ่มต้น" />
               )}
             </MapView>
