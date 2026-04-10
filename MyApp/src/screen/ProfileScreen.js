@@ -11,8 +11,18 @@ import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
 import CoinBadge from '../components/CoinBadge.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../config';
 import { AuthContext } from '../context/AuthProvider.js';
+import ProfileHealthRow from '../components/profile/ProfileHealthRow';
+import ProfileAccountCard from '../components/profile/ProfileAccountCard';
+import BirthDatePickerCard from '../components/BirthDatePickerCard';
+import { fetchUserInfo, updateProfileInfo, updateUserInfo } from '../services/profileService';
+import {
+  calculateAge,
+  calculateBMI,
+  formatBirthDateThai,
+  getProfileAge,
+  parseBirthDate,
+} from '../utils/profileHealth';
 
 const GREEN = '#1E4D2B';
 
@@ -22,49 +32,41 @@ const ProfileScreen = ({ navigation }) => {
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
   const [username, setUsername] = useState('');
   const [email, setEmailState] = useState('');
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [inputEmail, setInputEmail] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [notificationEnabled, setNotificationEnabled] = useState(false);
-  const [editField, setEditField] = useState(null);
   const {userToken} = useContext(AuthContext);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!userToken) return; // ถ้าไม่มี token ไม่ต้องยิง API
 
-      const res = await fetch(`${API_URL}/api/user`, {
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
-      const data = await res.json();
+      const data = await fetchUserInfo(userToken);
       setUsername(data.username);
+      setEmailState(data.email ?? '');
     };
 
     fetchProfile();
   }, [userToken]);
-    
+
+  useEffect(() => {
+    setInputEmail(email || profile.email || '');
+  }, [email, profile.email]);
 
   // ── Modal states ──
   const [showNameModal,   setShowNameModal]   = useState(false);
-  const [showHealthModal, setShowHealthModal] = useState(false);
   const [inputName,       setInputName]       = useState(profile.name || '');
+  const [showHealthFieldModal, setShowHealthFieldModal] = useState(false);
+  const [healthFieldType, setHealthFieldType] = useState(null);
+  const [healthFieldValue, setHealthFieldValue] = useState('');
+  const [selectedBirthDate, setSelectedBirthDate] = useState(new Date());
+  const [showBirthPicker, setShowBirthPicker] = useState(false);
 
-  // ── Health inputs ──
-  const [inputWeight, setInputWeight] = useState(String(profile.weight   ?? ''));
-  const [inputHeight, setInputHeight] = useState(String(profile.height   ?? ''));
-  const [inputBirthDate, setInputBirthDate] = useState(''); 
-
-  // คำนวณ BMI
-  const calculateBMI = () => {
-    if (!profile.weight || !profile.height) return '-';
-    const weight = parseFloat(profile.weight);
-    const height = parseFloat(profile.height);
-    if (isNaN(weight) || isNaN(height) || height <= 0) return '-';
-    const bmiValue = weight / Math.pow(height / 100, 2);
-    return isNaN(bmiValue) ? '-' : bmiValue.toFixed(1);
-  };
-  const bmi = calculateBMI();
+  const bmi = calculateBMI(profile.weight, profile.height);
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -91,55 +93,103 @@ const ProfileScreen = ({ navigation }) => {
     setShowNameModal(false);
 
     try {
-      const res = await fetch(`${API_URL}/api/user`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: trimmed }),
-      });
-
-      if (!res.ok) {
-        Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกชื่อไปยัง server ได้');
-      }
+      await updateUserInfo(userToken, { username: trimmed });
     } catch (err) {
       Alert.alert('เกิดข้อผิดพลาด', 'เชื่อมต่อ server ไม่สำเร็จ');
     }
   };
 
-  const calculateAge = (birthDateStr) => {
-  const [day, month, year] = birthDateStr.split('/').map(Number);
-  if (!day || !month || !year) return NaN;
-  const birth = new Date(year, month - 1, day);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-};
+  const handleSaveEmail = async () => {
+    const trimmed = inputEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleSaveHealth = () => {
-  const w = parseFloat(inputWeight);
-  const h = parseFloat(inputHeight);
-  const age = calculateAge(inputBirthDate);
+    if (!emailRegex.test(trimmed)) {
+      Alert.alert('อีเมลไม่ถูกต้อง', 'กรุณากรอกรูปแบบอีเมลให้ถูกต้อง');
+      return;
+    }
 
-  if (isNaN(w) || w < 20 || w > 300) {
-    Alert.alert('น้ำหนักไม่ถูกต้อง', 'กรุณากรอกน้ำหนัก 20-300 กก.');
-    return;
-  }
-  if (isNaN(h) || h < 50 || h > 250) {
-    Alert.alert('ส่วนสูงไม่ถูกต้อง', 'กรุณากรอกส่วนสูง 50-250 ซม.');
-    return;
-  }
-  if (isNaN(age) || age < 1 || age > 120) {
-    Alert.alert('วันเกิดไม่ถูกต้อง', 'กรุณากรอกวันเกิด เช่น 15/06/2000');
-    return;
-  }
+    const token = userToken || await AsyncStorage.getItem('token');
+    if (!token) {
+      Alert.alert('ไม่พบการเข้าสู่ระบบ', 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+      return;
+    }
 
-  updateProfile({ weight: w, height: h, age, birthDate: inputBirthDate });
-  setShowHealthModal(false);
-};
+    try {
+      await updateUserInfo(token, { email: trimmed });
+      setEmailState(trimmed);
+      updateProfile({ email: trimmed });
+      setShowEmailModal(false);
+    } catch (err) {
+      Alert.alert('เกิดข้อผิดพลาด', 'เชื่อมต่อ server ไม่สำเร็จ');
+    }
+  };
+
+  const saveProfilePatch = async (patch) => {
+    const token = userToken || await AsyncStorage.getItem('token');
+    await updateProfileInfo(token, patch);
+  };
+
+  const openHealthFieldEditor = (type) => {
+    setHealthFieldType(type);
+    setShowBirthPicker(false);
+    if (type === 'weight') {
+      setHealthFieldValue(String(profile.weight ?? ''));
+    } else if (type === 'height') {
+      setHealthFieldValue(String(profile.height ?? ''));
+    } else if (type === 'age') {
+      const parsedDate = parseBirthDate(profile.birthDate) ?? new Date(2000, 0, 1);
+      setSelectedBirthDate(parsedDate);
+      setShowBirthPicker(true);
+    }
+    setShowHealthFieldModal(true);
+  };
+
+  const handleSaveHealthField = async () => {
+    if (!userToken) {
+      Alert.alert('ไม่พบการเข้าสู่ระบบ', 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+      return;
+    }
+
+    try {
+    if (healthFieldType === 'weight') {
+      const w = parseFloat(healthFieldValue);
+      if (Number.isNaN(w) || w < 20 || w > 300) {
+        Alert.alert('น้ำหนักไม่ถูกต้อง', 'กรุณากรอกน้ำหนัก 20-300 กก.');
+        return;
+      }
+      await saveProfilePatch({ weight: w });
+      updateProfile({ weight: w });
+      setShowHealthFieldModal(false);
+      return;
+    }
+
+    if (healthFieldType === 'height') {
+      const h = parseFloat(healthFieldValue);
+      if (Number.isNaN(h) || h < 50 || h > 250) {
+        Alert.alert('ส่วนสูงไม่ถูกต้อง', 'กรุณากรอกส่วนสูง 50-250 ซม.');
+        return;
+      }
+      await saveProfilePatch({ height: h });
+      updateProfile({ height: h });
+      setShowHealthFieldModal(false);
+      return;
+    }
+
+    if (healthFieldType === 'age') {
+      const age = calculateAge(selectedBirthDate);
+      if (Number.isNaN(age) || age < 1 || age > 120) {
+        Alert.alert('วันเกิดไม่ถูกต้อง', 'กรุณาเลือกวันเกิดใหม่');
+        return;
+      }
+      const isoBirthDate = selectedBirthDate.toISOString();
+      await saveProfilePatch({ birthDate: isoBirthDate });
+      updateProfile({ birthDate: isoBirthDate, age });
+      setShowHealthFieldModal(false);
+    }
+    } catch (err) {
+      Alert.alert('บันทึกไม่สำเร็จ', 'ไม่สามารถบันทึกข้อมูลลงเซิร์ฟเวอร์ได้');
+    }
+  };
 
 const handleChangePassword = async () => {
   if (!oldPassword || !newPassword || !confirmPassword) {
@@ -156,19 +206,7 @@ const handleChangePassword = async () => {
   }
   try {
     const token = await AsyncStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/user`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ oldPassword, newPassword }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      Alert.alert('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
-      return;
-    }
+    await updateUserInfo(token, { oldPassword, newPassword });
     Alert.alert('สำเร็จ', 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
     setOldPassword('');
     setNewPassword('');
@@ -242,44 +280,27 @@ const handleChangePassword = async () => {
 
         {/* ── ข้อมูลสุขภาพ ── */}
         <Text style={styles.sectionLabel}>ข้อมูลสุขภาพ</Text>
-        <TouchableOpacity
-          style={styles.healthRow}
-          onPress={() => {
-            setInputWeight(String(profile.weight ?? ''));
-            setInputHeight(String(profile.height ?? ''));
-            setInputBirthDate(profile.birthDate ?? '');
-            setShowHealthModal(true);
-          }}
-        >
-          {[
-            { label: 'น้ำหนัก', value: profile.weight ? `${String(profile.weight)} kg` : '-', icon: 'scale-bathroom' },
-            { label: 'ส่วนสูง', value: profile.height ? `${String(profile.height)} cm` : '-', icon: 'human-male-height' },
-            { label: 'BMI',     value: bmi,                                                     icon: 'heart-pulse'      },
-            { label: 'อายุ',    value: profile.age    ? `${String(profile.age)} ปี`    : '-', icon: 'calendar-account' },
-          ].map((item, index) => (
-            <View key={index} style={styles.healthCard}>
-              <MaterialCommunityIcons name={item.icon} size={18} color={GREEN} />
-              <Text style={styles.healthLabel}>{item.label}</Text>
-              <Text style={styles.healthValue}>{item.value}</Text>
-            </View>
-          ))}
-        </TouchableOpacity>
+        <ProfileHealthRow
+          weight={profile.weight}
+          height={profile.height}
+          bmi={bmi}
+          age={getProfileAge(profile.birthDate)}
+          onPressWeight={() => openHealthFieldEditor('weight')}
+          onPressHeight={() => openHealthFieldEditor('height')}
+          onPressAge={() => openHealthFieldEditor('age')}
+        />
 
         {/* ── ข้อมูลและเป้าหมาย ── */}
         <Text style={styles.sectionLabel}>ข้อมูลส่วนตัว</Text>
         <View style={styles.gridContainer}>
-          <TouchableOpacity
-            style={[styles.cardHalf, { flex: 1 }]}
-            onPress={() => setShowPasswordModal(true)}
-          >
-            <View style={styles.cardHeaderIndicator} />
-            <Text style={styles.cardTitle}>ข้อมูลส่วนตัว</Text>
-            <Text style={styles.label}>อีเมล</Text>
-            <Text style={styles.value} numberOfLines={1}>{email || profile.email || '-'}</Text>
-            <View style={styles.divider} />
-            <Text style={styles.label}>รหัสผ่าน</Text>
-            <Text style={styles.value}>••••••••</Text>
-          </TouchableOpacity>
+          <ProfileAccountCard
+            email={email || profile.email}
+            onPressEmail={() => {
+              setInputEmail(email || profile.email || '');
+              setShowEmailModal(true);
+            }}
+            onPressPassword={() => setShowPasswordModal(true)}
+          />
         </View>
 
         {/* ── ตั้งค่าแอป ── */}
@@ -356,9 +377,46 @@ const handleChangePassword = async () => {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* ── Modal แก้อีเมล ── */}
+      <Modal visible={showEmailModal} transparent animationType="fade"
+        onRequestClose={() => setShowEmailModal(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="mail-outline" size={22} color={GREEN} />
+              <Text style={styles.modalTitle}>แก้ไขอีเมล</Text>
+            </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                value={inputEmail}
+                onChangeText={setInputEmail}
+                placeholder="กรอกอีเมลใหม่"
+                placeholderTextColor="#bbb"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+              />
+            </View>
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEmailModal(false)}>
+                <Text style={styles.cancelBtnText}>ยกเลิก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveEmail}>
+                <Text style={styles.confirmBtnText}>บันทึก</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* ── Modal ข้อมูลสุขภาพ ── */}
-      <Modal visible={showHealthModal} transparent animationType="fade"
-        onRequestClose={() => setShowHealthModal(false)}>
+      <Modal visible={showHealthFieldModal} transparent animationType="fade"
+        onRequestClose={() => setShowHealthFieldModal(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
@@ -366,43 +424,49 @@ const handleChangePassword = async () => {
           <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
               <MaterialCommunityIcons name="heart-pulse" size={22} color={GREEN} />
-              <Text style={styles.modalTitle}>ข้อมูลสุขภาพ</Text>
+              <Text style={styles.modalTitle}>
+                {healthFieldType === 'weight' ? 'แก้ไขน้ำหนัก' : healthFieldType === 'height' ? 'แก้ไขส่วนสูง' : 'เลือกวันเกิด'}
+              </Text>
             </View>
 
-            {[
-              { label: 'น้ำหนัก (กก.)',       value: inputWeight,    setter: setInputWeight,    placeholder: 'เช่น 65',         keyboard: 'numeric', max: 5  },
-              { label: 'ส่วนสูง (ซม.)',       value: inputHeight,    setter: setInputHeight,    placeholder: 'เช่น 172',        keyboard: 'numeric', max: 5  },
-              { label: 'วันเกิด (DD/MM/YYYY)', value: inputBirthDate, setter: null,              placeholder: 'เช่น 15/06/2000', keyboard: 'numeric', max: 10 },
-            ].map((field) => (
-              <View key={field.label}>
-                <Text style={styles.fieldLabel}>{field.label}</Text>
+            {(healthFieldType === 'weight' || healthFieldType === 'height') && (
+              <View>
+                <Text style={styles.fieldLabel}>
+                  {healthFieldType === 'weight' ? 'น้ำหนัก (กก.)' : 'ส่วนสูง (ซม.)'}
+                </Text>
                 <View style={styles.inputWrapper}>
                   <TextInput
                     style={styles.input}
-                    value={field.value}
-                    onChangeText={field.setter ?? ((text) => {
-                      const cleaned = text.replace(/[^0-9]/g, '');
-                      let formatted = cleaned;
-                      if (cleaned.length >= 3 && cleaned.length <= 4)
-                        formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
-                      else if (cleaned.length >= 5)
-                        formatted = cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4) + '/' + cleaned.slice(4, 8);
-                      setInputBirthDate(formatted);
-                    })}
-                    placeholder={field.placeholder}
+                    value={healthFieldValue}
+                    onChangeText={setHealthFieldValue}
+                    placeholder={healthFieldType === 'weight' ? 'เช่น 65' : 'เช่น 172'}
                     placeholderTextColor="#bbb"
-                    keyboardType={field.keyboard}
-                    maxLength={field.max}
+                    keyboardType="numeric"
+                    maxLength={5}
+                    autoFocus
                   />
                 </View>
               </View>
-            ))}
+            )}
+
+            {healthFieldType === 'age' && (
+              <View>
+                <BirthDatePickerCard
+                  textValue={formatBirthDateThai(selectedBirthDate)}
+                  selectedDate={selectedBirthDate}
+                  isOpen={showBirthPicker}
+                  onToggle={() => setShowBirthPicker(prev => !prev)}
+                  onChangeDate={setSelectedBirthDate}
+                  accentColor={GREEN}
+                />
+              </View>
+            )}
 
             <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowHealthModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowHealthFieldModal(false)}>
                 <Text style={styles.cancelBtnText}>ยกเลิก</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveHealth}>
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleSaveHealthField}>
                 <Text style={styles.confirmBtnText}>บันทึก</Text>
               </TouchableOpacity>
             </View>
@@ -456,17 +520,6 @@ const handleChangePassword = async () => {
     </SafeAreaView>
   );
 };
-
-// แก้ไข Component SettingItem ให้รับ onPress
-const SettingItem = ({ icon, label, color = "black", onPress }) => (
-  <TouchableOpacity style={styles.item} onPress={onPress}>
-    <View style={styles.itemLeft}>
-      <Ionicons name={icon} size={22} color={color} />
-      <Text style={[styles.itemLabel, { color }]}>{label}</Text>
-    </View>
-    <Ionicons name="chevron-forward" size={20} color="#CCC" />
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
@@ -567,6 +620,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 10, color: '#999' },
   value: { fontSize: 12, fontWeight: '500', marginTop: 2, marginBottom: 4, color: '#333' },
   divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 6 },
+  accountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  accountRowLeft: { flex: 1, paddingRight: 10 },
 
   /* ── Settings ── */
   settingOptions: { flexDirection: 'row', alignItems: 'center' },

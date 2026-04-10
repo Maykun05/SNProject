@@ -9,7 +9,6 @@ import ProfileScreen from '../screen/ProfileScreen.js'; // ✅ เพิ่ม
 import StepTrackerScreen from '../screen/StepTrackerScreen';
 
 // ✅ Profile sub-screens
-import EditPersonalInfoScreen from '../screen/EditPersonalInfoScreen.js';
 import EditGoalsScreen from '../screen/EditGoalsScreen.js';
 import PrivacyPolicyScreen from '../screen/PrivacyPolicyScreen.js';
 import NotificationsScreen from '../screen/NotificationsScreen.js';
@@ -46,7 +45,6 @@ export default function HomeStackNavigator() {
 
       {/* ✅ Profile ── */}
       <Stack.Screen name="Profile"          component={ProfileScreen} />
-      <Stack.Screen name="EditPersonalInfo" component={EditPersonalInfoScreen} />
       <Stack.Screen name="EditGoals"        component={EditGoalsScreen} />
       <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} />
       <Stack.Screen name="Notifications"    component={NotificationsScreen} />

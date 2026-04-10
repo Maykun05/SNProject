@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from "../context/AuthProvider";
+import BirthDatePickerCard from '../components/BirthDatePickerCard';
 
 const PersonalInfoScreen = ({ navigation }) => {
   const { userToken } = useContext(AuthContext);
@@ -28,6 +28,18 @@ const PersonalInfoScreen = ({ navigation }) => {
   const [gender, setGender] = useState('OTHER');
   const [exerciseLevel, setExerciseLevel] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const formatBirthDateThai = (selectedDate) => {
+    try {
+      return new Intl.DateTimeFormat('th-TH', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(selectedDate);
+    } catch {
+      return selectedDate.toLocaleDateString('th-TH');
+    }
+  };
 
   const genderOptions = [
     { key: 'FEMALE', label: 'หญิง', icon: 'female' },
@@ -136,13 +148,18 @@ const PersonalInfoScreen = ({ navigation }) => {
                 onChangeText={setHeight} 
               />
 
-              <Text style={styles.label}>วันเกิด</Text>
-              <TouchableOpacity style={styles.inputBox} onPress={() => setShowDatePicker(prev => !prev)}>
-                <Text style={{ color: birthDateText === 'เลือกวันเกิด' ? '#999' : '#333' }}>
-                  {birthDateText}
-                </Text>
-                <Ionicons name="calendar-outline" size={20} color="#2D4F45" />
-              </TouchableOpacity>
+              <BirthDatePickerCard
+                textValue={birthDateText}
+                isPlaceholder={birthDateText === 'เลือกวันเกิด'}
+                selectedDate={date}
+                isOpen={showDatePicker}
+                onToggle={() => setShowDatePicker(prev => !prev)}
+                onChangeDate={(selectedDate) => {
+                  setDate(selectedDate);
+                  setBirthDateText(formatBirthDateThai(selectedDate));
+                }}
+                accentColor="#2D4F45"
+              />
 
               <Text style={styles.label}>เพศ</Text>
               <View style={styles.genderGrid}>
@@ -195,21 +212,6 @@ const PersonalInfoScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
 
-      {Boolean(showDatePicker) && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'} 
-          maximumDate={new Date()}
-          onChange={(event, selectedDate) => {
-            if (selectedDate) {
-              setDate(selectedDate);
-              setBirthDateText(selectedDate.toLocaleDateString('th-TH'));
-            }
-          }}
-        />
-      )}
-
     </View>
   );
 };
@@ -233,7 +235,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: 'bold', color: '#2D4F45', textAlign: 'center', marginBottom: 20 },
   label: { fontSize: 14, fontWeight: 'bold', color: '#2D4F45', marginTop: 15, marginBottom: 8 },
   input: { backgroundColor: '#F0F0F0', borderRadius: 12, padding: 15, marginBottom: 5, color: '#333', fontSize: 16 },
-  inputBox: { backgroundColor: '#F0F0F0', borderRadius: 12, padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   genderGrid: { flexDirection: 'row', gap: 8, marginTop: 5 },
   genderBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#F0F0F0', alignItems: 'center' },
   genderText: { fontSize: 12, fontWeight: 'bold', color: '#2D4F45', marginTop: 4 },
