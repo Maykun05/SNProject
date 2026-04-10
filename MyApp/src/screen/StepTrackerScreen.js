@@ -243,7 +243,7 @@ export default function StepTrackerScreen({ route }) {
   const syncToBackend = async (session) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/steps`, {
+      const res = await fetch(`${API_URL}/api/activity-sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

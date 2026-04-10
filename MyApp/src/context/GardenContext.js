@@ -48,7 +48,7 @@ export const GardenProvider = ({ children }) => {
     if (!headers) return null;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/garden/month?year=${year}&month=${month}`, { headers });
+      const res = await fetch(`${API_BASE}/daily-progress/month?year=${year}&month=${month}`, { headers });
       const json = await parseApiResponse(res, 'fetchGardenMonth');
       if (json.success) setGardenData(json.data);
       return json.data;
@@ -64,7 +64,7 @@ export const GardenProvider = ({ children }) => {
     const headers = await getAuthHeader();
     if (!headers) return null;
     try {
-      const res = await fetch(`${API_BASE}/garden/today`, { headers });
+      const res = await fetch(`${API_BASE}/daily-progress/today`, { headers });
       const json = await parseApiResponse(res, 'fetchTodayProgress');
       if (json.success) setTodayProgress(json.data);
       return json.data;
@@ -78,7 +78,7 @@ export const GardenProvider = ({ children }) => {
     const headers = await getAuthHeader();
     if (!headers) return null;
     try {
-      const res = await fetch(`${API_BASE}/garden/summary`, { headers });
+      const res = await fetch(`${API_BASE}/daily-progress/summary`, { headers });
       const json = await parseApiResponse(res, 'fetchSummary');
       if (json.success) setSummary(json.data.months);
       return json.data.months;
@@ -92,7 +92,7 @@ export const GardenProvider = ({ children }) => {
     const headers = await getAuthHeader();
     if (!headers) return null;
     try {
-      const res = await fetch(`${API_BASE}/garden/log`, {
+      const res = await fetch(`${API_BASE}/daily-progress/log`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ featureKey }),
@@ -127,7 +127,7 @@ export const GardenProvider = ({ children }) => {
     const headers = await getAuthHeader();
     if (!headers) return null;
     try {
-      const res = await fetch(`${API_BASE}/garden/features/select`, {
+      const res = await fetch(`${API_BASE}/daily-progress/features/select`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ featureKeys }),

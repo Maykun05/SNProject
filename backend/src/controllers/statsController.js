@@ -148,7 +148,7 @@ const buildSleepSeries = async (userId, startDate, endDate, dateKeys) => {
 };
 
 const buildStepsSeries = async (userId, startDate, endDate, dateKeys) => {
-  const rows = await prisma.stepSession.findMany({
+  const rows = await prisma.activitySession.findMany({
     where: { userId, date: { gte: startDate, lte: endOfDay(endDate) } },
     select: { date: true, steps: true },
     orderBy: { date: "asc" },

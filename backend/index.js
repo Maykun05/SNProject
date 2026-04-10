@@ -7,8 +7,10 @@ import userRoutes from "./src/routes/userRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import sleepRoutes from "./src/routes/sleepRoutes.js";
 import foodRoutes from "./src/routes/foodRoutes.js";
-import stepRoutes from "./src/routes/stepRoutes.js";
-import gardenRoutes from './src/routes/gardenRoutes.js';
+import activitySessionRoutes from "./src/routes/activitySessionRoutes.js";
+import dailyProgressRoutes from "./src/routes/dailyProgressRoutes.js";
+import homeTreesRoutes from "./src/routes/homeTreesRoutes.js";
+import exerciseRoutes from "./src/routes/exerciseRoutes.js";
 import waterRoutes from "./src/routes/waterRoutes.js";
 import statsRoutes from "./src/routes/statsRoutes.js";
 
@@ -25,8 +27,10 @@ app.get("/", (req, res) => {
 });
 
 // routes
-app.use('/api', stepRoutes);
-app.use('/api/garden', gardenRoutes);
+app.use('/api', activitySessionRoutes);
+app.use("/api/daily-progress", dailyProgressRoutes);
+app.use("/api/home-trees", homeTreesRoutes);
+app.use("/api/exercise", exerciseRoutes);
 app.use("/api", userRoutes);
 app.use("/api/mood", moodRoutes);
 app.use("/api/sleep", sleepRoutes);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView,
 } from 'react-native';
@@ -23,6 +23,8 @@ import {
   formatTarget,
 } from '../utils/exercisePlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useGarden } from '../context/GardenContext';
+import { getExerciseDay, putExerciseDay } from '../services/exerciseApi';
 
 /** เว้นพื้นที่ล่างให้เลื่อนเห็นรายการสุดท้าย (รวมแท็บ / home indicator) */
 const SCROLL_BOTTOM_EXTRA = 88;
@@ -41,8 +43,26 @@ export default function ExerciseScreen({ navigation, route }) {
   const today = getExercisePlanDateKey();
   const onDone = route?.params?.onDone;
   const insets = useSafeAreaInsets();
+  const { logFeature, todayProgress, fetchTodayProgress } = useGarden();
+  const allowApiSyncRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+    allowApiSyncRef.current = false;
+
+    const applyPlanPayload = (parsed) => {
+      if (!parsed || typeof parsed !== 'object') return;
+      if (Array.isArray(parsed.selectedActivities) && parsed.selectedActivities.length > 0) {
+        const allowed = parsed.selectedActivities.filter((key) => !!ACTIVITY_TEMPLATES[key]);
+        setSelectedActivities(allowed.length > 0 ? allowed : [DEFAULT_ACTIVITY_KEY]);
+      }
+      if (parsed.customMetric) setCustomMetric(parsed.customMetric);
+      if (Number.isFinite(Number(parsed.customTarget))) setCustomTarget(Number(parsed.customTarget));
+      if (parsed.goalOverrides && typeof parsed.goalOverrides === 'object') {
+        setGoalOverrides(parsed.goalOverrides);
+      }
+    };
+
     const load = async () => {
       try {
         const [savedPlan, savedProgress] = await Promise.all([
@@ -50,26 +70,47 @@ export default function ExerciseScreen({ navigation, route }) {
           AsyncStorage.getItem(PROGRESS_STORAGE_KEY + today),
         ]);
         if (savedPlan) {
-          const parsed = JSON.parse(savedPlan);
-          if (Array.isArray(parsed?.selectedActivities) && parsed.selectedActivities.length > 0) {
-            const allowed = parsed.selectedActivities.filter((key) => !!ACTIVITY_TEMPLATES[key]);
-            setSelectedActivities(allowed.length > 0 ? allowed : [DEFAULT_ACTIVITY_KEY]);
-          }
-          if (parsed?.customMetric) setCustomMetric(parsed.customMetric);
-          if (Number.isFinite(Number(parsed?.customTarget))) setCustomTarget(Number(parsed.customTarget));
-          if (parsed?.goalOverrides && typeof parsed.goalOverrides === 'object') {
-            setGoalOverrides(parsed.goalOverrides);
-          }
+          try {
+            applyPlanPayload(JSON.parse(savedPlan));
+          } catch (_) { /* ignore corrupt local */ }
         }
         if (savedProgress) {
-          const parsedProgress = JSON.parse(savedProgress);
-          setCompletedActivities(parsedProgress || {});
+          try {
+            const parsedProgress = JSON.parse(savedProgress);
+            setCompletedActivities(parsedProgress && typeof parsedProgress === 'object' ? parsedProgress : {});
+          } catch (_) {
+            setCompletedActivities({});
+          }
+        }
+
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          const remote = await getExerciseDay(token, today);
+          if (!cancelled && remote?.plan && typeof remote.plan === 'object') {
+            applyPlanPayload(remote.plan);
+            if (remote.progress && typeof remote.progress === 'object') {
+              setCompletedActivities(remote.progress);
+            }
+            await AsyncStorage.setItem(
+              PLAN_STORAGE_KEY + today,
+              JSON.stringify(remote.plan)
+            );
+            await AsyncStorage.setItem(
+              PROGRESS_STORAGE_KEY + today,
+              JSON.stringify(remote.progress && typeof remote.progress === 'object' ? remote.progress : {})
+            );
+          }
         }
       } catch (e) {
         console.log('load exercise plan error:', e);
+      } finally {
+        if (!cancelled) allowApiSyncRef.current = true;
       }
     };
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [today]);
 
   useEffect(() => {
@@ -93,8 +134,37 @@ export default function ExerciseScreen({ navigation, route }) {
   const allCompleted = selectedCount > 0 && completedCount === selectedCount;
 
   useEffect(() => {
+    fetchTodayProgress();
+  }, [fetchTodayProgress]);
+
+  useEffect(() => {
+    if (!allCompleted) return;
+    if (todayProgress?.completedFeatures?.includes('exercise')) return;
+    logFeature('exercise');
+  }, [allCompleted, todayProgress?.completedFeatures, logFeature]);
+
+  useEffect(() => {
     if (allCompleted && onDone) onDone();
   }, [allCompleted, onDone]);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!allowApiSyncRef.current) return;
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
+        await putExerciseDay(token, today, {
+          selectedActivities,
+          customMetric,
+          customTarget,
+          goalOverrides,
+        }, completedActivities);
+      } catch (e) {
+        console.log('exercise api sync error:', e);
+      }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [selectedActivities, completedActivities, customMetric, customTarget, goalOverrides, today]);
 
   const selectedMeta = useMemo(
     () => validSelectedActivities.map((key) => ACTIVITY_TEMPLATES[key]).filter(Boolean),

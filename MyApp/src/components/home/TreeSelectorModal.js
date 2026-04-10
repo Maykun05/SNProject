@@ -46,7 +46,7 @@ export default function TreeSelectorModal({ visible, currentType, onSelect, onCl
         setCoins(0);
         return;
       }
-      const res = await fetch(`${API_BASE}/garden/trees/catalog`, {
+      const res = await fetch(`${API_BASE}/home-trees/trees/catalog`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       const json = await res.json().catch(() => ({}));
@@ -96,7 +96,7 @@ export default function TreeSelectorModal({ visible, currentType, onSelect, onCl
           onPress: async () => {
             setUnlockingId(item.id);
             try {
-              const res = await fetch(`${API_BASE}/garden/trees/unlock`, {
+              const res = await fetch(`${API_BASE}/home-trees/trees/unlock`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ treeTypeId: item.id }),
