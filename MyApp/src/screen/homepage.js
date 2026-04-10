@@ -24,6 +24,7 @@ import GardenCard from '../components/home/GardenCard';
 import { API_URL } from '../config';
 
 export default function HomeScreen({ navigation }) {
+  const { addXp, level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
   const {
     doneMap,
     enabledFeatures,
@@ -40,7 +41,7 @@ export default function HomeScreen({ navigation }) {
     lastSleepHours,
     saveFeatures,
     mood,
-  } = useHomeState();
+  } = useHomeState({ addXp });
 
   // ✅ State สำหรับเลือกแบบต้นไม้
   const [selectedTreeType, setSelectedTreeType] = useState(1);
@@ -129,7 +130,6 @@ export default function HomeScreen({ navigation }) {
   // ✅ เปลี่ยนมาใช้ TREE_ASSETS แทน TREE_IMAGES เดิม
   const treeImage = TREE_ASSETS[selectedTreeType][Math.min(doneCount, 5)];
 
-  const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
   const [sleepHours, setSleepHours] = useState(null);
   return (
     <View style={styles.root}>

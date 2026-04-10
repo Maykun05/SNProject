@@ -26,6 +26,9 @@ export default function HomeHeader() {
           }]} />
         </View>
         <Text style={styles.xpText}>{xp} / {xpRequired} XP</Text>
+        <Text style={styles.xpHint} numberOfLines={2}>
+          ทำฟีเจอร์วันนี้ครบเป้า +10 XP · ภารกิจ +XP ตามการ์ด
+        </Text>
       </View>
 
       {/* ช่องว่างขวา สำหรับ ProfileAvatar */}
@@ -73,6 +76,14 @@ const styles = StyleSheet.create({
   xpText: {
     fontSize: 11,
     color: '#999',
+  },
+  xpHint: {
+    fontSize: 9,
+    color: '#9EAEA6',
+    textAlign: 'center',
+    marginTop: 2,
+    paddingHorizontal: 4,
+    lineHeight: 12,
   },
   rightSpace: {
     width: 80,

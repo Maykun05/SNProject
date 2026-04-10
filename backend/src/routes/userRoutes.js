@@ -25,5 +25,6 @@ router.get("/tree-type", authMiddleware, userController.getTreeType);
 router.put("/tree-type", authMiddleware, userController.updateTreeType);
 
 router.get("/user/profile", authMiddleware, userController.getUserProfileController);
+router.post("/user/xp/apply", authMiddleware, userController.applyXpController);
 
 export default router;

@@ -45,6 +45,7 @@ export default function ExerciseScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { logFeature, todayProgress, fetchTodayProgress } = useGarden();
   const allowApiSyncRef = useRef(false);
+  const homeOnDoneCalledRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,13 +139,19 @@ export default function ExerciseScreen({ navigation, route }) {
   }, [fetchTodayProgress]);
 
   useEffect(() => {
-    if (!allCompleted) return;
+    if (!allCompleted) {
+      homeOnDoneCalledRef.current = false;
+      return;
+    }
     if (todayProgress?.completedFeatures?.includes('exercise')) return;
     logFeature('exercise');
   }, [allCompleted, todayProgress?.completedFeatures, logFeature]);
 
   useEffect(() => {
-    if (allCompleted && onDone) onDone();
+    if (!allCompleted || !onDone) return;
+    if (homeOnDoneCalledRef.current) return;
+    homeOnDoneCalledRef.current = true;
+    onDone();
   }, [allCompleted, onDone]);
 
   useEffect(() => {

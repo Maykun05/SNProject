@@ -23,6 +23,9 @@ model User {
   profile      Profile?
 
   coins        Int               @default(0)
+  xp           Int               @default(0)
+  level        Int               @default(1)
+  totalXp      Int               @default(0)
   transactions CoinTransaction[]
   progress     DailyProgress[]
   missions     MissionProgress[]
@@ -213,6 +216,7 @@ model MissionProgress {
   id          Int       @id @default(autoincrement())
   userId      Int
   missionId   String
+  periodKey   String
   type        String
   progress    Int       @default(0)
   goal        Int
@@ -220,7 +224,7 @@ model MissionProgress {
   completedAt DateTime?
   user        User      @relation(fields: [userId], references: [id])
 
-  @@unique([userId, missionId])
+  @@unique([userId, missionId, periodKey])
 }
 
 model CoinTransaction {

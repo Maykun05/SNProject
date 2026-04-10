@@ -13,6 +13,7 @@ import homeTreesRoutes from "./src/routes/homeTreesRoutes.js";
 import exerciseRoutes from "./src/routes/exerciseRoutes.js";
 import waterRoutes from "./src/routes/waterRoutes.js";
 import statsRoutes from "./src/routes/statsRoutes.js";
+import missionRoutes from "./src/routes/missionRoutes.js";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use("/api/sleep", sleepRoutes);
 app.use("/api/food", foodRoutes);
 app.use("/api/water", waterRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api", missionRoutes);
 
 app.listen(3000, '0.0.0.0', () => {
   console.log("SERVER STARTED ON 3000");

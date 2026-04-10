@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from './AuthProvider';   // 👈 import AuthContext
 import { API_URL } from '../config';
 
-const ProfileContext = createContext();
+export const ProfileContext = createContext();
 
 const DEFAULT_PROFILE = {
   name: '',
@@ -11,6 +11,9 @@ const DEFAULT_PROFILE = {
   phone: '',
   profileImage: null,
   coins: 0,
+  xp: 0,
+  level: 1,
+  totalXp: 0,
   goals: { dailyStep: 5000, weeklyStep: 15000 },
   settings: { notifications: true, theme: 'light', language: 'th' },
 };
@@ -28,6 +31,9 @@ function normalizeUserProfilePayload(data) {
     name: data.username ?? DEFAULT_PROFILE.name,
     phone: data.phone ?? p.phone ?? DEFAULT_PROFILE.phone,
     coins: data.coins ?? DEFAULT_PROFILE.coins,
+    xp: data.xp ?? DEFAULT_PROFILE.xp,
+    level: data.level ?? DEFAULT_PROFILE.level,
+    totalXp: data.totalXp ?? DEFAULT_PROFILE.totalXp,
     profileImage: p.profileImage ?? data.profileImage ?? null,
     weight: p.weight ?? data.weight ?? null,
     height: p.height ?? data.height ?? null,
@@ -104,6 +110,25 @@ export const ProfileProvider = ({ children }) => {
     setProfile(prev => ({ ...prev, settings: { ...prev.settings, ...newSettings } }));
   };
 
+  /** ดึงโปรไฟล์จาก API ใหม่ (เช่น หลังได้รับเหรียญจากภารกิจ) */
+  const refreshProfile = useCallback(async () => {
+    if (!userToken) return null;
+    try {
+      const res = await fetch(`${API_URL}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const merged = normalizeUserProfilePayload(data);
+      setProfile(merged);
+      await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify(merged));
+      return merged;
+    } catch (e) {
+      console.error('refreshProfile error:', e);
+      return null;
+    }
+  }, [userToken]);
+
   const logout = async (navigation) => {
     try {
       await AsyncStorage.removeItem('PROFILE_DATA');
@@ -120,6 +145,7 @@ export const ProfileProvider = ({ children }) => {
       updateProfile,
       updateGoals,
       updateSettings,
+      refreshProfile,
       logout,
       loading,
     }}>

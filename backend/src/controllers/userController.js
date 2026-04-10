@@ -108,6 +108,21 @@ export const saveFeatures = async (req, res) => {
   }
 };
 
+/** POST /api/user/xp/apply — body: { amount: number } */
+export const applyXpController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const next = await userService.applyXpGrant(userId, req.body?.amount);
+    return res.json({ success: true, data: next });
+  } catch (err) {
+    if (err.message === "Invalid amount" || err.message === "Amount too large") {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    console.error("applyXpController error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
  // GET /user/profile
 export const getUserProfileController = async (req, res) => {
   try {

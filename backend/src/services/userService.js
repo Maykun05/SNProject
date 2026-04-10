@@ -1,6 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import {
+  formatLocalDate,
+  monthPeriodKey,
+  startOfDay,
+  weekPeriodKey,
+} from "./missionSyncService.js";
+import { applyXpInTransaction } from "./userXpService.js";
 
 export const createUser = async ({ username, email, password }) => {
   const hashedPassword = await bcrypt.hash(password, 10); // 🔥 ตรงนี้
@@ -91,14 +98,33 @@ export const updateUserProfile = async (userId, data) => {
   });
 };
  
-// ไว้ใช้กับ profileprovider
+// ไว้ใช้กับ profileprovider (ไม่ส่ง password)
 export const getUserWithProfile = async (userId) => {
   return prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      profile: true, // ดึงข้อมูลทั้งหมดจาก Profile
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      coins: true,
+      xp: true,
+      level: true,
+      totalXp: true,
+      profile: true,
     },
   });
+};
+
+/** เพิ่ม XP จากกิจกรรม (นอน / อารมณ์ ฯลฯ) — จำกัดต่อครั้งกันสแปม */
+export const applyXpGrant = async (userId, amount) => {
+  const a = Math.floor(Number(amount));
+  if (!Number.isFinite(a) || a <= 0) {
+    throw new Error("Invalid amount");
+  }
+  if (a > 500) {
+    throw new Error("Amount too large");
+  }
+  return prisma.$transaction((tx) => applyXpInTransaction(tx, userId, a));
 };
 
 export const registerUser = async ({ username, email, password }) => {
@@ -167,9 +193,15 @@ export const loginUser = async ({ email, password }) => {
 };
 
 export const getProfileStatsService = async (userId) => {
-  const [profile, missions, progress, mood, sleep] = await Promise.all([
+  const t = startOfDay(new Date());
+  const activePeriodKeys = [formatLocalDate(t), weekPeriodKey(t), monthPeriodKey(t)];
+
+  const [profile, userRow, missions, progress, mood, sleep] = await Promise.all([
     prisma.profile.findUnique({ where: { userId } }),
-    prisma.missionProgress.count({ where: { userId, isCompleted: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { coins: true } }),
+    prisma.missionProgress.count({
+      where: { userId, isCompleted: true, periodKey: { in: activePeriodKeys } },
+    }),
     prisma.dailyProgress.findMany({
       where: { userId },
       orderBy: { date: "desc" },
@@ -191,7 +223,7 @@ export const getProfileStatsService = async (userId) => {
     : null;
 
   return {
-    coins: profile?.coins ?? 0,
+    coins: userRow?.coins ?? 0,
     totalMissionsCompleted: missions,
     latestMood: mood?.mood ?? null,
     avgSleepHours: avgSleep,
