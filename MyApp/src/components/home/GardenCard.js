@@ -72,16 +72,16 @@ export default function GardenCard() {
       {/* Progress bar วันนี้ */}
       <View style={styles.progressSection}>
         <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>
+          {/* <Text style={styles.progressLabel}>
             วันนี้: {completedCount}/{totalCount} กิจกรรม
-          </Text>
+          </Text> */}
           {Boolean(treeEarned) && (
             <View style={styles.treeEarnedBadge}>
               <Text style={styles.treeEarnedText}>🌱 +1 ต้น!</Text>
             </View>
           )}
         </View>
-        <View style={styles.progressBarBg}>
+        {/* <View style={styles.progressBarBg}>
           <View
             style={[
               styles.progressBarFill,
@@ -89,7 +89,7 @@ export default function GardenCard() {
               Boolean(treeEarned) && styles.progressBarComplete,
             ]}
           />
-        </View>
+        </View> */}
       </View>
     </TouchableOpacity>
   );

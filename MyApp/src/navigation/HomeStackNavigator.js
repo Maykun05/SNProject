@@ -27,19 +27,8 @@ export default function HomeStackNavigator() {
       />
 
       <Stack.Screen name="Exercise" component={ExerciseScreen} />
-      <Stack.Screen name="Calorie" component={FoodScreen} />
-      <Stack.Screen
-        name="WaterScreen"
-        component={WaterScreen}
-        options={{
-          title: 'น้ำ',
-          headerShown: true,
-          headerStyle: { backgroundColor: '#E3F2FD' },
-          headerShadowVisible: false,
-          headerTintColor: '#1565C0',
-          headerTitleStyle: { fontWeight: '700' },
-        }}
-      />
+      <Stack.Screen name="Calorie" component={FoodScreen} options={{ headerShown: false }}/>
+      <Stack.Screen name="WaterScreen"component={WaterScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="StepTracker" component={StepTrackerScreen} />
 
