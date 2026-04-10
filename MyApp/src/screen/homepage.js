@@ -41,7 +41,7 @@ export default function HomeScreen({ navigation }) {
     lastSleepHours,
     saveFeatures,
     mood,
-  } = useHomeState({ addXp });
+  } = useHomeState();
 
   // ✅ State สำหรับเลือกแบบต้นไม้
   const [selectedTreeType, setSelectedTreeType] = useState(1);

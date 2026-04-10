@@ -56,9 +56,37 @@ export const LevelProvider = ({ children }) => {
   const [totalXp, setTotalXp] = useState(0);
 
   const levelRef = useRef(1);
+  /** หลบฟังก์ชันออกจาก navigation params (serialize ได้) */
+  const homeFeatureGoalHandlerRef = useRef(null);
+  const stepSessionSavedHandlerRef = useRef(null);
+
   useEffect(() => {
     levelRef.current = level;
   }, [level]);
+
+  const registerHomeFeatureGoalHandler = useCallback((handler) => {
+    homeFeatureGoalHandlerRef.current = handler;
+    return () => {
+      if (homeFeatureGoalHandlerRef.current === handler) {
+        homeFeatureGoalHandlerRef.current = null;
+      }
+    };
+  }, []);
+
+  const notifyHomeFeatureGoalMet = useCallback(async (key) => {
+    const h = homeFeatureGoalHandlerRef.current;
+    if (h) await h(key);
+  }, []);
+
+  const setStepSessionSavedHandler = useCallback((handler) => {
+    stepSessionSavedHandlerRef.current = handler;
+  }, []);
+
+  const notifyStepSessionSaved = useCallback((session) => {
+    const h = stepSessionSavedHandlerRef.current;
+    if (h) h(session);
+    stepSessionSavedHandlerRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!userToken || !userId) {
@@ -66,6 +94,8 @@ export const LevelProvider = ({ children }) => {
       setLevel(1);
       setTotalXp(0);
       levelRef.current = 1;
+      homeFeatureGoalHandlerRef.current = null;
+      stepSessionSavedHandlerRef.current = null;
       return;
     }
     if (profileLoading) return;
@@ -133,6 +163,10 @@ export const LevelProvider = ({ children }) => {
         xpPercent,
         levelInfo,
         addXp,
+        registerHomeFeatureGoalHandler,
+        notifyHomeFeatureGoalMet,
+        setStepSessionSavedHandler,
+        notifyStepSessionSaved,
       }}
     >
       {children}

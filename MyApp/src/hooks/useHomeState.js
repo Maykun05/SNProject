@@ -9,14 +9,15 @@ import { getMoodByDate, setMoodByDate } from '../services/moodService';
 import { getLocalDateKey } from '../utils/dateUtils';
 import { saveSleepToDB, getLatestSleep } from '../services/sleepService';
 import { useGarden } from '../context/GardenContext';
-import { HOME_FEATURE_XP } from '../context/LevelContext';
+import { HOME_FEATURE_XP, useLevel } from '../context/LevelContext';
 
 const todayKey = () => getLocalDateKey();
 
-export default function useHomeState({ addXp } = {}) {
+export default function useHomeState() {
   const navigation = useNavigation();
   const { userToken, userId } = useContext(AuthContext);
   const { fetchTodayProgress, logFeature } = useGarden();
+  const { addXp, registerHomeFeatureGoalHandler } = useLevel();
 
   const [doneMap, setDoneMap]                 = useState({});
   const [enabledFeatures, setEnabledFeatures] = useState({});
@@ -33,17 +34,6 @@ export default function useHomeState({ addXp } = {}) {
   useEffect(() => {
     enabledFeaturesRef.current = enabledFeatures;
   }, [enabledFeatures]);
-
-  const tryGrantHomeFeatureXp = async (key) => {
-    if (!userToken || !addXp) return;
-    const d = todayKey();
-    if (homeFeatureXpGrantedRef.current.date !== d) {
-      homeFeatureXpGrantedRef.current = { date: d, keys: new Set() };
-    }
-    if (homeFeatureXpGrantedRef.current.keys.has(key)) return;
-    homeFeatureXpGrantedRef.current.keys.add(key);
-    await addXp(HOME_FEATURE_XP);
-  };
 
   const loadTodayStatus = useCallback(async (featuresOverride) => {
     const today = todayKey();
@@ -124,7 +114,7 @@ export default function useHomeState({ addXp } = {}) {
     }, [userId, userToken, loadTodayStatus])
   );
 
-  const markDone = async (key) => {
+  const markDone = useCallback(async (key) => {
     setDoneMap((prev) => ({ ...prev, [key]: true }));
     if (!userToken) {
       try {
@@ -133,20 +123,33 @@ export default function useHomeState({ addXp } = {}) {
         console.log('markDone error:', err);
       }
     }
-  };
+  }, [userToken]);
+
+  const tryGrantHomeFeatureXpCb = useCallback(async (key) => {
+    if (!userToken || !addXp) return;
+    const d = todayKey();
+    if (homeFeatureXpGrantedRef.current.date !== d) {
+      homeFeatureXpGrantedRef.current = { date: d, keys: new Set() };
+    }
+    if (homeFeatureXpGrantedRef.current.keys.has(key)) return;
+    homeFeatureXpGrantedRef.current.keys.add(key);
+    await addXp(HOME_FEATURE_XP);
+  }, [userToken, addXp]);
 
   /** หลังฟีเจอร์ครบเงื่อนไข (จากหน้าอื่น) — อัปเดต doneMap + XP บนเซิร์ฟเวอร์ */
-  const onHomeFeatureGoalMet = async (key) => {
+  const onHomeFeatureGoalMet = useCallback(async (key) => {
     await markDone(key);
-    await tryGrantHomeFeatureXp(key);
-  };
+    await tryGrantHomeFeatureXpCb(key);
+  }, [markDone, tryGrantHomeFeatureXpCb]);
+
+  useEffect(() => {
+    return registerHomeFeatureGoalHandler(onHomeFeatureGoalMet);
+  }, [registerHomeFeatureGoalHandler, onHomeFeatureGoalMet]);
 
   const onPressFeature = (f) => {
     switch (f.key) {
       case 'water':
-        navigation.navigate('WaterScreen', {
-          onDone: () => onHomeFeatureGoalMet('water'),
-        });
+        navigation.navigate('WaterScreen', { fromHomeFeature: true });
         break;
       case 'sleep':
         setShowSleepPicker(true);
@@ -155,14 +158,10 @@ export default function useHomeState({ addXp } = {}) {
         setShowMoodPicker(true);
         break;
       case 'exercise':
-        navigation.navigate('Exercise', {
-          onDone: () => onHomeFeatureGoalMet('exercise'),
-        });
+        navigation.navigate('Exercise', { fromHomeFeature: true });
         break;
       case 'food':
-        navigation.navigate('Calorie', {
-          onDone: () => onHomeFeatureGoalMet('food'),
-        });
+        navigation.navigate('Calorie', { fromHomeFeature: true });
         break;
       default:
         break;
@@ -185,7 +184,7 @@ export default function useHomeState({ addXp } = {}) {
     setDoneMap((prev) => ({ ...prev, sleep: true }));
     try {
       await saveSleepToDB(hoursDecimal, userToken);
-      await tryGrantHomeFeatureXp('sleep');
+      await tryGrantHomeFeatureXpCb('sleep');
       const logged = await logFeature('sleep');
       const fresh = await getHomeFeatures(userId, userToken);
       await loadTodayStatus(fresh);
@@ -203,7 +202,7 @@ export default function useHomeState({ addXp } = {}) {
     setDoneMap((prev) => ({ ...prev, mood: true }));
     try {
       await setMoodByDate(todayKey(), key, userToken, userId);
-      await tryGrantHomeFeatureXp('mood');
+      await tryGrantHomeFeatureXpCb('mood');
       const logged = await logFeature('mood');
       const fresh = await getHomeFeatures(userId, userToken);
       await loadTodayStatus(fresh);

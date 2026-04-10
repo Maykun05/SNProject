@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Accelerometer } from 'expo-sensors';
 import * as Location from 'expo-location';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../config';
+import { useLevel } from '../context/LevelContext';
 import { ACTIVITY_TEMPLATES, DEFAULT_ACTIVITY_KEY } from '../exercise/activityTemplates';
 import {
   isSessionQualified,
@@ -21,6 +22,9 @@ import {
 const STEP_THRESHOLD = 1.2;
 const STEP_DELAY = 300;
 
+/** ชดเชย tab bar ลอย (BottomTabNavigator: bottom 30 + height 64) */
+const TAB_BAR_OVERLAY_PAD = 30 + 64 + 20;
+
 const DURATION_CALORIE_PER_MIN = {
   walk: 4.5,
   run: 8,
@@ -30,6 +34,8 @@ const DURATION_CALORIE_PER_MIN = {
 };
 
 export default function StepTrackerScreen({ route }) {
+  const insets = useSafeAreaInsets();
+  const { notifyStepSessionSaved } = useLevel();
   const activityKey = route?.params?.activityKey ?? DEFAULT_ACTIVITY_KEY;
   const customConfig = route?.params?.customConfig ?? null;
   const activityGoalOverride = route?.params?.activityGoalOverride ?? null;
@@ -231,7 +237,7 @@ export default function StepTrackerScreen({ route }) {
         {
           text: 'ตกลง',
           onPress: () => {
-            route?.params?.onSessionSaved?.(session);
+            notifyStepSessionSaved(session);
             resetSession();
           },
         },
@@ -256,7 +262,7 @@ export default function StepTrackerScreen({ route }) {
     } catch (e) {
       Alert.alert('❌ ไม่สามารถเชื่อมต่อ server');
     }
-    route?.params?.onSessionSaved?.(session);
+    notifyStepSessionSaved(session);
     resetSession();
   };
 
@@ -331,7 +337,9 @@ export default function StepTrackerScreen({ route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_OVERLAY_PAD }}
+      >
         {/* ── Map ── */}
         {useGps ? (
           <View style={styles.mapContainer}>

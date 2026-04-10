@@ -10,6 +10,7 @@ import { useWater } from '../context/WaterContext';
 import { useProfile } from '../context/ProfileContext';
 import { useGarden } from '../context/GardenContext';
 import { AuthContext } from '../context/AuthProvider';
+import { useLevel } from '../context/LevelContext';
 import { recommendedWaterMl } from '../utils/waterFormula';
 
 const s = StyleSheet.create({
@@ -74,7 +75,8 @@ function formatLogTime(iso) {
 }
 
 export default function WaterScreen({ route }) {
-  const { onDone } = route?.params ?? {};
+  const fromHomeFeature = route?.params?.fromHomeFeature === true;
+  const { notifyHomeFeatureGoalMet } = useLevel();
   const { userToken } = useContext(AuthContext);
   const { profile } = useProfile();
 
@@ -112,8 +114,8 @@ export default function WaterScreen({ route }) {
         doneCalled.current = false;
       });
     }
-    if (onDone) onDone();
-  }, [consumed, waterGoal, onDone, userToken, logFeature]);
+    if (fromHomeFeature) notifyHomeFeatureGoalMet('water');
+  }, [consumed, waterGoal, fromHomeFeature, userToken, logFeature, notifyHomeFeatureGoalMet]);
 
   const handlePick = (ml) => addWater(ml);
 

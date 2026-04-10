@@ -24,6 +24,7 @@ import {
 } from '../utils/exercisePlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGarden } from '../context/GardenContext';
+import { useLevel } from '../context/LevelContext';
 import { getExerciseDay, putExerciseDay } from '../services/exerciseApi';
 
 /** เว้นพื้นที่ล่างให้เลื่อนเห็นรายการสุดท้าย (รวมแท็บ / home indicator) */
@@ -41,7 +42,8 @@ export default function ExerciseScreen({ navigation, route }) {
   const [editLabels, setEditLabels] = useState({ labelA: '', labelB: '' });
 
   const today = getExercisePlanDateKey();
-  const onDone = route?.params?.onDone;
+  const fromHomeFeature = route?.params?.fromHomeFeature === true;
+  const { notifyHomeFeatureGoalMet, setStepSessionSavedHandler } = useLevel();
   const insets = useSafeAreaInsets();
   const { logFeature, todayProgress, fetchTodayProgress } = useGarden();
   const allowApiSyncRef = useRef(false);
@@ -148,11 +150,11 @@ export default function ExerciseScreen({ navigation, route }) {
   }, [allCompleted, todayProgress?.completedFeatures, logFeature]);
 
   useEffect(() => {
-    if (!allCompleted || !onDone) return;
+    if (!allCompleted || !fromHomeFeature) return;
     if (homeOnDoneCalledRef.current) return;
     homeOnDoneCalledRef.current = true;
-    onDone();
-  }, [allCompleted, onDone]);
+    notifyHomeFeatureGoalMet('exercise');
+  }, [allCompleted, fromHomeFeature, notifyHomeFeatureGoalMet]);
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -211,16 +213,16 @@ export default function ExerciseScreen({ navigation, route }) {
       ? { metric: customMetric, target: customTarget }
       : null;
     const activityGoalOverride = activityKey !== 'custom' ? goalOverrides[activityKey] ?? null : null;
+    setStepSessionSavedHandler((session) => {
+      if (session?.isQualified) {
+        setCompletedActivities((prev) => ({ ...prev, [activityKey]: true }));
+      }
+    });
     navigation.navigate('StepTracker', {
       activityKey,
       selectedActivities: validSelectedActivities,
       customConfig,
       activityGoalOverride,
-      onSessionSaved: (session) => {
-        if (session?.isQualified) {
-          setCompletedActivities((prev) => ({ ...prev, [activityKey]: true }));
-        }
-      },
     });
   };
 

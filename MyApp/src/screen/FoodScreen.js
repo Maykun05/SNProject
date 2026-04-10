@@ -22,7 +22,7 @@ import { putProfileCalorieGoal } from "../services/profileApi";
 import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
 import { useGarden } from "../context/GardenContext";
-import { useNavigation } from "@react-navigation/native";
+import { useLevel } from "../context/LevelContext";
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5F9FF" },
@@ -143,7 +143,8 @@ function Empty({ icon, text }) {
 }
 
 export default function FoodScreen({ route }) {
-  const { onDone } = route?.params ?? {};
+  const fromHomeFeature = route?.params?.fromHomeFeature === true;
+  const { notifyHomeFeatureGoalMet } = useLevel();
   const [foods, setFoods] = useState([]);
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
@@ -152,7 +153,6 @@ export default function FoodScreen({ route }) {
   const { userToken } = useContext(AuthContext);
   const { profile, updateProfile } = useProfile();
   const { logFeature } = useGarden();
-  const navigation = useNavigation();
   const [showCalorieModal, setShowCalorieModal] = useState(false);
   const foodGoalDoneLogged = useRef(false);
 
@@ -220,14 +220,6 @@ export default function FoodScreen({ route }) {
       ? customGoal
       : autoCal
     : 2000;
-
-  useEffect(() => {
-    navigation.setOptions({
-      onDone: () => {
-        console.log("Calorie done!");
-      },
-    });
-  }, [navigation]);
 
   const searchFood = async () => {
     if (!text.trim()) return;
@@ -298,8 +290,8 @@ export default function FoodScreen({ route }) {
       console.error("logFeature food:", err);
       foodGoalDoneLogged.current = false;
     });
-    if (onDone) onDone();
-  }, [userToken, listLoading, consumedCal, recommendedCal, logFeature, onDone]);
+    if (fromHomeFeature) notifyHomeFeatureGoalMet("food");
+  }, [userToken, listLoading, consumedCal, recommendedCal, logFeature, fromHomeFeature, notifyHomeFeatureGoalMet]);
 
   const deleteFoodItem = async (item) => {
     try {
