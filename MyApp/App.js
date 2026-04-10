@@ -1,3 +1,6 @@
+import { registerLocalNotificationHandler } from './src/notifications/exerciseSessionNotification';
+registerLocalNotificationHandler();
+
 import { AuthProvider } from './src/context/AuthProvider';
 import Navigator from './src/navigation/stacknavigator'
 import { NavigationContainer } from '@react-navigation/native';

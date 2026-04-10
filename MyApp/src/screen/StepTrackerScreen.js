@@ -14,6 +14,7 @@ import MapView, { Polyline, Marker } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLevel } from '../context/LevelContext';
+import { useProfile } from '../context/ProfileContext';
 import { useExerciseTracking } from '../context/ExerciseTrackingContext';
 import { ACTIVITY_TEMPLATES, DEFAULT_ACTIVITY_KEY } from '../exercise/activityTemplates';
 import {
@@ -26,6 +27,10 @@ import {
 import { getExercisePlanDateKey } from '../utils/exercisePlan';
 import { clearStepTrackerDraft } from '../utils/stepTrackerDraft';
 import { postActivitySession } from '../services/activitySessionsApi';
+import {
+  shouldShowExerciseSessionSavedNotification,
+  showExerciseSessionSavedNotification,
+} from '../notifications/exerciseSessionNotification';
 
 /** ชดเชย tab bar ลอย (BottomTabNavigator: bottom 30 + height 64) */
 const TAB_BAR_OVERLAY_PAD = 30 + 64 + 20;
@@ -33,6 +38,7 @@ const TAB_BAR_OVERLAY_PAD = 30 + 64 + 20;
 export default function StepTrackerScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { notifyStepSessionSaved } = useLevel();
+  const { profile } = useProfile();
   const {
     meta,
     isRunning,
@@ -174,6 +180,16 @@ export default function StepTrackerScreen({ route, navigation }) {
       console.warn('sync activity session to server:', e);
     }
 
+    if (shouldShowExerciseSessionSavedNotification(profile?.settings)) {
+      const notiBody =
+        `${activity.label} · ${formatTime(durationSec)} · ` +
+        `${isQualified ? 'ผ่านเป้าหมายแล้ว' : 'บันทึกแล้ว (ยังไม่ครบเป้า)'}`;
+      await showExerciseSessionSavedNotification({
+        title: 'บันทึกเซสชันสำเร็จ',
+        body: notiBody,
+      });
+    }
+
     Alert.alert(
       '🎉 บันทึกสำเร็จ!',
       `${activity.label}\n` +
@@ -272,6 +288,7 @@ export default function StepTrackerScreen({ route, navigation }) {
     meta.instanceId === instanceId &&
     meta.planDate === planDate
   );
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ScrollView

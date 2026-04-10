@@ -11,7 +11,8 @@ const GREEN = '#1E4D2B';
 
 const NOTI_ITEMS = [
   { key: 'dailyReminder',   label: 'เตือนก้าวเดินรายวัน',     icon: 'footsteps-outline'      },
-  { key: 'goalAchieved',    label: 'แจ้งเตือนเมื่อถึงเป้าหมาย', icon: 'trophy-outline'         },
+  { key: 'goalAchieved',    label: 'เมื่อครบเวลา/เกณฑ์ระหว่างออกกำลัง', icon: 'trophy-outline' },
+  { key: 'exerciseSessionSaved', label: 'เมื่อบันทึกเซสชันออกกำลังสำเร็จ', icon: 'checkmark-done-outline' },
   { key: 'weeklyReport',    label: 'รายงานสรุปรายสัปดาห์',     icon: 'bar-chart-outline'      },
   { key: 'waterReminder',   label: 'เตือนดื่มน้ำ',             icon: 'water-outline'          },
   { key: 'exerciseReminder',label: 'เตือนออกกำลังกาย',         icon: 'bicycle-outline'        },
