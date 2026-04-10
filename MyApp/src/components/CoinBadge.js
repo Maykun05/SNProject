@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 
-const CoinBadge = ({ amount }) => (
-  <View style={styles.coinBadge}>
+const CoinBadge = ({ amount, inline = false }) => (
+  <View style={[styles.coinBadge, inline && styles.coinBadgeInline]}>
     <Image 
       source={require('../assets/coin.png')}
       style={styles.coinIcon} 
@@ -20,6 +20,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4, borderRadius: 20, elevation: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15, shadowRadius: 3, gap: 4,
+  },
+  coinBadgeInline: {
+    position: 'relative',
+    top: 0,
+    right: 0,
   },
   coinIcon: {
     width: 20,
