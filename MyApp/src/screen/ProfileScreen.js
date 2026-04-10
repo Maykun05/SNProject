@@ -320,7 +320,6 @@ const handleChangePassword = async () => {
             </TouchableOpacity>
           </View>
         </View>
-
         {/* ── ข้อมูลและความปลอดภัย ── */}
         <Text style={styles.sectionLabel}>ข้อมูลและความปลอดภัย</Text>
         <TouchableOpacity

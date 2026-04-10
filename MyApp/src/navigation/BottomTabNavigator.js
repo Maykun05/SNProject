@@ -7,6 +7,7 @@ import HomeStackNavigator from './HomeStackNavigator';
 import CalendarScreen from '../screen/CalendarScreen';
 import BMIScreen from '../screen/BMIScreen';
 import MissionScreen from '../screen/MissionScreen';
+import FeatureStatsScreen from '../screen/FeatureStatsScreen.js';
 
 const Tab = createBottomTabNavigator();
 
@@ -74,7 +75,7 @@ export default function BottomTabNavigator() {
       />
       <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="BMI" component={BMIScreen} />
-      <Tab.Screen name="Stats" component={Homepage} />
+      <Tab.Screen name="Stats" component={FeatureStatsScreen} />
       <Tab.Screen name="Mission" component={MissionScreen} />
     </Tab.Navigator>
   );

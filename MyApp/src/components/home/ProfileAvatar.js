@@ -7,11 +7,21 @@ import { useNavigation } from '@react-navigation/native'; // ✅ เพิ่ม
 export default function ProfileAvatar({ size = 60 }) {
   const { profile } = useProfile(); // ✅ ใช้ profile.profileImage แทน profileImage
   const navigation = useNavigation(); // ✅ เพิ่ม
+  const handleOpenProfile = () => {
+    const currentRoutes = navigation.getState?.()?.routeNames ?? [];
+    if (currentRoutes.includes('Profile')) {
+      navigation.navigate('Profile');
+      return;
+    }
+
+    // Fallback: เข้าผ่าน Tab -> HomeTab -> Profile เมื่ออยู่คนละ navigator
+    navigation.navigate('HomeTab', { screen: 'Profile' });
+  };
 
   return (
     <TouchableOpacity
       style={[styles.wrapper, { width: size, height: size }]}
-      onPress={() => navigation.navigate('Profile')} // ✅ เปลี่ยนจาก pickImage → navigate
+      onPress={handleOpenProfile}
       activeOpacity={0.8}
     >
       <Image
