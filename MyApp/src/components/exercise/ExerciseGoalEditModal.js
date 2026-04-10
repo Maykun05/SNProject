@@ -16,6 +16,8 @@ import {
 export default function ExerciseGoalEditModal({
   visible,
   activityLabel,
+  /** ถ้ามี จะใช้แทนหัวข้อเริ่มต้น "แก้ไขเป้าหมาย" */
+  title: titleOverride,
   defaultSummaryHint,
   labelA,
   labelB,
@@ -26,6 +28,11 @@ export default function ExerciseGoalEditModal({
   onCancel,
   onSave,
 }) {
+  const titleText =
+    titleOverride != null && titleOverride !== ''
+      ? titleOverride
+      : `แก้ไขเป้าหมาย${activityLabel ? ` — ${activityLabel}` : ''}`;
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
@@ -34,7 +41,7 @@ export default function ExerciseGoalEditModal({
       >
         <View style={styles.card}>
           <Text style={styles.title}>
-            แก้ไขเป้าหมาย{activityLabel ? ` — ${activityLabel}` : ''}
+            {titleText}
           </Text>
           {defaultSummaryHint ? (
             <Text style={styles.hint}>ค่าแนะนำ: {defaultSummaryHint}</Text>

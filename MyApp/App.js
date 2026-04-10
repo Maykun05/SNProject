@@ -6,6 +6,7 @@ import { WaterProvider }   from './src/context/WaterContext';
 import { StepProvider }    from './src/context/StepContext';
 import { LevelProvider }   from './src/context/LevelContext'; 
 import { GardenProvider } from './src/context/GardenContext';
+import { ExerciseTrackingProvider } from './src/context/ExerciseTrackingContext';
 
 export default function App() {
   return (
@@ -15,9 +16,11 @@ export default function App() {
           <WaterProvider>
             <StepProvider>
               <LevelProvider>
-                <NavigationContainer>
-                  <Navigator />
-                </NavigationContainer>
+                <ExerciseTrackingProvider>
+                  <NavigationContainer>
+                    <Navigator />
+                  </NavigationContainer>
+                </ExerciseTrackingProvider>
               </LevelProvider>
             </StepProvider>
           </WaterProvider>

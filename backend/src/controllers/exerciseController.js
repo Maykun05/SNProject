@@ -42,10 +42,12 @@ export const putExerciseDayController = async (req, res) => {
     if (!date || typeof date !== "string") {
       return res.status(400).json({ success: false, message: "date required" });
     }
-    if (!plan || typeof plan !== "object" || !Array.isArray(plan.selectedActivities)) {
+    const hasLegacyActivities = Array.isArray(plan.selectedActivities);
+    const hasInstancePlan = Array.isArray(plan.activityInstances);
+    if (!plan || typeof plan !== "object" || (!hasLegacyActivities && !hasInstancePlan)) {
       return res.status(400).json({
         success: false,
-        message: "plan with selectedActivities array required",
+        message: "plan with activityInstances or selectedActivities array required",
       });
     }
     if (!progress || typeof progress !== "object") {
