@@ -1,12 +1,20 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 
-const CoinBadge = ({ amount, inline = false }) => (
-  <View style={[styles.coinBadge, inline && styles.coinBadgeInline]}>
-    <Image 
+const CoinBadge = ({ amount, inline = false, compact = false }) => (
+  <View
+    style={[
+      styles.coinBadge,
+      inline && styles.coinBadgeInline,
+      compact && styles.coinBadgeCompact,
+    ]}
+  >
+    <Image
       source={require('../assets/coin.png')}
-      style={styles.coinIcon} 
+      style={[styles.coinIcon, compact && styles.coinIconCompact]}
     />
-    <Text style={styles.coinText}>{String(amount ?? 0)}</Text>
+    <Text style={[styles.coinText, compact && styles.coinTextCompact]}>
+      {String(amount ?? 0)}
+    </Text>
   </View>
 );
 
@@ -25,12 +33,24 @@ const styles = StyleSheet.create({
     position: 'relative',
     top: 0,
     right: 0,
+    alignSelf: 'center',
+  },
+  coinBadgeCompact: {
+    flexShrink: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 14,
+    elevation: 2,
+    shadowOpacity: 0.1,
+    gap: 3,
   },
   coinIcon: {
     width: 20,
     height: 20,
   },
+  coinIconCompact: { width: 17, height: 17 },
   coinText: { fontWeight: '700', fontSize: 15, color: '#C8861A' },
+  coinTextCompact: { fontSize: 13 },
 });
 
 export default CoinBadge;

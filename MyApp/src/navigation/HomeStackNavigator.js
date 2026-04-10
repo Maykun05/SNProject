@@ -44,7 +44,11 @@ export default function HomeStackNavigator() {
       <Stack.Screen name="StepTracker" component={StepTrackerScreen} />
 
       {/* ✅ Profile ── */}
-      <Stack.Screen name="Profile"          component={ProfileScreen} />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="EditGoals"        component={EditGoalsScreen} />
       <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} />
       <Stack.Screen name="Notifications"    component={NotificationsScreen} />

@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
 import CoinBadge from '../components/CoinBadge.js';
@@ -26,6 +27,17 @@ import {
 
 const GREEN = '#1E4D2B';
 
+function lightenColor(hex) {
+  if (!hex || typeof hex !== 'string' || hex[0] !== '#' || hex.length !== 7) {
+    return '#4a7f5c';
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const t = 0.36;
+  const mix = (c) => Math.min(255, Math.round(c + (255 - c) * t));
+  return `#${mix(r).toString(16).padStart(2, '0')}${mix(g).toString(16).padStart(2, '0')}${mix(b).toString(16).padStart(2, '0')}`;
+}
 
 const ProfileScreen = ({ navigation }) => {
   const { profile, updateProfile} = useProfile();
@@ -67,6 +79,8 @@ const ProfileScreen = ({ navigation }) => {
   const [showBirthPicker, setShowBirthPicker] = useState(false);
 
   const bmi = calculateBMI(profile.weight, profile.height);
+  const levelAccent = levelInfo?.color ?? GREEN;
+  const xpFillPercent = Math.min(100, Math.max(0, Number.isFinite(xpPercent) ? xpPercent : 0));
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -229,57 +243,79 @@ const handleChangePassword = async () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
-        {/* ── Avatar ── */}
-        <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={handlePickImage} style={styles.avatarContainer}>
-            {profile.profileImage ? (
-              <Image source={{ uri: profile.profileImage }} style={styles.avatarImg} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="camera" size={40} color="#555" />
+        <LinearGradient
+          colors={['#EEF5F0', '#FFFFFF']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.avatarShadowWrap}>
+            <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.avatarOuterRing}>
+              <View style={styles.avatarContainer}>
+                {profile.profileImage ? (
+                  <Image source={{ uri: profile.profileImage }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons name="camera" size={38} color="#666" />
+                  </View>
+                )}
+                <View style={styles.cameraOverlay}>
+                  <Ionicons name="add" size={16} color="#fff" />
+                </View>
               </View>
-            )}
-            <View style={styles.cameraOverlay}>
-              <Ionicons name="add" size={16} color="#fff" />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.changePhotoText}>เปลี่ยนรูป</Text>
-        </View>
 
-        {/* ── Name Card ── */}
-        <View style={styles.nameCard}>
-          <CoinBadge amount={profile.coins} />
-          <Text style={styles.userNameText}>{username || profile.name || 'ชื่อผู้ใช้'}</Text>
-          <TouchableOpacity
-            style={styles.editIcon}
-            onPress={() => { setInputName(profile.name || ''); setShowNameModal(true); }}
-          >
-            <Ionicons name="pencil" size={16} color="#3d644a" />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Level Badge ── */}
-        <View style={styles.levelBadge}>
-          <View style={[styles.levelCircle, { borderColor: levelInfo?.color ?? GREEN }]}>
-            <Text style={styles.levelNum}>{String(level)}</Text>
-            <Text style={styles.levelLv}>LV</Text>
-          </View>
-          <View style={styles.levelInfo}>
-            <Text style={[styles.levelName, { color: levelInfo?.color ?? GREEN }]}>
-              {levelInfo?.displayName ?? 'นักสำรวจมือใหม่'}
-            </Text>
-            <View style={styles.xpBarBg}>
-              <View style={[styles.xpBarFill, {
-                width: `${xpPercent}%`,
-                backgroundColor: levelInfo?.color ?? GREEN,
-              }]} />
+          <View style={styles.nameRow}>
+            <View style={[styles.nameRowSide, styles.nameRowSideLeft]}>
+              <CoinBadge amount={profile.coins} inline compact />
             </View>
-            <Text style={styles.xpText}>{String(xp)} / {String(xpRequired)} XP</Text>
+            <View style={styles.nameCenterWrap}>
+              <Text style={styles.userNameText} numberOfLines={1}>
+                {username || profile.name || 'ชื่อผู้ใช้'}
+              </Text>
+            </View>
+            <View style={[styles.nameRowSide, styles.nameRowSideRight]}>
+              <TouchableOpacity
+                style={styles.editIcon}
+                onPress={() => { setInputName(profile.name || ''); setShowNameModal(true); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="pencil" size={18} color={GREEN} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+
+          <View style={styles.levelSection}>
+            <View style={[styles.levelCircle, { borderColor: levelAccent }]}>
+              <Text style={[styles.levelNum, { color: levelAccent }]}>{String(level)}</Text>
+              <Text style={styles.levelLv}>LV</Text>
+            </View>
+            <View style={styles.levelInfo}>
+              <Text style={[styles.levelName, { color: levelAccent }]}>
+                {levelInfo?.displayName ?? 'นักสำรวจมือใหม่'}
+              </Text>
+              <View style={styles.xpBarBg}>
+                <View style={[styles.xpBarFillWrap, { width: `${xpFillPercent}%` }]}>
+                  <LinearGradient
+                    colors={[levelAccent, lightenColor(levelAccent)]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </View>
+              </View>
+              <Text style={styles.xpText}>{String(xp)} / {String(xpRequired)} XP</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* ── ข้อมูลสุขภาพ ── */}
-        <Text style={styles.sectionLabel}>ข้อมูลสุขภาพ</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="fitness-outline" size={16} color={GREEN} />
+          <Text style={styles.sectionLabel}>ข้อมูลสุขภาพ</Text>
+        </View>
         <ProfileHealthRow
           weight={profile.weight}
           height={profile.height}
@@ -290,8 +326,11 @@ const handleChangePassword = async () => {
           onPressAge={() => openHealthFieldEditor('age')}
         />
 
-        {/* ── ข้อมูลและเป้าหมาย ── */}
-        <Text style={styles.sectionLabel}>ข้อมูลส่วนตัว</Text>
+        {/* ── ข้อมูลส่วนตัว ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="person-outline" size={16} color={GREEN} />
+          <Text style={styles.sectionLabel}>ข้อมูลส่วนตัว</Text>
+        </View>
         <View style={styles.gridContainer}>
           <ProfileAccountCard
             email={email || profile.email}
@@ -304,7 +343,10 @@ const handleChangePassword = async () => {
         </View>
 
         {/* ── ตั้งค่าแอป ── */}
-        <Text style={styles.sectionLabel}>ตั้งค่าแอป</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="settings-outline" size={16} color={GREEN} />
+          <Text style={styles.sectionLabel}>ตั้งค่าแอป</Text>
+        </View>
         <View style={styles.cardFull}>
           <View style={styles.cardHeaderIndicator} />
           <View style={styles.notificationRow}>
@@ -321,7 +363,10 @@ const handleChangePassword = async () => {
           </View>
         </View>
         {/* ── ข้อมูลและความปลอดภัย ── */}
-        <Text style={styles.sectionLabel}>ข้อมูลและความปลอดภัย</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Ionicons name="shield-checkmark-outline" size={16} color={GREEN} />
+          <Text style={styles.sectionLabel}>ข้อมูลและความปลอดภัย</Text>
+        </View>
         <TouchableOpacity
           style={styles.cardFull}
           onPress={() => navigation.navigate('PrivacyPolicy')}
@@ -334,8 +379,8 @@ const handleChangePassword = async () => {
         </TouchableOpacity>
 
         {/* ── ปุ่ม Logout ── */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#FFF" />
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={22} color="#E64A3D" />
           <Text style={styles.logoutBtnText}>ออกจากระบบ</Text>
         </TouchableOpacity>
 
@@ -522,127 +567,193 @@ const handleChangePassword = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContent: { paddingBottom: 100 },
+  scrollContent: { paddingBottom: 100, paddingTop: 8 },
 
-  /* ── Avatar ── */
-  avatarSection: { alignItems: 'center', marginTop: 30 },
-  avatarContainer: {width: 110, height: 110, borderRadius: 55,borderWidth: 3, borderColor: GREEN,overflow: 'hidden', backgroundColor: '#E9DCC9',justifyContent: 'center', alignItems: 'center',
+  heroCard: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingTop: 22,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#1E4D2B',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+  },
+  avatarShadowWrap: {
+    borderRadius: 60,
+    backgroundColor: '#fff',
+    padding: 4,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+  },
+  avatarOuterRing: {
+    borderRadius: 56,
+    borderWidth: 2,
+    borderColor: '#E8EFE9',
+  },
+  avatarContainer: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 3,
+    borderColor: GREEN,
+    overflow: 'hidden',
+    backgroundColor: '#E9DCC9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarImg: { width: '100%', height: '100%' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   cameraOverlay: {
     position: 'absolute', bottom: 4, right: 4,
-    width: 24, height: 24, borderRadius: 12,
+    width: 26, height: 26, borderRadius: 13,
     backgroundColor: GREEN,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: '#F8F9FA',
+    borderWidth: 2, borderColor: '#fff',
   },
-  changePhotoText: { fontSize: 12, color: GREEN, fontWeight: '600', marginTop: 6 },
+  changePhotoText: { fontSize: 12, color: GREEN, fontWeight: '600', marginTop: 8 },
 
-  /* ── Level Badge ── */
-  levelBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 20, marginTop: 14,
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 10, gap: 12,
-    elevation: 2, shadowColor: '#000',
-    shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4,
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 6,
+    width: '100%',
+  },
+  nameRowSide: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nameRowSideLeft: {
+    justifyContent: 'flex-end',
+    paddingRight: 6,
+  },
+  nameRowSideRight: {
+    justifyContent: 'flex-start',
+    paddingLeft: 6,
+  },
+  nameCenterWrap: {
+    flexShrink: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  userNameText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+  },
+  editIcon: { padding: 4, flexShrink: 0 },
+
+  levelSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 14,
+    paddingTop: 16,
+    paddingHorizontal: 4,
+    gap: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(30, 77, 43, 0.12)',
   },
   levelCircle: {
-    width: 46, height: 46, borderRadius: 23,
-    borderWidth: 2.5, justifyContent: 'center',
-    alignItems: 'center', backgroundColor: '#fff',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
-  levelNum: { fontSize: 16, fontWeight: '700', color: GREEN, lineHeight: 18 },
+  levelNum: { fontSize: 17, fontWeight: '700', lineHeight: 20 },
   levelLv: { fontSize: 8, color: '#999', letterSpacing: 0.5 },
-  levelInfo: { flex: 1 },
-  levelName: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  xpBarBg: { height: 6, backgroundColor: '#E8F5E9', borderRadius: 3, overflow: 'hidden' },
-  xpBarFill: { height: 6, borderRadius: 3 },
-  xpText: { fontSize: 10, color: '#999', marginTop: 3 },
-
-  /* ── Name Card ── */
-  nameCard: {
-    backgroundColor: '#8FBC8F',
-    marginHorizontal: 20, marginTop: 12,
-    paddingVertical: 14, paddingHorizontal: 20,
-    borderRadius: 20, flexDirection: 'row',
-    justifyContent: 'center', alignItems: 'center',
-    position: 'relative',
+  levelInfo: { flex: 1, minWidth: 0 },
+  levelName: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  xpBarBg: {
+    height: 8,
+    backgroundColor: '#E3EDE5',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
-  userNameText: { fontSize: 18, fontWeight: '700', marginRight: 8, color: '#1a1a1a' },
-  editIcon: { padding: 4 },
+  xpBarFillWrap: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  xpText: { fontSize: 11, color: '#777', marginTop: 4, fontWeight: '500' },
 
-  /* ── Section Label ── */
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 22,
+    marginBottom: 8,
+    gap: 8,
+  },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600',
-    color: '#999', paddingHorizontal: 20,
-    marginTop: 20, marginBottom: 8,
-    textTransform: 'uppercase', letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
 
-  /* ── Health Row ── */
-  healthRow: {
-    flexDirection: 'row', marginHorizontal: 20, gap: 8,
-  },
-  healthCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14,
-    padding: 10, alignItems: 'center', gap: 4,
-    elevation: 2, shadowColor: '#000',
-    shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 3,
-  },
-  healthLabel: { fontSize: 9, color: '#999', textAlign: 'center' },
-  healthValue: { fontSize: 12, fontWeight: '700', color: '#1a1a1a', textAlign: 'center' },
-
-  /* ── Grid Cards ── */
   gridContainer: {
-    flexDirection: 'row', paddingHorizontal: 20, gap: 10,
-  },
-  cardHalf: {
-    flex: 1, backgroundColor: '#FFF', borderRadius: 14,
-    padding: 14, elevation: 2, shadowColor: '#000',
-    shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4, overflow: 'hidden',
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
   },
   cardFull: {
-    backgroundColor: '#FFF', marginHorizontal: 20,
-    borderRadius: 14, padding: 16,
-    elevation: 2, shadowColor: '#000',
-    shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4, overflow: 'hidden',
+    backgroundColor: '#FFF',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    overflow: 'hidden',
   },
   cardHeaderIndicator: {
     position: 'absolute', left: 0, top: 0, bottom: 0,
     width: 5, backgroundColor: GREEN,
   },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: GREEN, marginBottom: 10 },
-  label: { fontSize: 10, color: '#999' },
-  value: { fontSize: 12, fontWeight: '500', marginTop: 2, marginBottom: 4, color: '#333' },
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 6 },
-  accountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  accountRowLeft: { flex: 1, paddingRight: 10 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: GREEN, marginBottom: 0 },
 
-  /* ── Settings ── */
-  settingOptions: { flexDirection: 'row', alignItems: 'center' },
-  settingOption: { flex: 1, alignItems: 'center', paddingVertical: 6, gap: 4 },
-  optionText: { fontSize: 10, color: '#555', textAlign: 'center' },
-  verticalDivider: { width: 1, height: 28, backgroundColor: '#E0E0E0' },
+  optionText: { fontSize: 13, color: '#333', fontWeight: '600' },
 
-  /* ── Privacy Row ── */
   privacyRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
 
-  /* ── Logout ── */
   logoutBtn: {
-    backgroundColor: '#FF6347', marginHorizontal: 20,
-    marginTop: 20, paddingVertical: 14, borderRadius: 30,
-    flexDirection: 'row', justifyContent: 'center',
-    alignItems: 'center', gap: 8, elevation: 4,
-    shadowColor: '#FF6347', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 6,
+    backgroundColor: '#FFF',
+    marginHorizontal: 20,
+    marginTop: 22,
+    paddingVertical: 14,
+    borderRadius: 30,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: '#E64A3D',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
   },
-  logoutBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  logoutBtnText: { color: '#E64A3D', fontSize: 16, fontWeight: '700' },
 
   /* ── Modal ── */
   modalOverlay: {
@@ -676,38 +787,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3 }, shadowRadius: 5,
   },
   confirmBtnText: { fontSize: 14, color: '#FFF', fontWeight: '700' },
-  coinBadge: {
-    position: 'absolute',   
-    top: -10,               
-    right: 12,              // 👈 เพิ่มตรงนี้
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFF', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 20, elevation: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15, shadowRadius: 3, gap: 4,
-  },
-  coinIcon: {
-    width: 20,
-    height: 20,
-  },
-  coinText: { fontWeight: '700', fontSize: 15, color: '#C8861A' },
   notificationRow: {
-  flexDirection: 'row', alignItems: 'center',
-  justifyContent: 'space-between', paddingVertical: 6,
-},
-notificationLeft: {
-  flexDirection: 'row', alignItems: 'center', gap: 8,
-},
-toggleBtn: {
-  width: 48, height: 26, borderRadius: 13,
-  backgroundColor: '#E0E0E0', justifyContent: 'center',
-  paddingHorizontal: 3,
-},
-toggleBtnOn: { backgroundColor: GREEN },
-toggleCircle: {
-  width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff',
-},
-toggleCircleOn: { alignSelf: 'flex-end' },
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  notificationLeft: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  toggleBtn: {
+    width: 50, height: 28, borderRadius: 14,
+    backgroundColor: '#E0E0E0', justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  toggleBtnOn: { backgroundColor: GREEN },
+  toggleCircle: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff',
+  },
+  toggleCircleOn: { alignSelf: 'flex-end' },
 });
 
 export default ProfileScreen;

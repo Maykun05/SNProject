@@ -35,7 +35,7 @@ export default function BottomTabNavigator() {
               break;
             case 'BMI':
               iconName = 'body';
-              label = 'BMI';
+              label = 'ดัชนีมวลกาย';
               break;
             case 'Stats':
               iconName = 'stats-chart';

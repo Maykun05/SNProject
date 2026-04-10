@@ -73,7 +73,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#1565C0",
   },
-  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15},
   previewCard: {
     backgroundColor: "#FFF",
     borderRadius: 14,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 
-const DEFAULT_ML = [100, 150, 250, 300];
+const DEFAULT_ML = [250, 500, 700, 1500];
 const MIN_ML = 1;
 const MAX_ML = 5000;
 

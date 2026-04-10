@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -124,17 +124,6 @@ export default function WaterScreen({ route }) {
     await setWaterGoal(parsed);
   };
 
-  const confirmDeleteLog = (item) => {
-    Alert.alert('ลบรายการ?', `ลบการดื่ม +${item.amountMl} มล.`, [
-      { text: 'ยกเลิก', style: 'cancel' },
-      {
-        text: 'ลบ',
-        style: 'destructive',
-        onPress: () => removeWaterLog(item.id),
-      },
-    ]);
-  };
-
   return (
     <SafeAreaView style={s.safe} edges={['bottom']}>
       <ScrollView
@@ -180,7 +169,7 @@ export default function WaterScreen({ route }) {
                 <Text style={s.time}>{formatLogTime(item.createdAt)}</Text>
                 <TouchableOpacity
                   style={s.delBtn}
-                  onPress={() => confirmDeleteLog(item)}
+                  onPress={() => removeWaterLog(item.id)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel="ลบรายการ"
                 >
