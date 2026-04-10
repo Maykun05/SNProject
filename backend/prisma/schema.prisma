@@ -252,7 +252,20 @@ model ActivitySession {
   date      DateTime
   route     String?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+
+  /// วันตามแผนออกกำลัง (YYYY-MM-DD) — จับคู่กับ instance ใน ExerciseDay
+  planDateKey    String?
+  instanceId     String?
+  activityKey    String?
+  laps           Int?
+  sets           Int?
+  reps           Int?
+  customGoalJson Json?
+  isQualified    Boolean?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, planDateKey, instanceId])
 }
 
 model FoodLog {

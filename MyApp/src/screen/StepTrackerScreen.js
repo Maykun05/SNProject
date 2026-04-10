@@ -1,6 +1,12 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useLayoutEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,6 +25,7 @@ import {
 } from '../exercise/goalRules';
 import { getExercisePlanDateKey } from '../utils/exercisePlan';
 import { clearStepTrackerDraft } from '../utils/stepTrackerDraft';
+import { postActivitySession } from '../services/activitySessionsApi';
 
 /** ชดเชย tab bar ลอย (BottomTabNavigator: bottom 30 + height 64) */
 const TAB_BAR_OVERLAY_PAD = 30 + 64 + 20;
@@ -133,6 +140,8 @@ export default function StepTrackerScreen({ route, navigation }) {
 
     const session = {
       mode: activityKey,
+      planDate,
+      instanceId,
       date: new Date().toISOString(),
       steps: useAccelerometer ? stepsSnap : null,
       distance: useGps ? distSnap : null,
@@ -154,6 +163,15 @@ export default function StepTrackerScreen({ route, navigation }) {
       await AsyncStorage.setItem('STEP_SESSIONS', JSON.stringify(sessions));
     } catch (e) {
       console.error('save session error:', e);
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        await postActivitySession(token, session);
+      }
+    } catch (e) {
+      console.warn('sync activity session to server:', e);
     }
 
     Alert.alert(
@@ -241,29 +259,36 @@ export default function StepTrackerScreen({ route, navigation }) {
     [activityKey, isCustom, customConfig, activityGoalOverride]
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: activity.label,
+      headerTitleStyle: { fontSize: 17, fontWeight: '700' },
+    });
+  }, [navigation, activity.label]);
+
   const sessionReady = Boolean(
     !sessionLoading &&
     meta &&
     meta.instanceId === instanceId &&
     meta.planDate === planDate
   );
-  const mainBtnLabel = !sessionReady
-    ? '…'
-    : isRunning
-      ? '⏸ หยุดชั่วคราว'
-      : (hasProgress ? '▶ เริ่มต่อ' : '▶ เริ่ม');
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_OVERLAY_PAD }}
+        showsVerticalScrollIndicator={false}
       >
-        {planInstanceId && draftRestored ? (
+        {draftRestored ? (
           <View style={styles.resumeBanner}>
-            <Ionicons name="information-circle-outline" size={18} color="#1565C0" />
-            <Text style={styles.resumeBannerText}>
-              โหลดความคืบหน้าที่ค้างไว้ — กดเริ่มต่อเพื่อนับต่อจากเดิม
-            </Text>
+            <View style={styles.resumeBannerIconWrap}>
+              <Ionicons name="cloud-done-outline" size={20} color="#1565C0" />
+            </View>
+            <View style={styles.resumeBannerBody}>
+              <Text style={styles.resumeBannerTitle}>มีข้อมูลจากรอบก่อน</Text>
+              <Text style={styles.resumeBannerText}>
+                กดเริ่มเพื่อนับต่อ หรือจบเซสชันใหม่เมื่อออกกำลังครบแล้ว
+              </Text>
+            </View>
           </View>
         ) : null}
 
@@ -292,7 +317,7 @@ export default function StepTrackerScreen({ route, navigation }) {
         )}
 
         <View style={styles.goalBanner}>
-          <Text style={styles.goalBannerTitle}>เป้าหมายวันนี้</Text>
+          <Text style={styles.goalBannerTitle}>เป้าหมายรอบนี้</Text>
           <Text style={styles.goalBannerSummary}>{goalSummaryText}</Text>
           <Text
             style={[
@@ -300,7 +325,7 @@ export default function StepTrackerScreen({ route, navigation }) {
               liveQualified ? styles.goalBannerStatusOk : styles.goalBannerStatusPending,
             ]}
           >
-            {liveQualified ? 'ผ่านเกณฑ์แล้ว (กดบันทึกผลเมื่อจบ)' : 'ยังไม่ผ่านเกณฑ์'}
+            {liveQualified ? 'ครบเกณฑ์แล้ว — จบเซสชันเพื่อบันทึก' : 'ยังไม่ครบเกณฑ์'}
           </Text>
           {goalBranches.length > 0 && (
             <View style={styles.goalBranchList}>
@@ -320,25 +345,35 @@ export default function StepTrackerScreen({ route, navigation }) {
           )}
         </View>
 
+        <View style={[styles.heroTimeCard, { borderColor: `${activity.color}33` }]}>
+          <Text style={styles.heroTimeLabel}>เวลา</Text>
+          <Text style={[styles.heroTimeValue, { color: activity.color }]}>
+            {formatTime(elapsedTime ?? 0)}
+          </Text>
+          <Text style={styles.heroTimeHint}>
+            {isRunning ? 'กำลังจับเวลา' : hasProgress ? 'หยุดชั่วคราว' : 'กดเริ่มด้านล่าง'}
+          </Text>
+        </View>
+
+        <Text style={styles.statsSectionTitle}>สถิติรอบนี้</Text>
         <View style={styles.statsGrid}>
           {[
             activity.metrics.includes('steps')
-              ? { label: 'ก้าว', value: (steps ?? 0).toLocaleString(), unit: 'steps' }
+              ? { label: 'ก้าว', value: (steps ?? 0).toLocaleString(), unit: 'ก้าว' }
               : null,
             activity.metrics.includes('distance')
               ? { label: 'ระยะทาง', value: (distance ?? 0).toFixed(2), unit: 'km' }
               : null,
             activity.metrics.includes('laps')
-              ? { label: 'รอบสระ', value: String(laps), unit: 'laps' }
+              ? { label: 'รอบสระ', value: String(laps), unit: 'รอบ' }
               : null,
             activity.metrics.includes('sets')
-              ? { label: 'เซต', value: String(sets), unit: 'sets' }
+              ? { label: 'เซต', value: String(sets), unit: 'เซต' }
               : null,
             activity.metrics.includes('reps')
-              ? { label: 'ครั้ง', value: String(reps), unit: 'reps' }
+              ? { label: 'ครั้ง', value: String(reps), unit: 'ครั้ง' }
               : null,
             { label: 'แคลอรี่', value: String(calories ?? 0), unit: 'kcal' },
-            { label: 'เวลา', value: formatTime(elapsedTime ?? 0), unit: '' },
           ].filter(Boolean).map((item) => (
             <View key={item.label} style={styles.statCard}>
               <Text style={[styles.statValue, { color: activity.color }]}>{item.value}</Text>
@@ -349,7 +384,7 @@ export default function StepTrackerScreen({ route, navigation }) {
         </View>
 
         {(activity.metrics.includes('laps') || activity.metrics.includes('sets') || activity.metrics.includes('reps')) && (
-          <View style={styles.counterPanel}>
+          <View style={[styles.counterPanel, { borderLeftColor: activity.color }]}>
             {activity.metrics.includes('laps') && (
               <CounterRow label="รอบสระ" value={laps} onMinus={() => setLaps((v) => Math.max(0, v - 1))} onPlus={() => setLaps((v) => v + 1)} />
             )}
@@ -362,33 +397,69 @@ export default function StepTrackerScreen({ route, navigation }) {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.mainBtn,
-            isRunning && styles.pauseBtn,
-            !sessionReady && styles.mainBtnDisabled,
-          ]}
-          disabled={!sessionReady}
-          onPress={isRunning ? handlePause : handleStartOrResume}
-        >
-          <Text style={styles.mainBtnText}>{mainBtnLabel}</Text>
-        </TouchableOpacity>
+        <View style={styles.actionCard}>
+          <Text style={styles.actionCardTitle}>การทำงาน</Text>
+          <Text style={styles.actionCardHint}>
+            หยุดชั่วคราว = พักก่อน · จบเซสชัน = บันทึกผลและกลับไปหน้าแผน
+          </Text>
 
-        {hasProgress ? (
-          <TouchableOpacity style={styles.finishBtn} onPress={handleFinishAndSave}>
-            <Text style={styles.finishBtnText}>บันทึกผล (จบเซสชัน)</Text>
+          <TouchableOpacity
+            style={[
+              styles.mainBtn,
+              { backgroundColor: isRunning ? '#E65100' : activity.color },
+              !sessionReady && styles.mainBtnDisabled,
+            ]}
+            disabled={!sessionReady}
+            onPress={isRunning ? handlePause : handleStartOrResume}
+            activeOpacity={0.88}
+          >
+            {!sessionReady ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons
+                  name={isRunning ? 'pause' : 'play'}
+                  size={22}
+                  color="#fff"
+                  style={styles.mainBtnIcon}
+                />
+                <Text style={styles.mainBtnText}>
+                  {isRunning ? 'หยุดชั่วคราว' : hasProgress ? 'เริ่มต่อ' : 'เริ่ม'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
-        ) : null}
 
-        {useGps && isRunning ? (
-          <Text style={styles.bgHint}>
-            โหมด GPS: แอปจะพยายามเก็บเส้นทางต่อในพื้นหลังเมื่อสลับแอป (ต้องอนุญาตตำแหน่ง “ตลอดเวลา”)
-          </Text>
-        ) : null}
-        {useAccelerometer && isRunning ? (
-          <Text style={styles.bgHint}>
-            การนับก้าวจากเซนเซอร์อาจหยุดเมื่อแอปอยู่เบื้องหลัง — กลับมาที่หน้านี้เพื่อนับต่อ
-          </Text>
+          {hasProgress ? (
+            <TouchableOpacity
+              style={[styles.finishBtn, { borderColor: activity.color }]}
+              onPress={handleFinishAndSave}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="checkmark-done" size={20} color={activity.color} style={styles.finishBtnIcon} />
+              <View style={styles.finishBtnTextCol}>
+                <Text style={[styles.finishBtnTitle, { color: activity.color }]}>จบและบันทึกผล</Text>
+                <Text style={styles.finishBtnSubtitle}>เก็บประวัติ · อัปเดตเป้าหมายวันนี้</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {(useGps && isRunning) || (useAccelerometer && isRunning) ? (
+          <View style={styles.tipCard}>
+            {useGps && isRunning ? (
+              <Text style={styles.tipLine}>
+                <Text style={styles.tipBold}>GPS </Text>
+                สลับแอปได้ — อนุญาตตำแหน่ง &quot;ตลอดเวลา&quot; เพื่อเก็บเส้นทางต่อ
+              </Text>
+            ) : null}
+            {useAccelerometer && isRunning ? (
+              <Text style={[styles.tipLine, useGps && isRunning ? styles.tipLineSpaced : null]}>
+                <Text style={styles.tipBold}>ก้าว </Text>
+                บางเครื่องหยุดนับเมื่อแอปอยู่เบื้องหลัง
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -400,12 +471,12 @@ function CounterRow({ label, value, onMinus, onPlus }) {
     <View style={styles.counterRow}>
       <Text style={styles.counterLabel}>{label}</Text>
       <View style={styles.counterActions}>
-        <TouchableOpacity style={styles.counterBtn} onPress={onMinus}>
-          <Text style={styles.counterBtnText}>-</Text>
+        <TouchableOpacity style={styles.counterBtn} onPress={onMinus} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="remove" size={22} color="#424242" />
         </TouchableOpacity>
         <Text style={styles.counterValue}>{value}</Text>
-        <TouchableOpacity style={styles.counterBtn} onPress={onPlus}>
-          <Text style={styles.counterBtnText}>+</Text>
+        <TouchableOpacity style={styles.counterBtn} onPress={onPlus} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="add" size={22} color="#424242" />
         </TouchableOpacity>
       </View>
     </View>
@@ -413,48 +484,64 @@ function CounterRow({ label, value, onMinus, onPlus }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FBF9' },
+  container: { flex: 1, backgroundColor: '#F0F4F2' },
   resumeBanner: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: '#E8EEF9',
+    borderWidth: 1,
+    borderColor: '#C5CAE9',
+  },
+  resumeBannerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+  },
+  resumeBannerBody: { flex: 1 },
+  resumeBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A237E',
+    marginBottom: 4,
+  },
+  resumeBannerText: { fontSize: 12, fontWeight: '500', color: '#3949AB', lineHeight: 18 },
+  mapContainer: { height: 220, marginHorizontal: 16, marginTop: 8, borderRadius: 20, overflow: 'hidden' },
+  mapPlaceholder: {
     marginHorizontal: 16,
     marginTop: 8,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: '#E3F2FD',
-    borderWidth: 1,
-    borderColor: '#BBDEFB',
-  },
-  resumeBannerText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#0D47A1', lineHeight: 17 },
-  mapContainer: { height: 300, margin: 16, borderRadius: 20, overflow: 'hidden' },
-  mapPlaceholder: {
-    margin: 16,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    paddingVertical: 40,
+    paddingVertical: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#fff',
     gap: 10,
   },
-  mapPlaceholderText: { fontSize: 14, fontWeight: '600' },
+  mapPlaceholderText: { fontSize: 14, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
   map: { flex: 1 },
   goalBanner: {
     marginHorizontal: 16,
-    marginTop: 4,
+    marginTop: 12,
     marginBottom: 4,
-    padding: 14,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 18,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ECEFF1',
-    elevation: 1,
+    borderColor: '#E8ECEA',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   goalBannerTitle: {
     fontSize: 13,
@@ -488,54 +575,147 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#607D8B',
   },
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    marginHorizontal: 16, gap: 10, marginTop: 8,
-  },
-  statCard: {
-    width: '47%', backgroundColor: '#fff',
-    borderRadius: 16, padding: 16, alignItems: 'center',
+  heroTimeCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
-  statValue: { fontSize: 28, fontWeight: '800', color: '#1B4332' },
-  statUnit: { fontSize: 12, color: '#999' },
-  statLabel: { fontSize: 13, color: '#666', marginTop: 2 },
-  mainBtn: {
-    backgroundColor: '#2E7D5B', marginHorizontal: 16, marginTop: 16,
-    paddingVertical: 18, borderRadius: 40,
-    alignItems: 'center', elevation: 4,
-  },
-  pauseBtn: { backgroundColor: '#F57C00' },
-  mainBtnDisabled: { opacity: 0.5 },
-  mainBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  finishBtn: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 8,
-    paddingVertical: 14,
-    borderRadius: 40,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#2E7D5B',
-    backgroundColor: '#fff',
-  },
-  finishBtnText: { color: '#2E7D5B', fontSize: 16, fontWeight: '800' },
-  bgHint: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
-    fontSize: 11,
+  heroTimeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#78909C',
-    lineHeight: 16,
-    textAlign: 'center',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  counterPanel: {
+  heroTimeValue: {
+    fontSize: 56,
+    fontWeight: '200',
+    marginTop: 4,
+    fontVariant: ['tabular-nums'],
+  },
+  heroTimeHint: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#90A4AE',
+    fontWeight: '500',
+  },
+  statsSectionTitle: {
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#546E7A',
+    letterSpacing: 0.3,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginHorizontal: 16,
-    marginBottom: 6,
+    gap: 10,
+  },
+  statCard: {
+    width: '47%',
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 12,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+  },
+  statValue: { fontSize: 24, fontWeight: '800', color: '#1B4332' },
+  statUnit: { fontSize: 11, color: '#90A4AE', fontWeight: '600', marginTop: 2 },
+  statLabel: { fontSize: 12, color: '#78909C', marginTop: 4, fontWeight: '600' },
+  actionCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 8,
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E8ECEA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  actionCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#263238',
+    marginBottom: 6,
+  },
+  actionCardHint: {
+    fontSize: 12,
+    color: '#78909C',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  mainBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
     gap: 10,
+    minHeight: 56,
+  },
+  mainBtnDisabled: { opacity: 0.45 },
+  mainBtnIcon: { marginTop: 1 },
+  mainBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  finishBtn: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    backgroundColor: '#FAFCFB',
+    gap: 12,
+  },
+  finishBtnIcon: { marginTop: 2 },
+  finishBtnTextCol: { flex: 1 },
+  finishBtnTitle: { fontSize: 16, fontWeight: '800' },
+  finishBtnSubtitle: { fontSize: 11, color: '#78909C', marginTop: 3, fontWeight: '500' },
+  tipCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#ECEFF1',
+  },
+  tipLine: { fontSize: 12, color: '#546E7A', lineHeight: 18 },
+  tipLineSpaced: { marginTop: 8 },
+  tipBold: { fontWeight: '800', color: '#37474F' },
+  counterPanel: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D5B',
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+    borderRightColor: '#ECEFF1',
+    borderTopColor: '#ECEFF1',
+    borderBottomColor: '#ECEFF1',
   },
   counterRow: {
     flexDirection: 'row',
@@ -545,13 +725,12 @@ const styles = StyleSheet.create({
   counterLabel: { fontSize: 15, fontWeight: '700', color: '#454545' },
   counterActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   counterBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#ECEFF1',
   },
-  counterBtnText: { fontSize: 20, fontWeight: '800', color: '#333' },
-  counterValue: { minWidth: 26, textAlign: 'center', fontSize: 16, fontWeight: '700' },
+  counterValue: { minWidth: 32, textAlign: 'center', fontSize: 17, fontWeight: '800', color: '#263238' },
 });

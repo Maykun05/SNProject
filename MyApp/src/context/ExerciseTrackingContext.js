@@ -21,7 +21,13 @@ import {
   STEP_THRESHOLD,
   haversineKm,
 } from '../exercise/trackingMath';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLatestActivitySessionForInstance } from '../services/activitySessionsApi';
 import { loadStepTrackerDraft, saveStepTrackerDraft } from '../utils/stepTrackerDraft';
+import {
+  loadLatestSavedStepSession,
+  extractHydrationFields,
+} from '../utils/stepSessionsStorage';
 
 const Ctx = createContext(null);
 
@@ -57,6 +63,12 @@ export function ExerciseTrackingProvider({ children }) {
   metaRef.current = meta;
 
   const [isRunning, setIsRunning] = useState(false);
+  /** ต้องอัปเดตคู่กับ setIsRunning ทันที — ถ้าช้ากว่า React 1 เฟรม attachOrLoadSession จะ rehydrate ทับขณะกดเริ่มแล้ว segment เวลาหาย */
+  const isRunningRef = useRef(false);
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
   const [accumulatedMs, setAccumulatedMs] = useState(0);
   const [segmentStartMs, setSegmentStartMs] = useState(null);
 
@@ -98,6 +110,39 @@ export function ExerciseTrackingProvider({ children }) {
     segmentStartMsRef.current = null;
     setAccumulatedMs(accumulatedMsRef.current);
     setSegmentStartMs(null);
+  }, []);
+
+  const flushRecordIntoState = useCallback((rec) => {
+    const ex = extractHydrationFields(rec);
+    if (!ex) return;
+    const { et, st, dist, cal, nl, ns, nr, coords } = ex;
+    accumulatedMsRef.current = et * 1000;
+    segmentStartMsRef.current = null;
+    setAccumulatedMs(et * 1000);
+    setSegmentStartMs(null);
+    stepsRef.current = st;
+    distanceRef.current = dist;
+    setSteps(st);
+    setDistance(dist);
+    setCalories(cal);
+    setLaps(nl);
+    setSets(ns);
+    setReps(nr);
+    routeCoordsRef.current = coords;
+    setRouteCoords(coords);
+    lastGpsCoordRef.current = coords.length ? coords[coords.length - 1] : null;
+    if (coords.length > 0) {
+      const last = coords[coords.length - 1];
+      setCurrentLocation({
+        latitude: last.latitude,
+        longitude: last.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    } else {
+      setCurrentLocation(null);
+    }
+    setDraftRestored(et > 0 || st > 0 || dist > 0 || nl > 0 || ns > 0 || nr > 0);
   }, []);
 
   const startClock = useCallback(() => {
@@ -234,6 +279,7 @@ export function ExerciseTrackingProvider({ children }) {
   }, [meta?.instanceId, persistDraftNow]);
 
   const clearEngine = useCallback(async () => {
+    isRunningRef.current = false;
     setIsRunning(false);
     await stopBackgroundLocation();
     stopForegroundWatch();
@@ -277,12 +323,55 @@ export function ExerciseTrackingProvider({ children }) {
         cur.planDate === planDate
       ) {
         mergeBackgroundCoords();
+        const mayRehydrate =
+          !isRunningRef.current && segmentStartMsRef.current == null;
+        if (mayRehydrate) {
+          try {
+            const d = await loadStepTrackerDraft(planDate, instanceId);
+            if (
+              d &&
+              d.activityKey === activityKey &&
+              sameCustomConfig(d.customConfig, customConfig)
+            ) {
+              flushRecordIntoState(d);
+            } else {
+              const saved = await loadLatestSavedStepSession(
+                planDate,
+                instanceId,
+                activityKey,
+                customConfig
+              );
+              if (saved) {
+                flushRecordIntoState(saved);
+              } else {
+                const token = await AsyncStorage.getItem('token');
+                let remote = null;
+                if (token) {
+                  try {
+                    remote = await getLatestActivitySessionForInstance(token, {
+                      planDate,
+                      instanceId,
+                      activityKey,
+                      customConfig,
+                    });
+                  } catch (e) {
+                    console.warn('getLatestActivitySessionForInstance', e);
+                  }
+                }
+                if (remote) flushRecordIntoState(remote);
+              }
+            }
+          } catch (e) {
+            console.warn('rehydrate same session', e);
+          }
+        }
         setTick((x) => x + 1);
         return;
       }
 
       setSessionLoading(true);
       try {
+        isRunningRef.current = false;
         setIsRunning(false);
         mergeClockSync();
         await stopBackgroundLocation();
@@ -313,55 +402,52 @@ export function ExerciseTrackingProvider({ children }) {
           d.activityKey === activityKey &&
           sameCustomConfig(d.customConfig, customConfig)
         ) {
-          const et = Math.max(0, Math.round(Number(d.elapsedTime) || 0));
-          const st = Math.max(0, Math.round(Number(d.steps) || 0));
-          const dist = Math.max(0, Number(d.distance) || 0);
-          accumulatedMsRef.current = et * 1000;
-          segmentStartMsRef.current = null;
-          setAccumulatedMs(et * 1000);
-          setSegmentStartMs(null);
-          stepsRef.current = st;
-          distanceRef.current = dist;
-          setSteps(st);
-          setDistance(dist);
-          setCalories(Math.max(0, Math.round(Number(d.calories) || 0)));
-          const nl = Math.max(0, Math.round(Number(d.laps) || 0));
-          const ns = Math.max(0, Math.round(Number(d.sets) || 0));
-          const nr = Math.max(0, Math.round(Number(d.reps) || 0));
-          setLaps(nl);
-          setSets(ns);
-          setReps(nr);
-          const coords = Array.isArray(d.routeCoords) ? d.routeCoords : [];
-          routeCoordsRef.current = coords;
-          setRouteCoords(coords);
-          lastGpsCoordRef.current = coords.length ? coords[coords.length - 1] : null;
-          if (coords.length > 0) {
-            const last = coords[coords.length - 1];
-            setCurrentLocation({
-              latitude: last.latitude,
-              longitude: last.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            });
-          }
-          setDraftRestored(et > 0 || st > 0 || dist > 0 || nl > 0 || ns > 0 || nr > 0);
+          flushRecordIntoState(d);
         } else {
-          accumulatedMsRef.current = 0;
-          segmentStartMsRef.current = null;
-          setAccumulatedMs(0);
-          setSegmentStartMs(null);
-          stepsRef.current = 0;
-          distanceRef.current = 0;
-          setSteps(0);
-          setDistance(0);
-          setCalories(0);
-          setLaps(0);
-          setSets(0);
-          setReps(0);
-          routeCoordsRef.current = [];
-          setRouteCoords([]);
-          lastGpsCoordRef.current = null;
-          setDraftRestored(false);
+          const saved = await loadLatestSavedStepSession(
+            planDate,
+            instanceId,
+            activityKey,
+            customConfig
+          );
+          if (saved) {
+            flushRecordIntoState(saved);
+          } else {
+            const token = await AsyncStorage.getItem('token');
+            let remote = null;
+            if (token) {
+              try {
+                remote = await getLatestActivitySessionForInstance(token, {
+                  planDate,
+                  instanceId,
+                  activityKey,
+                  customConfig,
+                });
+              } catch (e) {
+                console.warn('getLatestActivitySessionForInstance', e);
+              }
+            }
+            if (remote) {
+              flushRecordIntoState(remote);
+            } else {
+              accumulatedMsRef.current = 0;
+              segmentStartMsRef.current = null;
+              setAccumulatedMs(0);
+              setSegmentStartMs(null);
+              stepsRef.current = 0;
+              distanceRef.current = 0;
+              setSteps(0);
+              setDistance(0);
+              setCalories(0);
+              setLaps(0);
+              setSets(0);
+              setReps(0);
+              routeCoordsRef.current = [];
+              setRouteCoords([]);
+              lastGpsCoordRef.current = null;
+              setDraftRestored(false);
+            }
+          }
         }
         setTick((x) => x + 1);
       } finally {
@@ -370,6 +456,7 @@ export function ExerciseTrackingProvider({ children }) {
     },
     [
       clearEngine,
+      flushRecordIntoState,
       mergeBackgroundCoords,
       mergeClockSync,
       persistDraftNow,
@@ -381,6 +468,7 @@ export function ExerciseTrackingProvider({ children }) {
   const start = useCallback(() => {
     const m = metaRef.current;
     if (!m) return;
+    isRunningRef.current = true;
     setIsRunning(true);
     startClock();
     if (m.useGps) {
@@ -389,6 +477,7 @@ export function ExerciseTrackingProvider({ children }) {
   }, [startBackgroundLocation, startClock]);
 
   const pause = useCallback(() => {
+    isRunningRef.current = false;
     setIsRunning(false);
     mergeClockSync();
     stopForegroundWatch();
@@ -494,6 +583,7 @@ export function ExerciseTrackingProvider({ children }) {
   const finishSnapshot = useCallback(() => {
     const m = metaRef.current;
     if (!m) return null;
+    isRunningRef.current = false;
     setIsRunning(false);
     mergeClockSync();
     stopForegroundWatch();
