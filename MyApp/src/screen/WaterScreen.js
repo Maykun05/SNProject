@@ -8,6 +8,7 @@ import WaterQuickPick from '../components/water/WaterQuickPick';
 import WaterGoalModal from '../components/water/WaterGoalModal';
 import { useWater } from '../context/WaterContext';
 import { useProfile } from '../context/ProfileContext';
+import { useGarden } from '../context/GardenContext';
 import { AuthContext } from '../context/AuthProvider';
 import { recommendedWaterMl } from '../utils/waterFormula';
 
@@ -90,6 +91,7 @@ export default function WaterScreen({ route }) {
   const recommendedWater = recommendedWaterMl(wFor, activityLevel);
 
   const { consumed, waterGoal, setWaterGoal, addWater, removeWaterLog, logs, loading, refreshWater } = useWater();
+  const { logFeature } = useGarden();
   const [showGoalModal, setShowGoalModal] = useState(false);
   const doneCalled = useRef(false);
 
@@ -100,11 +102,18 @@ export default function WaterScreen({ route }) {
   }, [consumed, waterGoal]);
 
   useEffect(() => {
-    if (consumed >= waterGoal && !doneCalled.current) {
-      doneCalled.current = true;
-      if (onDone) onDone();
+    if (waterGoal <= 0) return;
+    if (consumed < waterGoal) return;
+    if (doneCalled.current) return;
+    doneCalled.current = true;
+    if (userToken) {
+      logFeature('water').catch((err) => {
+        console.error('logFeature water:', err);
+        doneCalled.current = false;
+      });
     }
-  }, [consumed, waterGoal, onDone]);
+    if (onDone) onDone();
+  }, [consumed, waterGoal, onDone, userToken, logFeature]);
 
   const handlePick = (ml) => addWater(ml);
 

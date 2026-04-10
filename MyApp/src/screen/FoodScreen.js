@@ -1,5 +1,5 @@
 // hybrid
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { fetchFoodToday, createFood, deleteFood } from "../services/foodService"
 import { putProfileCalorieGoal } from "../services/profileApi";
 import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
+import { useGarden } from "../context/GardenContext";
 import { useNavigation } from "@react-navigation/native";
 
 const s = StyleSheet.create({
@@ -141,7 +142,8 @@ function Empty({ icon, text }) {
   );
 }
 
-export default function FoodScreen() {
+export default function FoodScreen({ route }) {
+  const { onDone } = route?.params ?? {};
   const [foods, setFoods] = useState([]);
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
@@ -149,8 +151,10 @@ export default function FoodScreen() {
   const [listLoading, setListLoading] = useState(true);
   const { userToken } = useContext(AuthContext);
   const { profile, updateProfile } = useProfile();
+  const { logFeature } = useGarden();
   const navigation = useNavigation();
   const [showCalorieModal, setShowCalorieModal] = useState(false);
+  const foodGoalDoneLogged = useRef(false);
 
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
 
@@ -280,6 +284,22 @@ export default function FoodScreen() {
   useEffect(() => {
     getFoodsToday();
   }, [userToken]);
+
+  useEffect(() => {
+    if (consumedCal < recommendedCal) foodGoalDoneLogged.current = false;
+  }, [consumedCal, recommendedCal]);
+
+  useEffect(() => {
+    if (!userToken || listLoading || recommendedCal <= 0) return;
+    if (consumedCal < recommendedCal) return;
+    if (foodGoalDoneLogged.current) return;
+    foodGoalDoneLogged.current = true;
+    logFeature("food").catch((err) => {
+      console.error("logFeature food:", err);
+      foodGoalDoneLogged.current = false;
+    });
+    if (onDone) onDone();
+  }, [userToken, listLoading, consumedCal, recommendedCal, logFeature, onDone]);
 
   const deleteFoodItem = async (item) => {
     try {

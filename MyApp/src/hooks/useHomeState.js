@@ -1,4 +1,4 @@
-import { useState, useCallback, useContext } from 'react';
+import { useState, useCallback, useContext, useEffect, useRef } from 'react';
 import { AuthContext } from '../context/AuthProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,12 +8,14 @@ import { getHomeFeatures, saveHomeFeatures } from '../services/homeFeatureServic
 import { getMoodByDate, setMoodByDate } from '../services/moodService';
 import { getLocalDateKey } from '../utils/dateUtils';
 import { saveSleepToDB, getLatestSleep } from '../services/sleepService';
+import { useGarden } from '../context/GardenContext';
 
 const todayKey = () => getLocalDateKey();
 
 export default function useHomeState({ addXp } = {}) {
   const navigation = useNavigation();
   const { userToken, userId } = useContext(AuthContext);
+  const { fetchTodayProgress, logFeature } = useGarden();
 
   const [doneMap, setDoneMap]                 = useState({});
   const [enabledFeatures, setEnabledFeatures] = useState({});
@@ -23,37 +25,78 @@ export default function useHomeState({ addXp } = {}) {
   const [lastSleepHours, setLastSleepHours]   = useState(6);
   const [mood, setMood] = useState(null);
 
-  const loadTodayStatus = async (featuresOverride) => {
+  const enabledFeaturesRef = useRef(enabledFeatures);
+  useEffect(() => {
+    enabledFeaturesRef.current = enabledFeatures;
+  }, [enabledFeatures]);
+
+  const loadTodayStatus = useCallback(async (featuresOverride) => {
     const today = todayKey();
     const result = {};
-    const activeFeatures = featuresOverride || enabledFeatures;
+    const activeFeatures = featuresOverride ?? enabledFeaturesRef.current;
+    const filtered = FEATURES.filter((f) => activeFeatures[f.key]);
 
-    for (const f of FEATURES.filter(f => activeFeatures[f.key])) {
-      if (f.key === 'mood') {
-        const mood = await getMoodByDate(today, userToken, userId);
-        result.mood = !!mood;
-      } else if (f.key === 'sleep') {
+    if (!userToken) {
+      for (const f of filtered) {
+        if (f.key === 'mood') {
+          const moodVal = await getMoodByDate(today, userToken, userId);
+          result.mood = !!moodVal;
+        } else if (f.key === 'sleep') {
+          try {
+            const latest = await getLatestSleep(userToken);
+            result.sleep = !!latest;
+            if (latest?.hours) {
+              setLastSleepHours(latest.hours);
+            } else {
+              setLastSleepHours(6);
+            }
+          } catch (err) {
+            result.sleep = false;
+          }
+        } else {
+          const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
+          result[f.key] = !!value;
+        }
+      }
+      setDoneMap(result);
+      return;
+    }
+
+    try {
+      const progress = await fetchTodayProgress();
+      const completed = new Set(progress?.completedFeatures ?? []);
+      for (const f of filtered) {
+        result[f.key] = completed.has(f.key);
+      }
+      if (filtered.some((f) => f.key === 'sleep')) {
         try {
           const latest = await getLatestSleep(userToken);
-          result.sleep = !!latest;
-          if (latest?.hours) {
-            const h = Math.floor(latest.hours);
-            const m = Math.round((latest.hours % 1) * 60);
-            setLastSleepHours(latest.hours);
-          } else {
-            setLastSleepHours(6);
-          }
-          // setLastSleepHours(latest?.hours || 6);
-        } catch (err) {
-          result.sleep = false;
-        }
-      } else {
-        const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
-        result[f.key] = !!value;
+          if (latest?.hours) setLastSleepHours(latest.hours);
+        } catch (_) { /* keep previous */ }
       }
+      setDoneMap(result);
+    } catch (err) {
+      console.log('loadTodayStatus API fallback:', err);
+      for (const f of filtered) {
+        if (f.key === 'mood') {
+          const moodVal = await getMoodByDate(today, userToken, userId);
+          result.mood = !!moodVal;
+        } else if (f.key === 'sleep') {
+          try {
+            const latest = await getLatestSleep(userToken);
+            result.sleep = !!latest;
+            if (latest?.hours) setLastSleepHours(latest.hours);
+          } catch (e) {
+            result.sleep = false;
+          }
+        } else {
+          const value = await AsyncStorage.getItem(`daily_${f.key}_${today}`);
+          result[f.key] = !!value;
+        }
+      }
+      setDoneMap(result);
     }
-    setDoneMap(result);
-  };
+  }, [userToken, userId, fetchTodayProgress]);
 
   useFocusEffect(
     useCallback(() => {
@@ -63,23 +106,23 @@ export default function useHomeState({ addXp } = {}) {
         await loadTodayStatus(features);
       };
       load();
-    }, [])
+    }, [userId, userToken, loadTodayStatus])
   );
 
-  // ✅ UI ก่อน async
   const markDone = async (key) => {
-    setDoneMap(prev => ({ ...prev, [key]: true }));
-    try {
-      await AsyncStorage.setItem(`daily_${key}_${todayKey()}`, 'true');
-    } catch (err) {
-      console.log('markDone error:', err);
+    setDoneMap((prev) => ({ ...prev, [key]: true }));
+    if (!userToken) {
+      try {
+        await AsyncStorage.setItem(`daily_${key}_${todayKey()}`, 'true');
+      } catch (err) {
+        console.log('markDone error:', err);
+      }
     }
   };
 
   const onPressFeature = (f) => {
     switch (f.key) {
       case 'water':
-        // น้ำหนักจาก ProfileContext/API — ไม่ส่ง weight ฮาร์ดโค้ด
         navigation.navigate('WaterScreen', {
           onDone: () => markDone('water'),
         });
@@ -96,7 +139,9 @@ export default function useHomeState({ addXp } = {}) {
         });
         break;
       case 'food':
-        navigation.navigate('Calorie');
+        navigation.navigate('Calorie', {
+          onDone: () => markDone('food'),
+        });
         break;
       default:
         break;
@@ -114,27 +159,36 @@ export default function useHomeState({ addXp } = {}) {
     }
   };
 
-  // ✅ ปิด + อัป UI ทันที → sync DB ใน background
   const setSleepToday = async (hoursDecimal) => {
     setShowSleepPicker(false);
-    setDoneMap(prev => ({ ...prev, sleep: true }));
+    setDoneMap((prev) => ({ ...prev, sleep: true }));
     if (addXp) addXp(20);
     try {
       await saveSleepToDB(hoursDecimal, userToken);
-      await loadTodayStatus(enabledFeatures);
+      const logged = await logFeature('sleep');
+      const fresh = await getHomeFeatures(userId, userToken);
+      await loadTodayStatus(fresh);
+      if (!logged) {
+        setDoneMap((prev) => ({ ...prev, sleep: true }));
+      }
     } catch (err) {
       console.log('setSleepToday error:', err);
     }
   };
 
-  // ✅ ปิด + อัป UI ทันที → sync DB ใน background
   const setMoodToday = async (key) => {
     setShowMoodPicker(false);
-    setMood(key); 
-    setDoneMap(prev => ({ ...prev, mood: true }));
+    setMood(key);
+    setDoneMap((prev) => ({ ...prev, mood: true }));
     if (addXp) addXp(15);
     try {
       await setMoodByDate(todayKey(), key, userToken, userId);
+      const logged = await logFeature('mood');
+      const fresh = await getHomeFeatures(userId, userToken);
+      await loadTodayStatus(fresh);
+      if (!logged) {
+        setDoneMap((prev) => ({ ...prev, mood: true }));
+      }
     } catch (err) {
       console.log('setMoodToday error:', err);
     }
@@ -157,7 +211,7 @@ export default function useHomeState({ addXp } = {}) {
     setMoodToday,
     mood,
     toggleFeature: (key) => {
-      setEnabledFeatures(prev => ({ ...prev, [key]: !prev[key] }));
+      setEnabledFeatures((prev) => ({ ...prev, [key]: !prev[key] }));
     },
     lastSleepHours,
   };
