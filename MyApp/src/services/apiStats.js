@@ -46,3 +46,68 @@ export const fetchFeatureStats7d = async (token) => {
 
   return parseJsonOrThrow(res, 'feature-stats');
 };
+
+const DEFAULT_FEATURE_STATS = {
+  dateRange: { startDate: null, endDate: null },
+  feature: 'water',
+  range: '7d',
+  granularity: 'day',
+  unit: 'count',
+  summary: {
+    total: 0,
+    activeDays: 0,
+    average: 0,
+    peakValue: 0,
+    peakDate: null,
+  },
+  series: [],
+};
+
+const normalizeFeatureStats = (payload = {}, fallback = {}) => ({
+  ...DEFAULT_FEATURE_STATS,
+  ...fallback,
+  ...payload,
+  dateRange: {
+    ...DEFAULT_FEATURE_STATS.dateRange,
+    ...(fallback?.dateRange ?? {}),
+    ...(payload?.dateRange ?? {}),
+  },
+  summary: {
+    ...DEFAULT_FEATURE_STATS.summary,
+    ...(fallback?.summary ?? {}),
+    ...(payload?.summary ?? {}),
+  },
+  series: Array.isArray(payload?.series) ? payload.series : [],
+});
+
+export const fetchFeatureStats = async ({
+  token,
+  feature = 'water',
+  range = '7d',
+  startDate = null,
+  endDate = null,
+}) => {
+  if (!token) throw new Error('missing-auth-token');
+  const params = new URLSearchParams({ feature, range });
+  if (startDate && endDate) {
+    params.set('startDate', startDate);
+    params.set('endDate', endDate);
+  }
+  const res = await withTimeout(
+    `${API_BASE}/stats/feature?${params.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    },
+    DEFAULT_TIMEOUT_MS,
+  );
+  const data = await parseJsonOrThrow(res, 'feature-stats-query');
+  return normalizeFeatureStats(data, {
+    feature,
+    range: startDate && endDate ? 'custom' : range,
+    dateRange: startDate && endDate ? { startDate, endDate } : undefined,
+  });
+};

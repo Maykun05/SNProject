@@ -141,7 +141,7 @@ function Empty({ icon, text }) {
   );
 }
 
-export default function CalScreen() {
+export default function FoodScreen() {
   const [foods, setFoods] = useState([]);
   const [text, setText] = useState("");
   const [previewFood, setPreviewFood] = useState(null);
@@ -182,7 +182,7 @@ export default function CalScreen() {
     return age;
   };
 
-  /** คำนวณจากโปรไฟล์ (ข้อมูลเดียวกับ ProfileContext → DB ผ่าน /api/user/profile) */
+  /** คำนวณจากโปรไฟล์ (ข้อมูลเดียวกับ ProfileContext -> DB ผ่าน /api/user/profile) */
   const calculateCalories = (p) => {
     if (!p) return 2000;
     const weight = p.weight != null && p.weight !== "" ? Number(p.weight) : NaN;

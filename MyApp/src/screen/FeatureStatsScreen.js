@@ -1,25 +1,29 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthProvider';
-import { fetchFeatureStats7d } from '../services/apiStats';
+import { fetchFeatureStats } from '../services/apiStats';
+
+const FEATURE_OPTIONS = [
+  { key: 'water', label: 'Water', unitLabel: 'ml' },
+  { key: 'mood', label: 'Mood', unitLabel: 'score' },
+  { key: 'sleep', label: 'Sleep', unitLabel: 'hrs' },
+  { key: 'steps', label: 'Steps', unitLabel: 'steps' },
+  { key: 'food', label: 'Food', unitLabel: 'kcal' },
+];
+
+const RANGE_OPTIONS = [
+  { key: '7d', label: '7 วัน' },
+  { key: 'month', label: 'เดือนนี้' },
+];
 
 const EMPTY_DATA = {
   dateRange: { startDate: null, endDate: null },
-  totalLogs7d: 0,
-  activeDays7d: 0,
-  currentStreak: 0,
-  topFeature: null,
-  dailyTotals: [],
-  featureBreakdown: [],
+  feature: 'water',
+  range: '7d',
+  unit: 'count',
+  summary: { total: 0, activeDays: 0, average: 0, peakValue: 0, peakDate: null },
+  series: [],
 };
 
 const formatThaiDate = (value) => {
@@ -29,93 +33,72 @@ const formatThaiDate = (value) => {
   return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const formatDayLabel = (value) => {
+const formatTickDate = (value, dense = false) => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('th-TH', { weekday: 'short' });
+  if (dense) return d.toLocaleDateString('th-TH', { day: 'numeric' });
+  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 };
 
-const normalizeData = (payload = {}) => ({
+const normalize = (payload = {}, feature = 'water', range = '7d') => ({
   ...EMPTY_DATA,
   ...payload,
+  feature,
+  range,
   dateRange: { ...EMPTY_DATA.dateRange, ...(payload?.dateRange ?? {}) },
-  dailyTotals: Array.isArray(payload?.dailyTotals) ? payload.dailyTotals : [],
-  featureBreakdown: Array.isArray(payload?.featureBreakdown) ? payload.featureBreakdown : [],
+  summary: { ...EMPTY_DATA.summary, ...(payload?.summary ?? {}) },
+  series: Array.isArray(payload?.series) ? payload.series : [],
 });
 
-const SummaryCard = ({ label, value, subValue }) => (
+const SummaryCard = ({ label, value, helper }) => (
   <View style={styles.summaryCard}>
     <Text style={styles.summaryLabel}>{label}</Text>
     <Text style={styles.summaryValue}>{value}</Text>
-    {subValue ? <Text style={styles.summarySubValue}>{subValue}</Text> : null}
+    {helper ? <Text style={styles.summaryHelper}>{helper}</Text> : null}
   </View>
 );
 
-const TrendBars = ({ data }) => {
-  const maxCount = Math.max(1, ...data.map((item) => item.count || 0));
+const BarChart = ({ data, unit }) => {
+  const maxValue = Math.max(1, ...data.map((item) => Number(item.value) || 0));
+  const isDense = data.length > 10;
 
   return (
-    <View style={styles.trendCard}>
-      <Text style={styles.sectionTitle}>แนวโน้มรายวัน</Text>
-      <View style={styles.barsRow}>
+    <View style={styles.chartCard}>
+      <View style={styles.chartHeaderRow}>
+        <Text style={styles.sectionTitle}>แนวโน้มรายวัน</Text>
+        <Text style={styles.chartUnit}>{unit}</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartRow}>
         {data.map((item) => {
-          const height = Math.max(6, Math.round(((item.count || 0) / maxCount) * 64));
+          const value = Number(item.value) || 0;
+          const barHeight = Math.max(6, Math.round((value / maxValue) * 130));
           return (
             <View key={item.date} style={styles.barItem}>
-              <Text style={styles.barCount}>{item.count || 0}</Text>
+              <Text style={styles.barValue}>{value}</Text>
               <View style={styles.barTrack}>
-                <View style={[styles.barFill, { height }]} />
+                <View style={[styles.barFill, { height: barHeight }]} />
               </View>
-              <Text style={styles.barLabel}>{formatDayLabel(item.date)}</Text>
+              <Text style={styles.barLabel}>{formatTickDate(item.date, isDense)}</Text>
             </View>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 };
-
-const MiniStrip = ({ dailyCounts }) => {
-  const maxCount = Math.max(1, ...dailyCounts.map((d) => d.count || 0));
-  return (
-    <View style={styles.miniStripRow}>
-      {dailyCounts.map((item) => (
-        <View key={item.date} style={styles.miniStripTrack}>
-          <View
-            style={[
-              styles.miniStripFill,
-              { height: Math.max(2, Math.round(((item.count || 0) / maxCount) * 16)) },
-            ]}
-          />
-        </View>
-      ))}
-    </View>
-  );
-};
-
-const FeatureCard = ({ item }) => (
-  <View style={styles.featureCard}>
-    <View style={styles.featureCardHeader}>
-      <Text style={styles.featureName}>{item.name || 'ไม่ระบุชื่อฟีเจอร์'}</Text>
-      <Text style={styles.featureCount}>{item.totalCount7d || 0} ครั้ง</Text>
-    </View>
-    <Text style={styles.featureLastUsed}>ล่าสุด: {formatThaiDate(item.lastUsedAt)}</Text>
-    <MiniStrip dailyCounts={Array.isArray(item.dailyCounts) ? item.dailyCounts : []} />
-  </View>
-);
 
 export default function FeatureStatsScreen() {
   const { userToken } = useContext(AuthContext);
+  const [feature, setFeature] = useState('water');
+  const [range, setRange] = useState('7d');
   const [stats, setStats] = useState(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const isEmpty = useMemo(
-    () => stats.totalLogs7d === 0 && stats.featureBreakdown.length === 0,
-    [stats],
-  );
+  const featureMeta = useMemo(() => FEATURE_OPTIONS.find((item) => item.key === feature) ?? FEATURE_OPTIONS[0], [feature]);
+  const isEmpty = useMemo(() => stats.series.every((item) => (Number(item.value) || 0) === 0), [stats.series]);
 
   const loadData = useCallback(
     async (isRefresh = false) => {
@@ -132,28 +115,33 @@ export default function FeatureStatsScreen() {
 
       try {
         setError(null);
-        const data = await fetchFeatureStats7d(userToken);
-        setStats(normalizeData(data));
-      } catch (err) {
+        const data = await fetchFeatureStats({ token: userToken, feature, range });
+        setStats(normalize(data, feature, range));
+      } catch (e) {
         setError('โหลดสถิติไม่สำเร็จ กรุณาลองใหม่');
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [userToken],
+    [feature, range, userToken],
   );
 
   useEffect(() => {
     loadData(false);
   }, [loadData]);
 
+  const insightText = useMemo(() => {
+    if (isEmpty) return 'ยังไม่มีข้อมูลในช่วงเวลานี้ ลองบันทึกกิจกรรมเพิ่มเพื่อเริ่มเห็นแนวโน้ม';
+    return `วันที่ทำได้สูงสุด: ${formatThaiDate(stats.summary.peakDate)} (${stats.summary.peakValue} ${featureMeta.unitLabel})`;
+  }, [featureMeta.unitLabel, isEmpty, stats.summary.peakDate, stats.summary.peakValue]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color="#1E4D2B" />
-          <Text style={styles.stateText}>กำลังโหลดสถิติฟีเจอร์...</Text>
+          <Text style={styles.stateText}>กำลังโหลดสถิติ...</Text>
         </View>
       </SafeAreaView>
     );
@@ -176,41 +164,49 @@ export default function FeatureStatsScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#1E4D2B" />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#1E4D2B" />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>สถิติฟีเจอร์ที่สนใจ</Text>
-          <Text style={styles.subtitle}>7 วันที่ผ่านมา</Text>
+          <Text style={styles.title}>Health Feature Stats</Text>
           <Text style={styles.dateRange}>
             {formatThaiDate(stats.dateRange?.startDate)} - {formatThaiDate(stats.dateRange?.endDate)}
           </Text>
         </View>
 
-        <View style={styles.summaryGrid}>
-          <SummaryCard label="การใช้งานรวม" value={stats.totalLogs7d || 0} subValue="ครั้ง" />
-          <SummaryCard label="วันที่แอคทีฟ" value={stats.activeDays7d || 0} subValue="วัน" />
-          <SummaryCard label="สตรีคปัจจุบัน" value={stats.currentStreak || 0} subValue="วันติดกัน" />
-          <SummaryCard
-            label="ฟีเจอร์เด่น"
-            value={stats.topFeature?.name || '-'}
-            subValue={stats.topFeature ? `${stats.topFeature.count} ครั้ง` : 'ยังไม่มีข้อมูล'}
-          />
+        <View style={styles.tabRow}>
+          {FEATURE_OPTIONS.map((item) => {
+            const active = item.key === feature;
+            return (
+              <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={() => setFeature(item.key)}>
+                <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <TrendBars data={stats.dailyTotals} />
+        <View style={styles.tabRow}>
+          {RANGE_OPTIONS.map((item) => {
+            const active = item.key === range;
+            return (
+              <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={() => setRange(item.key)}>
+                <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-        <View style={styles.featureSection}>
-          <Text style={styles.sectionTitle}>รายละเอียดรายฟีเจอร์</Text>
-          {isEmpty ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyTitle}>ยังไม่มีการใช้งานในช่วง 7 วันนี้</Text>
-              <Text style={styles.emptySubtitle}>ลองใช้งานฟีเจอร์สุขภาพที่สนใจ แล้วกลับมาดูสถิติได้ที่หน้านี้</Text>
-            </View>
-          ) : (
-            stats.featureBreakdown.map((item) => <FeatureCard key={String(item.featureId)} item={item} />)
-          )}
+        <View style={styles.summaryGrid}>
+          <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
+          <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
+          <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
+          <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
+        </View>
+
+        <BarChart data={stats.series} unit={featureMeta.unitLabel} />
+
+        <View style={styles.insightCard}>
+          <Text style={styles.sectionTitle}>Insight</Text>
+          <Text style={styles.insightText}>{insightText}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -218,82 +214,69 @@ export default function FeatureStatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  content: { paddingHorizontal: 16, paddingBottom: 24 },
-  header: { marginTop: 8, marginBottom: 12 },
+  container: { flex: 1, backgroundColor: '#F4F7F5' },
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 },
+  header: { marginBottom: 14 },
   title: { fontSize: 24, fontWeight: '800', color: '#1E4D2B' },
-  subtitle: { marginTop: 4, fontSize: 14, color: '#4F6B58', fontWeight: '600' },
-  dateRange: { marginTop: 4, fontSize: 12, color: '#7B8D80' },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 },
+  dateRange: { marginTop: 4, fontSize: 12, color: '#607768' },
+  tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 18,
+    backgroundColor: '#E8EFEB',
+  },
+  pillActive: { backgroundColor: '#1E4D2B' },
+  pillText: { color: '#2F4A3A', fontWeight: '600', fontSize: 12 },
+  pillTextActive: { color: '#FFFFFF' },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 4 },
   summaryCard: {
     width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E7ECE8',
+    borderColor: '#E1EAE4',
   },
-  summaryLabel: { fontSize: 12, color: '#6A7D70' },
+  summaryLabel: { fontSize: 12, color: '#627667' },
   summaryValue: { marginTop: 6, fontSize: 20, fontWeight: '800', color: '#1E4D2B' },
-  summarySubValue: { marginTop: 2, fontSize: 11, color: '#7D8C82' },
-  trendCard: {
+  summaryHelper: { marginTop: 2, fontSize: 11, color: '#7A8D81' },
+  chartCard: {
+    marginTop: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E1EAE4',
+    padding: 12,
+  },
+  chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1E4D2B' },
+  chartUnit: { fontSize: 12, color: '#6A7E70' },
+  chartRow: { alignItems: 'flex-end', gap: 8, paddingRight: 8 },
+  barItem: { alignItems: 'center' },
+  barValue: { fontSize: 10, color: '#577062', marginBottom: 4 },
+  barTrack: {
+    width: 14,
+    height: 130,
+    borderRadius: 10,
+    backgroundColor: '#E9F0EC',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barFill: { width: '100%', backgroundColor: '#2F8D58', borderRadius: 10 },
+  barLabel: { marginTop: 6, fontSize: 10, color: '#667E6F' },
+  insightCard: {
     marginTop: 14,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    padding: 12,
     borderWidth: 1,
-    borderColor: '#E7ECE8',
+    borderColor: '#E1EAE4',
+    padding: 14,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1E4D2B', marginBottom: 10 },
-  barsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  barItem: { width: '13%', alignItems: 'center' },
-  barCount: { fontSize: 10, color: '#5A6E60', marginBottom: 4 },
-  barTrack: {
-    width: 18,
-    height: 64,
-    borderRadius: 10,
-    backgroundColor: '#EAF0EC',
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  barFill: { width: '100%', backgroundColor: '#2C8D55', borderRadius: 10 },
-  barLabel: { marginTop: 6, fontSize: 10, color: '#6F8174' },
-  featureSection: { marginTop: 14 },
-  featureCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E7ECE8',
-  },
-  featureCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  featureName: { fontSize: 15, fontWeight: '700', color: '#1E4D2B', flex: 1, paddingRight: 8 },
-  featureCount: { fontSize: 13, fontWeight: '700', color: '#2C8D55' },
-  featureLastUsed: { marginTop: 6, fontSize: 12, color: '#6F8174' },
-  miniStripRow: { marginTop: 10, flexDirection: 'row', gap: 4 },
-  miniStripTrack: {
-    flex: 1,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: '#EAF0EC',
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  miniStripFill: { width: '100%', backgroundColor: '#2C8D55', borderRadius: 6 },
+  insightText: { marginTop: 6, color: '#4A6153', fontSize: 13, lineHeight: 18 },
   centerState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   stateText: { marginTop: 10, fontSize: 14, color: '#5F7466' },
   errorText: { fontSize: 14, color: '#B72F2F', textAlign: 'center', marginBottom: 12 },
   retryBtn: { backgroundColor: '#1E4D2B', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 10 },
   retryBtnText: { color: '#FFF', fontWeight: '700' },
-  emptyBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E7ECE8',
-    alignItems: 'center',
-  },
-  emptyTitle: { fontSize: 15, fontWeight: '700', color: '#2B4B38', textAlign: 'center' },
-  emptySubtitle: { marginTop: 8, fontSize: 13, color: '#6D8073', textAlign: 'center', lineHeight: 18 },
 });

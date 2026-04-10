@@ -2,7 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Homepage from '../screen/homepage';
 import ExerciseScreen from '../screen/exercise';
 import FeatureSelectionScreen from '../screen/FeatureSelectionScreen.js';
-import CalScreen from '../screen/cal';
+import FoodScreen from '../screen/FoodScreen.js';
 import WaterScreen from '../screen/WaterScreen.js';
 import ProfileScreen from '../screen/ProfileScreen.js'; // ✅ เพิ่ม
 
@@ -27,7 +27,7 @@ export default function HomeStackNavigator() {
       />
 
       <Stack.Screen name="Exercise" component={ExerciseScreen} />
-      <Stack.Screen name="Calorie" component={CalScreen} />
+      <Stack.Screen name="Calorie" component={FoodScreen} />
       <Stack.Screen
         name="WaterScreen"
         component={WaterScreen}
