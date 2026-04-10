@@ -2,8 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'STEP_SESSIONS';
 
+function customGoalMatchKey(g) {
+  if (!g || typeof g !== 'object') return 'null';
+  const metric = g.metric || 'duration';
+  const target = Number(g.target);
+  return `${metric}:${Number.isFinite(target) ? target : ''}`;
+}
+
 function sameCustomGoal(a, b) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return customGoalMatchKey(a) === customGoalMatchKey(b);
 }
 
 function dateKeyFromSessionIso(iso) {

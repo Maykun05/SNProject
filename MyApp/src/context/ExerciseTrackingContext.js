@@ -38,7 +38,13 @@ import {
 const Ctx = createContext(null);
 
 function sameCustomConfig(a, b) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  const ma = a.metric || 'duration';
+  const mb = b.metric || 'duration';
+  const ta = Number(a.target);
+  const tb = Number(b.target);
+  return ma === mb && ta === tb;
 }
 
 function buildActivityFromParams(activityKey, customConfig) {
@@ -54,8 +60,11 @@ function buildActivityFromParams(activityKey, customConfig) {
       useGps: customMetric === 'distance',
     }
     : baseActivity.tracking;
+  const customName =
+    isCustom && typeof customConfig?.name === 'string' ? customConfig.name.trim().slice(0, 40) : '';
   return {
     ...baseActivity,
+    label: customName || baseActivity.label,
     metrics: customMetrics,
     tracking: customTracking,
   };

@@ -91,7 +91,14 @@ export default function StepTrackerScreen({ route, navigation }) {
       useGps: customMetric === 'distance',
     }
     : baseActivity.tracking;
-  const activity = { ...baseActivity, metrics: customMetrics, tracking: customTracking };
+  const customDisplayName =
+    isCustom && customConfig?.name?.trim() ? customConfig.name.trim().slice(0, 40) : '';
+  const activity = {
+    ...baseActivity,
+    label: customDisplayName || baseActivity.label,
+    metrics: customMetrics,
+    tracking: customTracking,
+  };
   const { useAccelerometer, useGps } = activity.tracking;
 
   useFocusEffect(

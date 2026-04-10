@@ -112,10 +112,13 @@ export function sanitizeActivityInstances(arr) {
         x.templateKey === 'custom' && x.customConfig && typeof x.customConfig === 'object'
           ? {
               metric: x.customConfig.metric || 'duration',
-              target: Number.isFinite(Number(x.customConfig.target)) ? Number(x.customConfig.target) : 900,
+              target: Number.isFinite(Number(x.customConfig.target)) ? Number(x.customConfig.target) : 600,
+              ...(typeof x.customConfig.name === 'string' && x.customConfig.name.trim()
+                ? { name: x.customConfig.name.trim().slice(0, 40) }
+                : {}),
             }
           : x.templateKey === 'custom'
-            ? { metric: 'duration', target: 900 }
+            ? { metric: 'duration', target: 600 }
             : null,
     }));
 }
@@ -148,7 +151,7 @@ function buildLegacyInstances(plan) {
         goalOverride: null,
         customConfig: {
           metric: plan.customMetric || 'duration',
-          target: Number.isFinite(Number(plan.customTarget)) ? Number(plan.customTarget) : 900,
+          target: Number.isFinite(Number(plan.customTarget)) ? Number(plan.customTarget) : 600,
         },
       };
     }
