@@ -7,7 +7,7 @@ import { useGarden } from '../context/GardenContext';
 
 /**
  * ใช้ใน feature screen แต่ละอัน
- * @param {string} featureKey  - 'calorie' | 'mood' | 'sleep' | 'water' | 'step'
+ * @param {string} featureKey  - canonical: 'water' | 'food' | 'mood' | 'sleep' | 'exercise' (backend รองรับ legacy calorie/step)
  *
  * @example
  * // ใน CalorieScreen.js

@@ -111,12 +111,12 @@ model WaterLog {
   id        Int      @id @default(autoincrement())
   userId    Int
   amountMl  Int
-  day       String
+  logDate   DateTime
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, day])
+  @@index([userId, logDate])
 }
 
 enum Gender {
@@ -130,6 +130,7 @@ model Feature {
   name  String @unique
 
   users UserFeature[]
+  logs  DailyFeatureLog[]
 }
 
 model UserFeature {
@@ -140,6 +141,8 @@ model UserFeature {
 
   user      User    @relation(fields: [userId], references: [id])
   feature   Feature @relation(fields: [featureId], references: [id])
+
+  @@unique([userId, featureId])
 }
 
 model MoodLog {
@@ -170,13 +173,14 @@ model DailyProgress {
 model DailyFeatureLog {
   id         Int      @id @default(autoincrement())
   userId     Int
-  featureKey String
+  featureId  Int
   logDate    DateTime
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Restrict)
 
-  @@unique([userId, featureKey, logDate])
+  @@unique([userId, featureId, logDate])
   @@index([userId, logDate])
 }
 

@@ -1,7 +1,16 @@
 import prisma from "../config/prisma.js";
 import { grantDailyTreeIfNeeded } from "../services/treeGardenService.js";
 
-const VALID_FEATURES = ["calorie", "mood", "sleep", "water", "step"];
+/** Canonical keys — ตรงกับ seed Feature.name */
+const CANONICAL_FEATURES = ["water", "food", "mood", "sleep", "exercise"];
+
+/** รองรับ client / log เก่า */
+const LEGACY_FEATURE_ALIASES = {
+  calorie: "food",
+  step: "exercise",
+};
+
+const VALID_FEATURES = CANONICAL_FEATURES;
 
 const startOfDay = (date = new Date()) => {
   const d = new Date(date);
@@ -9,8 +18,11 @@ const startOfDay = (date = new Date()) => {
   return d;
 };
 
-const normalizeFeatureKey = (name = "") =>
-  String(name).replace(/feature$/i, "").trim().toLowerCase();
+const normalizeFeatureKey = (name = "") => {
+  let k = String(name).replace(/feature$/i, "").trim().toLowerCase();
+  k = LEGACY_FEATURE_ALIASES[k] ?? k;
+  return k;
+};
 
 const getSelectedFeatureKeys = async (userId) => {
   const selected = await prisma.userFeature.findMany({
@@ -29,9 +41,11 @@ const getCompletedFeatureKeys = async (userId, date = new Date()) => {
   const logDate = startOfDay(date);
   const rows = await prisma.dailyFeatureLog.findMany({
     where: { userId, logDate },
-    select: { featureKey: true },
+    include: { feature: true },
   });
-  return Array.from(new Set(rows.map((row) => normalizeFeatureKey(row.featureKey)).filter(Boolean)));
+  return Array.from(
+    new Set(rows.map((row) => normalizeFeatureKey(row.feature?.name)).filter(Boolean)),
+  );
 };
 
 const countMonthEarnedDays = async (userId, year, month) => {
@@ -84,13 +98,18 @@ export const logFeature = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid feature key" });
     }
 
+    const feature = await prisma.feature.findUnique({ where: { name: featureKey } });
+    if (!feature) {
+      return res.status(400).json({ success: false, message: "Unknown feature" });
+    }
+
     const today = startOfDay();
     await prisma.dailyFeatureLog.upsert({
       where: {
-        userId_featureKey_logDate: { userId, featureKey, logDate: today },
+        userId_featureId_logDate: { userId, featureId: feature.id, logDate: today },
       },
       update: {},
-      create: { userId, featureKey, logDate: today },
+      create: { userId, featureId: feature.id, logDate: today },
     });
 
     const targetFeatures = await getSelectedFeatureKeys(userId);
@@ -188,6 +207,7 @@ export const selectFeatures = async (req, res) => {
       prisma.userFeature.deleteMany({ where: { userId } }),
       prisma.userFeature.createMany({
         data: normalized.map((k) => ({ userId, featureId: keyToId.get(k) })),
+        skipDuplicates: true,
       }),
     ]);
 

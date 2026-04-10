@@ -2,6 +2,20 @@ import prisma from "../config/prisma.js";
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** แปลง YYYY-MM-DD → UTC midnight (สอดคล้องกับ migration จากคอลัมน์ day เดิม) */
+function dayStringToLogDate(day) {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+}
+
+function logDateToDayString(logDate) {
+  const d = logDate instanceof Date ? logDate : new Date(logDate);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
+
 /** Prisma client ต้อง regenerate หลังเพิ่ม model WaterLog — มิฉะนั้น prisma.waterLog จะเป็น undefined */
 function waterLog() {
   const d = prisma.waterLog;
@@ -38,10 +52,12 @@ export async function getWaterSummaryForDay(userId, day) {
     throw new Error("Invalid day format (expected YYYY-MM-DD)");
   }
 
+  const logDate = dayStringToLogDate(day);
+
   const [profile, logs] = await Promise.all([
     prisma.profile.findUnique({ where: { userId } }),
     waterLog().findMany({
-      where: { userId, day },
+      where: { userId, logDate },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -73,8 +89,10 @@ export async function addWaterLogEntry(userId, amountMl, day) {
     throw new Error("amountMl must be between 1 and 5000");
   }
 
+  const logDate = dayStringToLogDate(day);
+
   await waterLog().create({
-    data: { userId, amountMl: Math.round(amt), day },
+    data: { userId, amountMl: Math.round(amt), logDate },
   });
 
   return getWaterSummaryForDay(userId, day);
@@ -89,12 +107,12 @@ export async function deleteWaterLogEntry(userId, logId) {
   if (!log) {
     throw new Error("Log not found");
   }
-  const day = log.day;
+  const day = logDateToDayString(log.logDate);
   await waterLog().delete({ where: { id } });
   return getWaterSummaryForDay(userId, day);
 }
 
-/** สรุปยอดรวม (ml) ต่อวันในเดือนปฏิทิน — day เป็น YYYY-MM-DD ตรงกับที่บันทึกใน log */
+/** สรุปยอดรวม (ml) ต่อวันในเดือนปฏิทิน — key เป็น YYYY-MM-DD (UTC ตาม logDate) */
 export async function getWaterTotalsForMonth(userId, year, month) {
   const y = Number(year);
   const m = Number(month);
@@ -104,20 +122,22 @@ export async function getWaterTotalsForMonth(userId, year, month) {
   if (!Number.isInteger(m) || m < 1 || m > 12) {
     throw new Error("Invalid month (1–12)");
   }
-  const prefix = `${y}-${String(m).padStart(2, "0")}-`;
 
-  const rows = await waterLog().groupBy({
-    by: ["day"],
+  const monthStart = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0));
+  const monthEnd = new Date(Date.UTC(y, m, 1, 0, 0, 0, 0));
+
+  const rows = await waterLog().findMany({
     where: {
       userId,
-      day: { startsWith: prefix },
+      logDate: { gte: monthStart, lt: monthEnd },
     },
-    _sum: { amountMl: true },
+    select: { logDate: true, amountMl: true },
   });
 
   const totals = {};
   for (const row of rows) {
-    totals[row.day] = row._sum.amountMl ?? 0;
+    const key = logDateToDayString(row.logDate);
+    totals[key] = (totals[key] ?? 0) + row.amountMl;
   }
   return totals;
 }
