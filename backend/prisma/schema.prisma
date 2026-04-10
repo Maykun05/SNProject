@@ -15,17 +15,97 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  username  String
+  id           Int               @id @default(autoincrement())
+  email        String            @unique
+  username     String
+  password     String
 
-  profile   Profile?
+  profile      Profile?
 
-  features  UserFeature[]
-  moods     MoodLog[]
-  sleeps    Sleep[]
-  progress  DailyProgress[]
+  coins        Int               @default(0)
+  xp           Int               @default(0)
+  level        Int               @default(1)
+  totalXp      Int               @default(0)
+  transactions CoinTransaction[]
+  progress     DailyProgress[]
+  missions     MissionProgress[]
+  moods        MoodLog[]
+  sleeps       Sleep[]
+  features     UserFeature[]
+  featureLogs  DailyFeatureLog[]
+  activitySessions ActivitySession[]
+  foods        FoodLog[]
+
+  treeUnlocks  UserTreeUnlock[]
+  earnedTrees  EarnedTree[]
+  gardenSlots  HomeGardenSlot[]
+  waterLogs    WaterLog[]
+  exerciseDays ExerciseDay[]
+}
+
+model ExerciseDay {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  date         DateTime
+  planJson     Json
+  progressJson Json
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model TreeType {
+  id             Int    @id @default(autoincrement())
+  key            String @unique
+  displayName    String
+  unlockCoinCost Int    @default(0)
+  sortOrder      Int    @default(0)
+
+  unlocks     UserTreeUnlock[]
+  earnedTrees EarnedTree[]
+}
+
+model UserTreeUnlock {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  treeTypeId Int
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  treeType TreeType @relation(fields: [treeTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, treeTypeId])
+}
+
+model EarnedTree {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  treeTypeId Int
+  source     String
+  refDate    DateTime?
+  createdAt  DateTime  @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  treeType TreeType        @relation(fields: [treeTypeId], references: [id], onDelete: Cascade)
+  placedSlot HomeGardenSlot?
+
+  @@unique([userId, refDate, source])
+  @@index([userId, createdAt])
+}
+
+model HomeGardenSlot {
+  id           Int  @id @default(autoincrement())
+  userId       Int
+  slotIndex    Int
+  earnedTreeId Int? @unique
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  earnedTree EarnedTree? @relation(fields: [earnedTreeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, slotIndex])
 }
 
 model Profile {
@@ -36,8 +116,25 @@ model Profile {
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
+  selectedTreeType Int   @default(1)  
+
+  calorieGoal     Int?  
+  waterGoal       Int?
+  profileImage    String?
 
   user          User     @relation(fields: [userId], references: [id])
+}
+
+model WaterLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amountMl  Int
+  logDate   DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, logDate])
 }
 
 enum Gender {
@@ -51,6 +148,7 @@ model Feature {
   name  String @unique
 
   users UserFeature[]
+  logs  DailyFeatureLog[]
 }
 
 model UserFeature {
@@ -61,6 +159,8 @@ model UserFeature {
 
   user      User    @relation(fields: [userId], references: [id])
   feature   Feature @relation(fields: [featureId], references: [id])
+
+  @@unique([userId, featureId])
 }
 
 model MoodLog {
@@ -88,12 +188,98 @@ model DailyProgress {
   @@unique([userId, date])
 }
 
+model DailyFeatureLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  featureId  Int
+  logDate    DateTime
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, featureId, logDate])
+  @@index([userId, logDate])
+}
+
 model Sleep {
   id     Int      @id @default(autoincrement())
   userId Int
   user   User     @relation(fields: [userId], references: [id])
-  hours  Int
+  hours  Float
   date   DateTime 
 
   @@unique([userId, date])  
+}
+
+model MissionProgress {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  missionId   String
+  periodKey   String
+  type        String
+  progress    Int       @default(0)
+  goal        Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, missionId, periodKey])
+}
+
+model CoinTransaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Int
+  source    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model MissionReward {
+  id     Int    @id @default(autoincrement())
+  type   String @unique
+  reward Int
+}
+
+model ActivitySession {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  steps     Int
+  distance  Float
+  calories  Int
+  duration  Int
+  date      DateTime
+  route     String?
+  createdAt DateTime @default(now())
+
+  /// วันตามแผนออกกำลัง (YYYY-MM-DD) — จับคู่กับ instance ใน ExerciseDay
+  planDateKey    String?
+  instanceId     String?
+  activityKey    String?
+  laps           Int?
+  sets           Int?
+  reps           Int?
+  customGoalJson Json?
+  isQualified    Boolean?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, planDateKey, instanceId])
+}
+
+model FoodLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  name      String
+  calories  Int
+  protein   Float?
+  carbs     Float?
+  fat       Float?
+
+  date      DateTime @default(now())
+
+  @@index([userId, date])
 }

@@ -12,27 +12,24 @@ const Stack = createNativeStackNavigator();
 
 export default function StackNavigator() {
   const { userToken, isRegisterFlow } = useContext(AuthContext);
+  const screens = userToken
+    ? isRegisterFlow
+      ? [
+          <Stack.Screen key="PersonalInfo" name="PersonalInfo" component={PersonalInfoScreen} />,
+          <Stack.Screen key="Select" name="Select" component={FeatureSelectionScreen} />,
+          <Stack.Screen key="MainTabs" name="MainTabs" component={BottomTabNavigator} />,
+        ]
+      : [
+          <Stack.Screen key="MainTabs" name="MainTabs" component={BottomTabNavigator} />,
+        ]
+    : [
+        <Stack.Screen key="Login" name="Login" component={LoginScreen} />,
+        <Stack.Screen key="Register" name="Register" component={RegisterScreen} />,
+      ];
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {userToken ? (
-        isRegisterFlow ? (
-          <>
-            <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-            <Stack.Screen name="Select" component={FeatureSelectionScreen} />
-            <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
-          </>
-        )
-      ) : (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-        </>
-      )}
+      {screens}
     </Stack.Navigator>
   );
 }

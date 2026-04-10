@@ -1,10 +1,13 @@
+/**
+ * คำอธิบายภารกิจสำหรับอ้างอิง — แหล่งความจริงของ progress / reward อยู่ที่ backend
+ * `backend/src/services/missionDefinitions.js` (ids ต้องตรงกัน)
+ */
 export const ALL_MISSIONS = {
   daily: [
     { id: 'd1', title: "ดื่มน้ำแก้วแรกหลังตื่นนอน", reward: 5, goal: 1, unit: 'ครั้ง' },
     { id: 'd2', title: "บันทึกอาหารครบ 3 มื้อ", reward: 10, goal: 3, unit: 'มื้อ' },
     { id: 'd3', title: "เดินครบ 5,000 ก้าว", reward: 10, goal: 5000, unit: 'ก้าว' },
     { id: 'd4', title: "บันทึกอารมณ์ก่อนหมดวัน", reward: 10, goal: 1, unit: 'ครั้ง' },
-    { id: 'd5', title: "ทำครบทุกอย่างใน 1 วัน", reward: 20, goal: 3, unit: 'ภารกิจ' },
   ],
   weekly: [
     { id: 'w1', title: "นอนครบ 7 ชม. อย่างน้อย 4 วัน/สัปดาห์", reward: 80, goal: 4, unit: 'วัน' },

@@ -19,6 +19,9 @@ export const getHomeFeatures = async (userId, userToken) => {
   const raw = await AsyncStorage.getItem(key);
   const local = raw ? JSON.parse(raw) : {};
 
+  // ยังไม่ login ให้ใช้ local อย่างเดียว
+  if (!userToken) return local;
+
   //  2. ยิง API
   try {
 
@@ -73,6 +76,9 @@ export const getHomeFeatures = async (userId, userToken) => {
 export const saveHomeFeatures = async (featuresMap, userId, userToken) => {
   const key = await getUserKey(userId);
   await AsyncStorage.setItem(key, JSON.stringify(featuresMap));
+
+  // ยังไม่ login: sync เฉพาะ local
+  if (!userToken) return featuresMap;
 
   try {
     const featureIds = Object.keys(featuresMap)

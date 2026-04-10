@@ -85,7 +85,7 @@ export const getAllMoods = async (month, year, userToken, userId) => {
 
 // โหลดวันเดียว
 export const getMoodByDate = async (dateKey, userToken, userId) => {
-  const local = await loadLocal();
+  const local = await loadLocal(userId);
 
   // 🔥 ให้ UI render ก่อนเลย
   if (local[dateKey]) return local[dateKey];
@@ -146,7 +146,6 @@ export const setMoodByDate = async (dateKey, mood, userToken, userId) => {
       }),
       
     });
-    console.log(userToken)
   } catch {}
 
   return updated;

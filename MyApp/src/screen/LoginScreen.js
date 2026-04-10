@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   Dimensions,
   KeyboardAvoidingView,
@@ -15,7 +14,10 @@ import {
 import { AuthContext } from '../context/AuthProvider';
 import { API_URL } from  "../config"
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 const { width } = Dimensions.get('window');
+
 
 
 const LoginScreen = ({ navigation }) => {

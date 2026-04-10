@@ -16,11 +16,21 @@ export const removeUserFeature = async (userId, featureId) => {
 
 // อัปเดต feature ทั้งหมดของ user (ลบเก่าแล้วเพิ่มใหม่)
 export const updateUserFeatures = async (userId, featureIds) => {
-  await prisma.userFeature.deleteMany({ where: { userId } });
+  const uniqueIds = [
+    ...new Set(
+      (featureIds ?? [])
+        .map((fid) => Number(fid))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  ];
 
-  const newFeatures = featureIds.map(fid => ({ userId, featureId: fid }));
-
-  await prisma.userFeature.createMany({ data: newFeatures });
+  await prisma.$transaction([
+    prisma.userFeature.deleteMany({ where: { userId } }),
+    prisma.userFeature.createMany({
+      data: uniqueIds.map((featureId) => ({ userId, featureId })),
+      skipDuplicates: true,
+    }),
+  ]);
 
   const updated = await prisma.userFeature.findMany({
     where: { userId },

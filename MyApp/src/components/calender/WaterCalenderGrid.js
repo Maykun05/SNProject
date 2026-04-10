@@ -13,7 +13,7 @@ export default function WaterCalendarGrid({
   year,
   month,
   waterData,
-  todayWater,
+  waterGoal = 2000,
 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -46,10 +46,7 @@ export default function WaterCalendarGrid({
 
           const isToday = date.getTime() === today.getTime();
 
-          // 🔥 ดึงค่าน้ำ
-          const value = isToday
-            ? todayWater
-            : waterData[dateKey] || 0;
+          const value = waterData[dateKey] ?? 0;
 
           return (
             <View key={day} style={styles.dayCell}>
@@ -59,7 +56,7 @@ export default function WaterCalendarGrid({
                 styles.circle,
                 isToday && styles.today,
               ]}>
-                <WaterCircle value={value} />
+                <WaterCircle value={value} goal={waterGoal} />
               </View>
 
               <Text style={styles.dayText}>{day}</Text>
@@ -72,15 +69,6 @@ export default function WaterCalendarGrid({
 }
 
 const styles = StyleSheet.create({
-    circle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#EDEDED',
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden', // 🔥 สำคัญ (ให้น้ำไม่ล้น)
-    },
     weekRow: {
         flexDirection: 'row',
         marginBottom: 6,
@@ -105,9 +93,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#EDEDED',
+        backgroundColor: '#E3F2FD',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(144, 202, 249, 0.65)',
     },
     today: {
         borderWidth: 2,

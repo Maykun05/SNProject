@@ -26,7 +26,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "แอปใช้ตำแหน่งเพื่อบันทึกเส้นทางขณะออกกำลังกาย",
+          "locationAlwaysAndWhenInUsePermission": "แอปใช้ตำแหน่งเพื่อบันทึกเส้นทางต่อเนื่องแม้สลับแอปหรือปิดหน้าจอ (โหมด GPS)",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ]
     ]
   }
 }

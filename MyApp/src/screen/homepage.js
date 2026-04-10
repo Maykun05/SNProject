@@ -1,32 +1,37 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import HomeHeader from '../components/home/HomeHeader';
 import HomeCircle from '../components/home/HomeCircle';
 import HomeFeatureRow from '../components/home/HomeFeatureRow';
 import MoodQuickPicker from '../components/home/MoodQuickPicker';
 import SleepQuickPicker from '../components/home/SleepQuickPicker';
 import FeatureSelectorModal from '../components/home/FeatureSelectorModal';
+import TreeSelectorModal from '../components/home/TreeSelectorModal'; // ✅ ใหม่
 import { FEATURES } from '../constants/features';
+import { TREE_ASSETS } from '../constants/treeAssets'; // ✅ ใหม่
 import useHomeState from '../hooks/useHomeState';
-import { useContext } from 'react';
 import { AuthContext } from '../context/AuthProvider';
 
-const TREE_IMAGES = [
-  require('../assets/tree_0.png'),
-  require('../assets/tree_1.png'),
-  require('../assets/tree_2.png'),
-  require('../assets/tree_3.png'),
-  require('../assets/tree_4.png'),
-  require('../assets/tree_5.png'),
-];
+import ProfileAvatar from '../components/home/ProfileAvatar.js';
+import { useWater } from '../context/WaterContext';
+import { useStep } from '../context/StepContext';
+import { useLevel } from '../context/LevelContext';
+
+import GardenCard from '../components/home/GardenCard';
+import { API_URL } from '../config';
 
 export default function HomeScreen({ navigation }) {
+  const { addXp, level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
   const {
     doneMap,
     enabledFeatures,
     showMoodPicker,
     showSleepPicker,
+    setShowSleepPicker,
+    setShowMoodPicker,
     showFeatureModal,
     setShowFeatureModal,
     onPressFeature,
@@ -35,94 +40,222 @@ export default function HomeScreen({ navigation }) {
     toggleFeature,
     lastSleepHours,
     saveFeatures,
+    mood,
   } = useHomeState();
+
+  // ✅ State สำหรับเลือกแบบต้นไม้
+  const [selectedTreeType, setSelectedTreeType] = useState(1);
+  const [showTreeModal, setShowTreeModal] = useState(false);
+
+
+  // โหลดแบบต้นไม้จาก DB (มี token) — ไม่มี token หรือ error ใช้ AsyncStorage สำรอง
+  useEffect(() => {
+    const fetchTreeType = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          const res = await fetch(`${API_URL}/api/tree-type`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.success && json.selectedTreeType != null) {
+            const t = Number(json.selectedTreeType);
+            setSelectedTreeType(t);
+            await AsyncStorage.setItem('selectedTreeType', String(t));
+            return;
+          }
+        }
+        const saved = await AsyncStorage.getItem('selectedTreeType');
+        if (saved !== null) setSelectedTreeType(Number(saved));
+      } catch (err) {
+        console.error('fetchTreeType error:', err);
+        try {
+          const saved = await AsyncStorage.getItem('selectedTreeType');
+          if (saved !== null) setSelectedTreeType(Number(saved));
+        } catch (_) {}
+      }
+    };
+    fetchTreeType();
+  }, []);
+
+  const handleSelectTree = async (type) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        const res = await fetch(`${API_URL}/api/tree-type`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selectedTreeType: type }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          Alert.alert('บันทึกไม่สำเร็จ', json.message || `HTTP ${res.status}`);
+          return;
+        }
+      }
+      await AsyncStorage.setItem('selectedTreeType', String(type));
+      setSelectedTreeType(type);
+      setShowTreeModal(false);
+    } catch (err) {
+      console.error('handleSelectTree error:', err);
+      Alert.alert('ข้อผิดพลาด', err.message || 'บันทึกต้นไม้ไม่ได้');
+    }
+  };
 
   const saveFeaturesAndClose = async () => {
     await saveFeatures();
-    setShowFeatureModal(false); 
+    setShowFeatureModal(false);
   };
 
-  const { logout } = useContext(AuthContext);
+  // const { logout } = useContext(AuthContext);
 
-  const handleLogout = async () => {
-    await logout();   // เทสล้อกเอ้า
-    navigation.replace("Login");
-  };
+  // const handleLogout = async () => {
+  //   await logout();
+  //   navigation.replace('Login');
+  // };
+
+  const { consumed: waterConsumed, waterGoal } = useWater();
+  const { steps, stepGoal } = useStep();
+
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
     .map(key => FEATURES.find(f => f.key === key))
     .filter(Boolean);
 
-  const doneCount = visibleFeatures.filter(
-    f => doneMap[f.key]
-  ).length;
+  const doneCount = visibleFeatures.filter(f => doneMap[f.key]).length;
 
-  const treeImage =
-    TREE_IMAGES[Math.min(doneCount, TREE_IMAGES.length - 1)];
+  // ✅ เปลี่ยนมาใช้ TREE_ASSETS แทน TREE_IMAGES เดิม
+  const treeImage = TREE_ASSETS[selectedTreeType][Math.min(doneCount, 5)];
 
+  const [sleepHours, setSleepHours] = useState(null);
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <HomeHeader />
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
 
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={handleLogout}
-      >
-        <Ionicons name="log-out-outline" size={24} color="#000" />
-      </TouchableOpacity> 
-
-      <HomeCircle
-        features={visibleFeatures}     // ใช้เฉพาะฟีเจอร์ที่เลือก
-        doneMap={doneMap}
-        doneCount={doneCount}
-        totalCount={visibleFeatures.length}
-        treeImage={treeImage}
-        onPressFeature={onPressFeature}
-      />
-
-      <View style={{ position: 'relative' }}>
-        <HomeFeatureRow
-          features={FEATURES}
-          onPress={onPressFeature}
+        <HomeCircle
+          features={visibleFeatures}
+          doneMap={doneMap}
+          doneCount={doneCount}
+          totalCount={visibleFeatures.length}
+          treeImage={treeImage}
+          onPressFeature={onPressFeature}
+          onPressTree={() => setShowTreeModal(true)}
         />
 
-        <TouchableOpacity
-          style={styles.plusCircle}
-          onPress={() => setShowFeatureModal(true)}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    
-      <MoodQuickPicker
-        visible={showMoodPicker}
-        onSelect={setMoodToday}
-      />
+        <View style={{ position: 'relative' }}>
+          <HomeFeatureRow features={FEATURES} onPress={onPressFeature} />
+          <TouchableOpacity
+            style={styles.plusCircle}
+            onPress={() => setShowFeatureModal(true)}
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
+        <View style={styles.summaryRow}>
+          {/* น้ำหนัก/เป้าน้ำดึงจากโปรไฟล์ + API — อย่าส่ง weight ฮาร์ดโค้ดที่นี่ */}
+          <TouchableOpacity
+            style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}
+            onPress={() => navigation.navigate('WaterScreen')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.summaryLabel, { color: '#3B5BDB' }]}>น้ำ</Text>
+            <View style={styles.ringWrapper}>
+              <View style={[styles.ringOuter, { borderColor: '#C5CFFF' }]}>
+                <View style={[styles.ringInner, { borderColor: '#4A90E2', borderTopColor: 'transparent' }]}>
+                  <Ionicons name="water" size={26} color="#4A90E2" />
+                </View>
+              </View>
+            </View>
+            <Text style={[styles.summaryValue, { color: '#3B5BDB' }]}>{waterConsumed}</Text>
+            <Text style={styles.summaryTarget}>/ {waterGoal} ml</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.summaryCard, { backgroundColor: '#FFF8EC' }]}>
+            <Text style={[styles.summaryLabel, { color: '#E07B00' }]}>จำนวนก้าวเดิน</Text>
+            <View style={styles.ringWrapper}>
+              <View style={[styles.ringOuter, { borderColor: '#FFE0B2' }]}>
+                <View style={[styles.ringInner, { borderColor: '#FF9800', borderTopColor: 'transparent' }]}>
+                  <Ionicons name="footsteps" size={26} color="#FF9800" />
+                </View>
+              </View>
+            </View>
+            <Text style={[styles.summaryValue, { color: '#E07B00' }]}>{steps}</Text>
+            <Text style={styles.summaryTarget}>/ {stepGoal}</Text>
+          </View>
+        </View>
+
+        <GardenCard />
+
+        {/* ✅ Modal ที่ไม่ใช่ overlay ใส่ใน ScrollView ได้ */}
+        <FeatureSelectorModal
+          visible={showFeatureModal}
+          features={FEATURES}
+          enabledFeatures={enabledFeatures}
+          onToggle={toggleFeature}
+          onClose={() => setShowFeatureModal(false)}
+          onSave={() => {
+            saveFeatures(enabledFeatures);
+            setShowFeatureModal(false);
+          }}
+        />
+
+        <TreeSelectorModal
+          visible={showTreeModal}
+          currentType={selectedTreeType}
+          onSelect={handleSelectTree}
+          onClose={() => setShowTreeModal(false)}
+        />
+
+      </ScrollView>
+
+      {/* ✅ ย้าย SleepQuickPicker และ MoodQuickPicker ออกนอก ScrollView */}
+      
       <SleepQuickPicker
         visible={showSleepPicker}
         initialHours={lastSleepHours}
         onSelect={setSleepToday}
-      />
-
-      <FeatureSelectorModal
-        visible={showFeatureModal}
-        features={FEATURES}
-        enabledFeatures={enabledFeatures} 
-        onToggle={toggleFeature}  
-        onClose={() => setShowFeatureModal(false)}
-        onSave={() => {
-          saveFeatures(enabledFeatures);  
-          setShowFeatureModal(false);
-        }}      
+        onClose={() => setShowSleepPicker(false)}
       />
       
+      <MoodQuickPicker
+        visible={showMoodPicker}
+        value={mood}
+        onSelect={setMoodToday}
+        onClose={() => setShowMoodPicker(false)}  
+      />
+
+      <View style={styles.profilePosition}>
+        <ProfileAvatar size={60} />
+      </View>
+
+      {/* <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={24} color="#000" />
+      </TouchableOpacity> */}
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 40 },
+  root: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  container: {
+    flex: 1,
+    paddingTop: -10,
+  },
+  profilePosition: {
+    position: 'absolute',
+    top: 50,
+    right: 16,
+    zIndex: 100,
+  },
   plusCircle: {
     position: 'absolute',
     top: -30,
@@ -134,12 +267,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-   logoutBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
+  summaryRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginTop: 16,
   },
-
+  summaryCard: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    gap: 6,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    alignSelf: 'flex-start',
+  },
+  ringWrapper: {
+    marginVertical: 8,
+  },
+  ringOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ringInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  summaryTarget: {
+    fontSize: 13,
+    color: '#999',
+  },
 });

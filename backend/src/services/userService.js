@@ -1,6 +1,13 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma.js";
+import {
+  formatLocalDate,
+  monthPeriodKey,
+  startOfDay,
+  weekPeriodKey,
+} from "./missionSyncService.js";
+import { applyXpInTransaction } from "./userXpService.js";
 
 export const createUser = async ({ username, email, password }) => {
   const hashedPassword = await bcrypt.hash(password, 10); // 🔥 ตรงนี้
@@ -14,59 +21,110 @@ export const createUser = async ({ username, email, password }) => {
   });
 };
 
-export const getUserProfile = async (userId) => {
+export const getUser = async (userId) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      // ❌ ไม่ควรส่ง password ออกไป
+    },
+  });
+};
+
+// ✅ อัปเดตข้อมูล user
+export const updateUser = async (userId, data) => {
+  const updateData = {};
+
+  if (data.username) updateData.username = data.username;
+  if (data.email) updateData.email = data.email;
+  if (data.password) {
+    const hashed = await bcrypt.hash(data.password, 10);
+    updateData.password = hashed;
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: {
+      id: true,
+      username: true,
+      email: true,
+    },
+  });
+};
+
+// export const updateProfile = async (userId, data) => {
+//   return prisma.profile.update({
+//     where: { userId },
+//     data,
+//   });
+// };
+
+export const getProfile = async (userId) => {
   return prisma.profile.findUnique({
     where: { userId },
-    select: {
-      weight: true,
-      height: true,
-      birthDate: true,
-      activityLevel: true,
-      gender: true,
-    },
   });
 };
 
-export const findUserByEmail = async (email) => {
-  return prisma.user.findUnique({
-    where: { email },
-  });
-};
+// export const findUserByEmail = async (email) => {
+//   return prisma.user.findUnique({
+//     where: { email },
+//   });
+// };
 
 export const updateUserProfile = async (userId, data) => {
+  const patch = {};
+  if (data.weight !== undefined) patch.weight = data.weight;
+  if (data.height !== undefined) patch.height = data.height;
+  if (data.birthDate !== undefined) {
+    patch.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+  }
+  if (data.activityLevel !== undefined) patch.activityLevel = data.activityLevel;
+  if (data.gender !== undefined) patch.gender = data.gender;
+  if (data.calorieGoal !== undefined) patch.calorieGoal = data.calorieGoal;
+  if (data.waterGoal !== undefined) patch.waterGoal = data.waterGoal;
+  if (data.profileImage !== undefined) patch.profileImage = data.profileImage;
+  if (data.selectedTreeType !== undefined) patch.selectedTreeType = data.selectedTreeType;
+
   return prisma.profile.upsert({
     where: { userId },
-    update: {
-      weight: data.weight,
-      height: data.height,
-      birthDate: data.birthDate ? new Date(data.birthDate) : null,
-      activityLevel: data.activityLevel,
-      gender: data.gender,
-    },
+    update: patch,
     create: {
       userId,
-      weight: data.weight,
-      height: data.height,
-      birthDate: data.birthDate ? new Date(data.birthDate) : null,
-      activityLevel: data.activityLevel,
-      gender: data.gender,
+      ...patch,
     },
   });
 };
-
-export const getUserById = async (userId) => {
+ 
+// ไว้ใช้กับ profileprovider (ไม่ส่ง password)
+export const getUserWithProfile = async (userId) => {
   return prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
       email: true,
       username: true,
+      coins: true,
+      xp: true,
+      level: true,
+      totalXp: true,
       profile: true,
-      features: { include: { feature: true } },
-      moods: true,
-      progress: true,
     },
   });
+};
+
+/** เพิ่ม XP จากกิจกรรม (นอน / อารมณ์ ฯลฯ) — จำกัดต่อครั้งกันสแปม */
+export const applyXpGrant = async (userId, amount) => {
+  const a = Math.floor(Number(amount));
+  if (!Number.isFinite(a) || a <= 0) {
+    throw new Error("Invalid amount");
+  }
+  if (a > 500) {
+    throw new Error("Amount too large");
+  }
+  return prisma.$transaction((tx) => applyXpInTransaction(tx, userId, a));
 };
 
 export const registerUser = async ({ username, email, password }) => {
@@ -131,6 +189,45 @@ export const loginUser = async ({ email, password }) => {
       email: user.email,
       username: user.username,
     }, 
+  };
+};
+
+export const getProfileStatsService = async (userId) => {
+  const t = startOfDay(new Date());
+  const activePeriodKeys = [formatLocalDate(t), weekPeriodKey(t), monthPeriodKey(t)];
+
+  const [profile, userRow, missions, progress, mood, sleep] = await Promise.all([
+    prisma.profile.findUnique({ where: { userId } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { coins: true } }),
+    prisma.missionProgress.count({
+      where: { userId, isCompleted: true, periodKey: { in: activePeriodKeys } },
+    }),
+    prisma.dailyProgress.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+    prisma.moodLog.findFirst({
+      where: { userId },
+      orderBy: { date: "desc" },
+    }),
+    prisma.sleep.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 7,
+    }),
+  ]);
+
+  const avgSleep = sleep.length
+    ? sleep.reduce((sum, s) => sum + s.hours, 0) / sleep.length
+    : null;
+
+  return {
+    coins: userRow?.coins ?? 0,
+    totalMissionsCompleted: missions,
+    latestMood: mood?.mood ?? null,
+    avgSleepHours: avgSleep,
+    recentProgress: progress,
   };
 };
 

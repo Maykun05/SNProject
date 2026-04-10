@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Image,
 } from 'react-native';
@@ -12,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from "../context/AuthProvider";
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const FeatureSelectionScreen = ({ navigation }) => {
   const { userToken } = useContext(AuthContext);

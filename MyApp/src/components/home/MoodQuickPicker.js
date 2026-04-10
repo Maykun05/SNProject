@@ -1,34 +1,104 @@
-import React from 'react';
-import { View,TouchableOpacity, StyleSheet, Image, 
-  Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet,
+  TouchableOpacity, Image, Modal, Pressable
+} from 'react-native';
 import { MOODS } from '../../constants/moods';
 
-export default function MoodQuickPicker({ visible, onSelect }) {
-  if (!visible) return null;
+export default function MoodQuickPicker({ visible, value, onSelect, onClose }) {
+  const [selected, setSelected] = useState(value);
+  useEffect(() => {
+    if (visible) {
+      setSelected(value);
+    }
+  }, [visible, value]);
 
   return (
-    <View style={styles.bar}>
-      {MOODS.map(({ key, image }) => (
-        <TouchableOpacity key={key} onPress={() => onSelect(key)}>
-          <Image source={image} style={styles.icon} />
+    <Modal visible={visible} transparent animationType="slide">
+      
+      {/* backdrop */}
+      <Pressable style={styles.backdrop} onPress={onClose} />
+
+      {/* content */}
+      <View style={styles.sheet}>
+        <Text style={styles.title}>วันนี้รู้สึกยังไง?</Text>
+
+        <View style={styles.row}>
+          {MOODS.map(({ key, image }) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.item,
+                selected === key && styles.selected
+              ]}
+              onPress={() => setSelected(key)}
+            >
+              <Image source={image} style={styles.icon} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* confirm */}
+        <TouchableOpacity
+          style={[
+            styles.btn,
+            { opacity: selected ? 1 : 0.4 }
+          ]}
+          disabled={!selected}
+          onPress={() => {
+            onSelect(selected);
+            onClose?.();
+          }}
+        >
+          <Text style={styles.btnText}>บันทึก</Text>
         </TouchableOpacity>
-      ))}
-    </View>
+
+      </View>
+    </Modal>
   );
 }
 const styles = StyleSheet.create({
-  bar: {
+  backdrop: {
+    flex: 1,
+    backgroundColor: '#00000040',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 45,
+  },
+  title: {
+    textAlign: 'center',
+    fontWeight: '700',
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#abb9a7ff',
-    marginHorizontal: 20,
-    marginTop: 12,
-    paddingVertical: 14,
-    borderRadius: 18,
+    marginBottom: 20,
+  },
+  item: {
+    padding: 8,
+    borderRadius: 16,
+  },
+  selected: {
+    backgroundColor: '#EEF2FF',
   },
   icon: {
     width: 40,
     height: 40,
-    resizeMode: 'contain',
+  },
+  btn: {
+    backgroundColor: '#2d5a2d',
+    padding: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  btnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

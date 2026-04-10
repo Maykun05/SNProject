@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed": "node prisma/seed.js",
+    "test:missions": "node src/services/missionSyncService.selftest.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
