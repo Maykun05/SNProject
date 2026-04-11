@@ -1,5 +1,17 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthProvider';
 import { fetchFeatureStats } from '../services/apiStats';
@@ -15,7 +27,25 @@ const FEATURE_OPTIONS = [
 const RANGE_OPTIONS = [
   { key: '7d', label: '7 วัน' },
   { key: 'month', label: 'เดือนนี้' },
+  { key: 'custom', label: 'กำหนดเอง', isCustom: true },
 ];
+
+const MS_PER_DAY = 86400000;
+const MAX_CUSTOM_SPAN_DAYS = 366;
+
+const defaultRangeLast7Days = () => {
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);
+  return { start, end };
+};
+
+const toStartOfDay = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+};
 
 const EMPTY_TOTALS = {
   sessions: 0,
@@ -231,6 +261,13 @@ export default function FeatureStatsScreen() {
   const { userToken } = useContext(AuthContext);
   const [feature, setFeature] = useState('water');
   const [range, setRange] = useState('7d');
+  const [customStartYmd, setCustomStartYmd] = useState(() => formatYmd(defaultRangeLast7Days().start));
+  const [customEndYmd, setCustomEndYmd] = useState(() => formatYmd(defaultRangeLast7Days().end));
+  const [showCustomRangeModal, setShowCustomRangeModal] = useState(false);
+  const [draftStart, setDraftStart] = useState(() => defaultRangeLast7Days().start);
+  const [draftEnd, setDraftEnd] = useState(() => defaultRangeLast7Days().end);
+  const [iosDatePick, setIosDatePick] = useState(null);
+  const [androidPick, setAndroidPick] = useState(null);
   const [stats, setStats] = useState(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -261,12 +298,56 @@ export default function FeatureStatsScreen() {
     }));
   }, [exerciseMetric, isExercise, seriesForChart]);
 
-  const isMonthChart = range === 'month';
+  const isWideChart = range === 'month' || (range === 'custom' && chartData.length > 10);
 
   const exerciseChartUnit = useMemo(
     () => EXERCISE_METRICS.find((m) => m.key === exerciseMetric)?.chartUnit ?? '',
     [exerciseMetric],
   );
+
+  const openCustomRangeModal = useCallback(() => {
+    const s = parseLocalDateOnly(customStartYmd) ?? defaultRangeLast7Days().start;
+    const e = parseLocalDateOnly(customEndYmd) ?? defaultRangeLast7Days().end;
+    setDraftStart(toStartOfDay(s));
+    setDraftEnd(toStartOfDay(e));
+    setIosDatePick(null);
+    setAndroidPick(null);
+    setShowCustomRangeModal(true);
+  }, [customStartYmd, customEndYmd]);
+
+  const closeCustomRangeModal = useCallback(() => {
+    setShowCustomRangeModal(false);
+    setIosDatePick(null);
+    setAndroidPick(null);
+  }, []);
+
+  const applyCustomRange = useCallback(() => {
+    let a = toStartOfDay(draftStart);
+    let b = toStartOfDay(draftEnd);
+    if (a > b) [a, b] = [b, a];
+    const today = toStartOfDay(new Date());
+    if (b > today) b = today;
+    const spanDays = Math.floor((b.getTime() - a.getTime()) / MS_PER_DAY) + 1;
+    if (spanDays > MAX_CUSTOM_SPAN_DAYS) {
+      Alert.alert('ช่วงยาวเกินไป', `เลือกได้ไม่เกิน ${MAX_CUSTOM_SPAN_DAYS} วัน`);
+      return;
+    }
+    setCustomStartYmd(formatYmd(a));
+    setCustomEndYmd(formatYmd(b));
+    setRange('custom');
+    setShowCustomRangeModal(false);
+    setIosDatePick(null);
+    setAndroidPick(null);
+  }, [draftEnd, draftStart]);
+
+  const onAndroidDateChange = useCallback((event, date, which) => {
+    setAndroidPick(null);
+    if (Platform.OS === 'android' && event?.type === 'dismissed') return;
+    if (!date) return;
+    const t = toStartOfDay(date);
+    if (which === 'start') setDraftStart(t);
+    else setDraftEnd(t);
+  }, []);
 
   const loadData = useCallback(
     async (isRefresh = false) => {
@@ -283,8 +364,13 @@ export default function FeatureStatsScreen() {
 
       try {
         setError(null);
-        const data = await fetchFeatureStats({ token: userToken, feature, range });
-        setStats(normalize(data, feature, range));
+        const fetchOpts = { token: userToken, feature, range: range === 'custom' ? '7d' : range };
+        if (range === 'custom' && customStartYmd && customEndYmd) {
+          fetchOpts.startDate = customStartYmd;
+          fetchOpts.endDate = customEndYmd;
+        }
+        const data = await fetchFeatureStats(fetchOpts);
+        setStats(normalize(data, feature, range === 'custom' ? 'custom' : range));
       } catch (e) {
         setError('โหลดสถิติไม่สำเร็จ กรุณาลองใหม่');
       } finally {
@@ -292,7 +378,7 @@ export default function FeatureStatsScreen() {
         setRefreshing(false);
       }
     },
-    [feature, range, userToken],
+    [customEndYmd, customStartYmd, feature, range, userToken],
   );
 
   useEffect(() => {
@@ -328,6 +414,9 @@ export default function FeatureStatsScreen() {
   ]);
 
   const exerciseTotals = stats.summary.totals ?? EMPTY_TOTALS;
+
+  const todayCap = toStartOfDay(new Date());
+  const startPickerMax = draftEnd.getTime() > todayCap.getTime() ? todayCap : draftEnd;
 
   if (loading) {
     return (
@@ -369,26 +458,36 @@ export default function FeatureStatsScreen() {
           </View>
         </View>
 
-        <View style={[styles.tabRow, styles.contentInset, styles.tabsTop]}>
-          {FEATURE_OPTIONS.map((item) => {
-            const active = item.key === feature;
-            return (
-              <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={() => setFeature(item.key)}>
-                <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={[styles.selectorBlock, styles.contentInset, styles.selectorBlockTop]}>
+          <Text style={styles.selectorLabel}>หมวดหมู่</Text>
+          <View style={styles.tabRow}>
+            {FEATURE_OPTIONS.map((item) => {
+              const active = item.key === feature;
+              return (
+                <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={() => setFeature(item.key)}>
+                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        <View style={[styles.tabRow, styles.contentInset]}>
-          {RANGE_OPTIONS.map((item) => {
-            const active = item.key === range;
-            return (
-              <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={() => setRange(item.key)}>
-                <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={[styles.selectorBlock, styles.selectorBlockRange, styles.contentInset]}>
+          <Text style={styles.selectorLabel}>ช่วงเวลา</Text>
+          <View style={styles.tabRow}>
+            {RANGE_OPTIONS.map((item) => {
+              const active = item.key === range;
+              const onPressRange = () => {
+                if (item.isCustom) openCustomRangeModal();
+                else setRange(item.key);
+              };
+              return (
+                <TouchableOpacity key={item.key} style={[styles.pill, active && styles.pillActive]} onPress={onPressRange}>
+                  <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {isExercise ? (
@@ -421,7 +520,7 @@ export default function FeatureStatsScreen() {
               data={chartData}
               unit={exerciseChartUnit}
               formatBar={(v) => formatExerciseBarValue(exerciseMetric, v)}
-              monthMode={isMonthChart}
+              monthMode={isWideChart}
             />
           </>
         ) : (
@@ -433,7 +532,7 @@ export default function FeatureStatsScreen() {
               <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
             </View>
 
-            <BarChart data={chartData} unit={featureMeta.unitLabel} monthMode={isMonthChart} />
+            <BarChart data={chartData} unit={featureMeta.unitLabel} monthMode={isWideChart} />
           </>
         )}
 
@@ -442,6 +541,103 @@ export default function FeatureStatsScreen() {
           <Text style={styles.insightText}>{insightText}</Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showCustomRangeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCustomRangeModal}
+      >
+        <View style={styles.rangeModalRoot}>
+          <TouchableOpacity style={styles.rangeModalBackdrop} activeOpacity={1} onPress={closeCustomRangeModal} />
+          <View style={styles.rangeModalCard}>
+            <Text style={styles.rangeModalTitle}>เลือกช่วงวันที่</Text>
+            <Text style={styles.rangeModalSubtitle}>ตั้งแต่วันไหนถึงวันไหน (สูงสุด {MAX_CUSTOM_SPAN_DAYS} วัน)</Text>
+
+            <TouchableOpacity
+              style={styles.rangeModalDateRow}
+              onPress={() =>
+                Platform.OS === 'android' ? setAndroidPick('start') : setIosDatePick((p) => (p === 'start' ? null : 'start'))
+              }
+            >
+              <Text style={styles.rangeModalDateLabel}>ตั้งแต่</Text>
+              <Text style={styles.rangeModalDateValue}>{formatThaiDate(formatYmd(draftStart))}</Text>
+            </TouchableOpacity>
+            {iosDatePick === 'start' && Platform.OS === 'ios' ? (
+              <View style={styles.rangeModalPickerWrap}>
+                <DateTimePicker
+                  value={draftStart}
+                  mode="date"
+                  display="inline"
+                  themeVariant="light"
+                  locale="th-TH"
+                  maximumDate={startPickerMax}
+                  onChange={(_, date) => {
+                    if (date) setDraftStart(toStartOfDay(date));
+                  }}
+                />
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.rangeModalDateRow}
+              onPress={() =>
+                Platform.OS === 'android' ? setAndroidPick('end') : setIosDatePick((p) => (p === 'end' ? null : 'end'))
+              }
+            >
+              <Text style={styles.rangeModalDateLabel}>ถึง</Text>
+              <Text style={styles.rangeModalDateValue}>{formatThaiDate(formatYmd(draftEnd))}</Text>
+            </TouchableOpacity>
+            {iosDatePick === 'end' && Platform.OS === 'ios' ? (
+              <View style={styles.rangeModalPickerWrap}>
+                <DateTimePicker
+                  value={draftEnd}
+                  mode="date"
+                  display="inline"
+                  themeVariant="light"
+                  locale="th-TH"
+                  minimumDate={draftStart}
+                  maximumDate={todayCap}
+                  onChange={(_, date) => {
+                    if (date) setDraftEnd(toStartOfDay(date));
+                  }}
+                />
+              </View>
+            ) : null}
+
+            {showCustomRangeModal && androidPick === 'start' ? (
+              <DateTimePicker
+                value={draftStart}
+                mode="date"
+                display="default"
+                themeVariant="light"
+                maximumDate={startPickerMax}
+                onChange={(e, d) => onAndroidDateChange(e, d, 'start')}
+              />
+            ) : null}
+            {showCustomRangeModal && androidPick === 'end' ? (
+              <DateTimePicker
+                value={draftEnd}
+                mode="date"
+                display="default"
+                themeVariant="light"
+                minimumDate={draftStart}
+                maximumDate={todayCap}
+                onChange={(e, d) => onAndroidDateChange(e, d, 'end')}
+              />
+            ) : null}
+
+            <View style={styles.rangeModalActions}>
+              <TouchableOpacity style={[styles.rangeModalBtn, styles.rangeModalBtnGhost]} onPress={closeCustomRangeModal}>
+                <Text style={styles.rangeModalBtnGhostText}>ยกเลิก</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.rangeModalBtn, styles.rangeModalBtnPrimary]} onPress={applyCustomRange}>
+                <Text style={styles.rangeModalBtnPrimaryText}>ใช้ช่วงนี้</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -449,7 +645,6 @@ export default function FeatureStatsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
   contentInset: { marginHorizontal: 20 },
-  tabsTop: { marginTop: 8 },
   header: {
     justifyContent: 'center',
     marginTop: 18,
@@ -475,7 +670,32 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  selectorBlock: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E1EAE4',
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 12,
+    marginBottom: 12,
+  },
+  selectorBlockTop: {
+    marginTop: 8,
+  },
+  selectorBlockRange: {
+    backgroundColor: '#F2F8F4',
+    borderColor: '#C5DDD0',
+    marginBottom: 6,
+  },
+  selectorLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E4D2B',
+    letterSpacing: 0.2,
+    marginBottom: 10,
+  },
+  tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 0 },
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -582,4 +802,51 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 14, color: '#B72F2F', textAlign: 'center', marginBottom: 12 },
   retryBtn: { backgroundColor: '#1E4D2B', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 10 },
   retryBtnText: { color: '#FFF', fontWeight: '700' },
+  rangeModalRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  rangeModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  rangeModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E1EAE4',
+    maxWidth: 400,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  rangeModalTitle: { fontSize: 18, fontWeight: '800', color: '#1E4D2B' },
+  rangeModalSubtitle: { marginTop: 6, fontSize: 12, color: '#688A7A', lineHeight: 17 },
+  rangeModalDateRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F4F7F5',
+    borderWidth: 1,
+    borderColor: '#E1EAE4',
+  },
+  rangeModalDateLabel: { fontSize: 13, fontWeight: '700', color: '#5C7A6E' },
+  rangeModalDateValue: { fontSize: 14, fontWeight: '700', color: '#1E4D2B' },
+  rangeModalPickerWrap: { marginTop: 8, maxHeight: 220, overflow: 'hidden' },
+  rangeModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 18,
+  },
+  rangeModalBtn: { paddingVertical: 11, paddingHorizontal: 18, borderRadius: 12 },
+  rangeModalBtnGhost: { backgroundColor: '#EEF4F1' },
+  rangeModalBtnGhostText: { color: '#3D5A4C', fontWeight: '700', fontSize: 15 },
+  rangeModalBtnPrimary: { backgroundColor: '#1E4D2B' },
+  rangeModalBtnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
