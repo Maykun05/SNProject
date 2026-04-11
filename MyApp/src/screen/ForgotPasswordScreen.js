@@ -94,8 +94,8 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
       Alert.alert('ผิดพลาด', 'กรุณากรอกคำตอบ');
       return;
     }
-    if (!newPassword || newPassword.length < 6) {
-      Alert.alert('ผิดพลาด', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+    if (!newPassword || newPassword.length < 8) {
+      Alert.alert('ผิดพลาด', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -197,7 +197,7 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
                 onChangeText={setNewPassword}
                 secureTextEntry
                 placeholderTextColor="#9E9E9E"
-                placeholder="อย่างน้อย 6 ตัวอักษร"
+                placeholder="อย่างน้อย 8 ตัวอักษร"
               />
               <Text style={styles.label}>ยืนยันรหัสผ่านใหม่</Text>
               <TextInput
@@ -206,7 +206,7 @@ const ForgotPasswordScreen = ({ navigation, route }) => {
                 onChangeText={setConfirmPassword}
                 secureTextEntry
                 placeholderTextColor="#9E9E9E"
-                placeholder="ยืนยันรหัสผ่าน"
+                placeholder="กรอกเหมือนรหัสผ่านด้านบน"
               />
               <TouchableOpacity
                 style={[styles.button, saving && styles.buttonDisabled]}

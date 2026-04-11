@@ -28,6 +28,10 @@ const RegisterScreen = ({ navigation }) => {
       Alert.alert('ผิดพลาด', 'รูปแบบอีเมลไม่ถูกต้อง');
       return;
     }
+    if (password.length < 8) {
+      Alert.alert('ผิดพลาด', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert('ผิดพลาด', 'รหัสผ่านไม่ตรงกัน');
       return;
@@ -118,10 +122,22 @@ const RegisterScreen = ({ navigation }) => {
           />
 
           <Text style={styles.label}>รหัสผ่าน</Text>
-          <TextInput style={styles.input} secureTextEntry onChangeText={setPassword} placeholder="Password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setPassword}
+            placeholder="อย่างน้อย 8 ตัวอักษร"
+            placeholderTextColor="#9E9E9E"
+          />
 
           <Text style={styles.label}>ยืนยันรหัสผ่าน</Text>
-          <TextInput style={styles.input} secureTextEntry onChangeText={setConfirmPassword} placeholder="Confirm Password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setConfirmPassword}
+            placeholder="กรอกเหมือนรหัสผ่านด้านบน"
+            placeholderTextColor="#9E9E9E"
+          />
 
           <Text style={styles.sectionRecovery}>คำถามกู้คืนรหัสผ่าน</Text>
           <Text style={styles.helperRecovery}>
