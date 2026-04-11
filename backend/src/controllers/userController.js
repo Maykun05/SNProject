@@ -21,6 +21,24 @@ export const login = async (req, res) => {
   }
 };
 
+export const forgotPasswordQuestion = async (req, res) => {
+  try {
+    const result = await userService.getRecoveryQuestionByEmail(req.body.email);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const forgotPasswordReset = async (req, res) => {
+  try {
+    const result = await userService.resetPasswordWithRecovery(req.body);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 // GET /api/user
 export const getUserController = async (req, res) => {
   try {

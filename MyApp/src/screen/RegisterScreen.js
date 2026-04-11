@@ -81,17 +81,12 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <View style={styles.root}>
-      {/* ส่วนหัวสีเขียว: ปรับให้เหมือนหน้า PersonalInfo */}
       <View style={styles.greenArea}>
-        <SafeAreaView />
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#FFF" />
-        </TouchableOpacity>
-        
-        <View style={styles.iconContainer}>
-          <Ionicons name="pulse-outline" size={120} color="#FFF" style={{ opacity: 0.8 }} />
-          <Ionicons name="heart" size={50} color="#FFF" style={styles.heartIcon} />
-        </View>
+        <SafeAreaView edges={['top']} style={styles.greenSafe}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#FFF" />
+          </TouchableOpacity>
+        </SafeAreaView>
       </View>
 
       {/* ส่วนเนื้อหาตัวสีขาวโค้ง */}
@@ -174,22 +169,20 @@ const RegisterScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#2D4F45' },
-  // ปรับส่วนเขียวให้สูงขึ้นและรองรับไอคอนกราฟหัวใจ
-  greenArea: { 
-    height: '30%', 
-    backgroundColor: '#2D4F45', 
-    justifyContent: 'center',
-    paddingHorizontal: 20 
+  greenArea: {
+    backgroundColor: '#2D4F45',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10 },
-  iconContainer: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20 },
-  heartIcon: { position: 'absolute', right: '32%', bottom: 20 },
-  
+  greenSafe: { paddingBottom: 4 },
+  backButton: { paddingVertical: 6, alignSelf: 'flex-start' },
+
   whiteArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 80, // ปรับความโค้งให้เท่ากับหน้า PersonalInfo
-    overflow: 'hidden'
+    borderTopLeftRadius: 80,
+    borderTopRightRadius: 80,
+    overflow: 'hidden',
   },
   card: { padding: 35, paddingBottom: 50 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#2D4F45', textAlign: 'center', marginBottom: 25 },

@@ -9,7 +9,8 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { AuthContext } from '../context/AuthProvider';
 import { API_URL } from  "../config"
@@ -120,7 +121,19 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
           
           <View style={styles.footer}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                const trimmed = email.trim();
+                if (!trimmed) {
+                  Alert.alert(
+                    'แจ้งเตือน',
+                    'กรุณากรอกอีเมลในช่องด้านบนก่อน แล้วค่อยกดลืมรหัสผ่าน'
+                  );
+                  return;
+                }
+                navigation.navigate('ForgotPassword', { email: trimmed });
+              }}
+            >
               <Text style={styles.forgotText}>ลืมรหัสผ่าน?</Text>
             </TouchableOpacity>
             
