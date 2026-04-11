@@ -56,20 +56,20 @@ export default function WaterProgressRing({
       </Svg>
       <View style={styles.centerWrap} pointerEvents="box-none">
         <Text style={styles.bigText}>{consumed}</Text>
-        <Text style={styles.unitText}>ml วันนี้</Text>
+        <Text style={styles.unitText}> มิลลิลิตร </Text>
 
         <View style={styles.goalRow}>
-          <Text style={styles.goalText}>เป้า {recommended} ml</Text>
+          <Text style={styles.goalText}>เป้าหมาย {recommended}</Text>
           {onEditGoal ? (
             <TouchableOpacity onPress={onEditGoal} hitSlop={10} style={styles.editHit}>
               <Ionicons name="create-outline" size={17} color="#1565C0" />
             </TouchableOpacity>
           ) : null}
         </View>
-
+{/* 
         {recommendedDaily != null ? (
           <Text style={styles.recText}>แนะนำ {recommendedDaily} มล./วัน</Text>
-        ) : null}
+        ) : null} */}
       </View>
     </View>
   );
