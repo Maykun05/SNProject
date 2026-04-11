@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
@@ -19,6 +19,7 @@ import { AuthContext } from "../context/AuthProvider";
 import BirthDatePickerCard from '../components/BirthDatePickerCard';
 
 const PersonalInfoScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { userToken } = useContext(AuthContext);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
@@ -107,22 +108,18 @@ const PersonalInfoScreen = ({ navigation }) => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
+          <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={28} color="#FFF" />
-              </TouchableOpacity>
-              <View style={styles.logoWrapper}>
-                <Ionicons name="pulse-outline" size={80} color="#FFF" />
-                <Ionicons name="heart" size={30} color="#FFF" style={styles.smallHeart} />
-              </View>
-            </View>
+            <View
+              style={{
+                height: Math.max(insets.top, 8) + 80,
+                backgroundColor: '#2D4F45',
+              }}
+            />
 
             {/* Content Area */}
             <View style={styles.whiteCard}>
@@ -212,6 +209,17 @@ const PersonalInfoScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
 
+      <TouchableOpacity
+        style={[
+          styles.backFab,
+          { top: Math.max(insets.top, 8) + 4, left: 8 },
+        ]}
+        onPress={() => navigation.goBack()}
+        hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="arrow-back" size={28} color="#FFF" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -219,10 +227,14 @@ const PersonalInfoScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: '#2D4F45' },
   scrollContent: { flexGrow: 1 },
-  header: { height: 160, justifyContent: 'center', alignItems: 'center' },
-  backBtn: { position: 'absolute', top: 20, left: 20, zIndex: 10 },
-  logoWrapper: { flexDirection: 'row', alignItems: 'center' },
-  smallHeart: { marginLeft: -25, marginTop: 30 },
+  backFab: {
+    position: 'absolute',
+    zIndex: 999,
+    padding: 8,
+    ...Platform.select({
+      android: { elevation: 24 },
+    }),
+  },
   whiteCard: {
     flex: 1,
     backgroundColor: '#FFF',
@@ -230,7 +242,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 50,
     paddingHorizontal: 25,
     paddingTop: 30,
-    paddingBottom: 40, 
+    paddingBottom: 40,
+    marginTop: -28,
   },
   title: { fontSize: 26, fontWeight: 'bold', color: '#2D4F45', textAlign: 'center', marginBottom: 20 },
   label: { fontSize: 14, fontWeight: 'bold', color: '#2D4F45', marginTop: 15, marginBottom: 8 },

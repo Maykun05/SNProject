@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from '../context/AuthProvider';
+import { isValidEmail } from '../utils/emailValidation';
 
 const RegisterScreen = ({ navigation }) => {
   const { login } = useContext(AuthContext);
@@ -12,6 +13,8 @@ const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryQuestion, setRecoveryQuestion] = useState('');
+  const [recoveryAnswer, setRecoveryAnswer] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -20,8 +23,31 @@ const RegisterScreen = ({ navigation }) => {
       Alert.alert('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
+    const e = email.trim();
+    if (!isValidEmail(e)) {
+      Alert.alert('ผิดพลาด', 'รูปแบบอีเมลไม่ถูกต้อง');
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert('ผิดพลาด', 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert('ผิดพลาด', 'รหัสผ่านไม่ตรงกัน');
+      return;
+    }
+    const qTrim = recoveryQuestion.trim();
+    const aTrim = recoveryAnswer.trim();
+    if (!qTrim || !aTrim) {
+      Alert.alert('ผิดพลาด', 'กรุณากรอกคำถามและคำตอบกู้คืนรหัสผ่าน');
+      return;
+    }
+    if (qTrim.length < 5) {
+      Alert.alert('ผิดพลาด', 'คำถามต้องมีอย่างน้อย 5 ตัวอักษร');
+      return;
+    }
+    if (aTrim.length < 4) {
+      Alert.alert('ผิดพลาด', 'คำตอบต้องมีอย่างน้อย 4 ตัวอักษร');
       return;
     }
     if (!isAgreed) {
@@ -30,6 +56,7 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
+      setLoading(true);
       const res = await fetch(`${API_URL}/api/register`, {
         method: "POST",
         headers: {
@@ -37,8 +64,10 @@ const RegisterScreen = ({ navigation }) => {
         },
         body: JSON.stringify({
           username,
-          email,
+          email: e,
           password,
+          recoveryQuestion: qTrim,
+          recoveryAnswer: aTrim,
         }),
       });
 
@@ -62,17 +91,12 @@ const RegisterScreen = ({ navigation }) => {
 
   return (
     <View style={styles.root}>
-      {/* ส่วนหัวสีเขียว: ปรับให้เหมือนหน้า PersonalInfo */}
       <View style={styles.greenArea}>
-        <SafeAreaView />
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#FFF" />
-        </TouchableOpacity>
-        
-        <View style={styles.iconContainer}>
-          <Ionicons name="pulse-outline" size={120} color="#FFF" style={{ opacity: 0.8 }} />
-          <Ionicons name="heart" size={50} color="#FFF" style={styles.heartIcon} />
-        </View>
+        <SafeAreaView edges={['top']} style={styles.greenSafe}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#FFF" />
+          </TouchableOpacity>
+        </SafeAreaView>
       </View>
 
       {/* ส่วนเนื้อหาตัวสีขาวโค้ง */}
@@ -93,14 +117,49 @@ const RegisterScreen = ({ navigation }) => {
             onChangeText={setEmail} 
             keyboardType="email-address" 
             autoCapitalize="none"
-            placeholder="Email"
+            placeholder="เช่น yourname@email.com"
+            placeholderTextColor="#9E9E9E"
           />
 
           <Text style={styles.label}>รหัสผ่าน</Text>
-          <TextInput style={styles.input} secureTextEntry onChangeText={setPassword} placeholder="Password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setPassword}
+            placeholder="อย่างน้อย 8 ตัวอักษร"
+            placeholderTextColor="#9E9E9E"
+          />
 
           <Text style={styles.label}>ยืนยันรหัสผ่าน</Text>
-          <TextInput style={styles.input} secureTextEntry onChangeText={setConfirmPassword} placeholder="Confirm Password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setConfirmPassword}
+            placeholder="กรอกเหมือนรหัสผ่านด้านบน"
+            placeholderTextColor="#9E9E9E"
+          />
+
+          <Text style={styles.sectionRecovery}>คำถามกู้คืนรหัสผ่าน</Text>
+          <Text style={styles.helperRecovery}>
+            ใช้เมื่อลืมรหัสผ่าน — ตั้งคำถามที่จำคำตอบได้เฉพาะคุณ
+          </Text>
+          <Text style={styles.label}>คำถามของคุณ</Text>
+          <TextInput
+            style={styles.input}
+            onChangeText={setRecoveryQuestion}
+            autoCorrect={false}
+            maxLength={200}
+            placeholder="เช่น ชื่อเล่นสัตว์เลี้ยงตัวแรกของฉันคือ?"
+          />
+          <Text style={styles.label}>คำตอบ</Text>
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setRecoveryAnswer}
+            autoCorrect={false}
+            maxLength={200}
+            placeholder="คำตอบของคุณ"
+          />
 
           <View style={styles.checkboxContainer}>
             <TouchableOpacity
@@ -133,28 +192,39 @@ const RegisterScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#2D4F45' },
-  // ปรับส่วนเขียวให้สูงขึ้นและรองรับไอคอนกราฟหัวใจ
-  greenArea: { 
-    height: '30%', 
-    backgroundColor: '#2D4F45', 
-    justifyContent: 'center',
-    paddingHorizontal: 20 
+  greenArea: {
+    backgroundColor: '#2D4F45',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  backButton: { position: 'absolute', top: 50, left: 20, zIndex: 10 },
-  iconContainer: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 20 },
-  heartIcon: { position: 'absolute', right: '32%', bottom: 20 },
-  
+  greenSafe: { paddingBottom: 4 },
+  backButton: { paddingVertical: 6, alignSelf: 'flex-start' },
+
   whiteArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 80, // ปรับความโค้งให้เท่ากับหน้า PersonalInfo
-    overflow: 'hidden'
+    borderTopLeftRadius: 80,
+    borderTopRightRadius: 80,
+    overflow: 'hidden',
   },
   card: { padding: 35, paddingBottom: 50 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#2D4F45', textAlign: 'center', marginBottom: 25 },
   label: { color: '#2D4F45', marginBottom: 6, fontWeight: '500' },
   input: { backgroundColor: '#E5E5E5', borderRadius: 15, padding: 16, marginBottom: 15 },
-  
+  sectionRecovery: {
+    color: '#2D4F45',
+    fontSize: 17,
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  helperRecovery: {
+    color: '#9E9E9E',
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   checkbox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#2D4F45',

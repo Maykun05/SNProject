@@ -127,7 +127,13 @@ export const applyXpGrant = async (userId, amount) => {
   return prisma.$transaction((tx) => applyXpInTransaction(tx, userId, a));
 };
 
-export const registerUser = async ({ username, email, password }) => {
+export const registerUser = async ({
+  username,
+  email,
+  password,
+  recoveryQuestion,
+  recoveryAnswer,
+}) => {
   const existing = await prisma.user.findUnique({
     where: { email },
   });
@@ -136,13 +142,28 @@ export const registerUser = async ({ username, email, password }) => {
     throw new Error("Email already exists");
   }
 
+  const q = typeof recoveryQuestion === "string" ? recoveryQuestion.trim() : "";
+  const rawAnswer =
+    typeof recoveryAnswer === "string" ? recoveryAnswer.trim() : "";
+  const normalizedAnswer = rawAnswer.toLowerCase();
+
+  if (!q || q.length < 5) {
+    throw new Error("Recovery question must be at least 5 characters");
+  }
+  if (!normalizedAnswer || normalizedAnswer.length < 4) {
+    throw new Error("Recovery answer must be at least 4 characters");
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
+  const recoveryAnswerHash = await bcrypt.hash(normalizedAnswer, 10);
 
   const user = await prisma.user.create({
     data: {
       username,
       email,
       password: hashedPassword,
+      recoveryQuestion: q,
+      recoveryAnswerHash,
     },
   });
 
@@ -190,6 +211,68 @@ export const loginUser = async ({ email, password }) => {
       username: user.username,
     }, 
   };
+};
+
+export const getRecoveryQuestionByEmail = async (rawEmail) => {
+  const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
+  if (!email) {
+    throw new Error("กรุณากรอกอีเมล");
+  }
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { recoveryQuestion: true, recoveryAnswerHash: true },
+  });
+  if (!user) {
+    throw new Error("ไม่พบบัญชี");
+  }
+  if (!user.recoveryQuestion || !user.recoveryAnswerHash) {
+    throw new Error("บัญชีนี้ยังไม่ได้ตั้งคำถามกู้คืน");
+  }
+  return { recoveryQuestion: user.recoveryQuestion };
+};
+
+export const resetPasswordWithRecovery = async ({
+  email: rawEmail,
+  recoveryAnswer,
+  newPassword,
+}) => {
+  const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
+  const rawAnswer =
+    typeof recoveryAnswer === "string" ? recoveryAnswer.trim() : "";
+  const normalizedAnswer = rawAnswer.toLowerCase();
+  if (!email) {
+    throw new Error("กรุณากรอกอีเมล");
+  }
+  if (!normalizedAnswer) {
+    throw new Error("กรุณากรอกคำตอบ");
+  }
+  const pwd = typeof newPassword === "string" ? newPassword : "";
+  if (pwd.length < 6) {
+    throw new Error("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, recoveryAnswerHash: true },
+  });
+  if (!user) {
+    throw new Error("ไม่พบบัญชี");
+  }
+  if (!user.recoveryAnswerHash) {
+    throw new Error("บัญชีนี้ยังไม่ได้ตั้งคำถามกู้คืน");
+  }
+
+  const ok = await bcrypt.compare(normalizedAnswer, user.recoveryAnswerHash);
+  if (!ok) {
+    throw new Error("คำตอบไม่ถูกต้อง");
+  }
+
+  const hashedPassword = await bcrypt.hash(pwd, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashedPassword },
+  });
+  return { success: true };
 };
 
 export const getProfileStatsService = async (userId) => {

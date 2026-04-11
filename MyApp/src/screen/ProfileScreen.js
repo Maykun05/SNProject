@@ -215,8 +215,8 @@ const handleChangePassword = async () => {
     Alert.alert('รหัสผ่านใหม่ไม่ตรงกัน');
     return;
   }
-  if (newPassword.length < 6) {
-    Alert.alert('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+  if (newPassword.length < 8) {
+    Alert.alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
     return;
   }
   try {
@@ -533,9 +533,9 @@ const handleChangePassword = async () => {
               <Text style={styles.modalTitle}>เปลี่ยนรหัสผ่าน</Text>
             </View>
             {[
-              { label: 'รหัสผ่านเดิม',   value: oldPassword,     setter: setOldPassword     },
-              { label: 'รหัสผ่านใหม่',   value: newPassword,     setter: setNewPassword     },
-              { label: 'ยืนยันรหัสผ่าน', value: confirmPassword, setter: setConfirmPassword },
+              { label: 'รหัสผ่านเดิม', value: oldPassword, setter: setOldPassword, placeholder: 'รหัสผ่านปัจจุบัน' },
+              { label: 'รหัสผ่านใหม่', value: newPassword, setter: setNewPassword, placeholder: 'อย่างน้อย 8 ตัวอักษร' },
+              { label: 'ยืนยันรหัสผ่าน', value: confirmPassword, setter: setConfirmPassword, placeholder: 'กรอกเหมือนรหัสผ่านใหม่' },
             ].map((field) => (
               <View key={field.label}>
                 <Text style={styles.fieldLabel}>{field.label}</Text>
@@ -544,7 +544,7 @@ const handleChangePassword = async () => {
                     style={styles.input}
                     value={field.value}
                     onChangeText={field.setter}
-                    placeholder="••••••••"
+                    placeholder={field.placeholder}
                     placeholderTextColor="#bbb"
                     secureTextEntry
                   />

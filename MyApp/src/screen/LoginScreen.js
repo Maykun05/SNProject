@@ -9,12 +9,14 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { AuthContext } from '../context/AuthProvider';
 import { API_URL } from  "../config"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { isValidEmail } from '../utils/emailValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,15 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleLogin = async() => {
+    const e = email.trim();
+    if (!e) {
+      Alert.alert('แจ้งเตือน', 'กรุณากรอกอีเมล');
+      return;
+    }
+    if (!isValidEmail(e)) {
+      Alert.alert('ผิดพลาด', 'รูปแบบอีเมลไม่ถูกต้อง');
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
@@ -33,8 +44,7 @@ const LoginScreen = ({ navigation }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // username,
-          email,
+          email: e,
           password,
         }),
       });
@@ -89,14 +99,14 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.title}>เข้าสู่ระบบ</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>ชื่อ</Text>
+            <Text style={styles.label}>อีเมล</Text>
             <TextInput
               style={styles.input}
               value={email}
-              // value={username}
               onChangeText={setEmail}
-              // onChangeText={setUsername}
+              keyboardType="email-address"
               autoCapitalize="none"
+              placeholder="เช่น yourname@email.com"
               placeholderTextColor="#9E9E9E"
             />
           </View>
@@ -120,7 +130,23 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
           
           <View style={styles.footer}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                const trimmed = email.trim();
+                if (!trimmed) {
+                  Alert.alert(
+                    'แจ้งเตือน',
+                    'กรุณากรอกอีเมลในช่องด้านบนก่อน แล้วค่อยกดลืมรหัสผ่าน'
+                  );
+                  return;
+                }
+                if (!isValidEmail(trimmed)) {
+                  Alert.alert('ผิดพลาด', 'รูปแบบอีเมลไม่ถูกต้อง');
+                  return;
+                }
+                navigation.navigate('ForgotPassword', { email: trimmed });
+              }}
+            >
               <Text style={styles.forgotText}>ลืมรหัสผ่าน?</Text>
             </TouchableOpacity>
             
