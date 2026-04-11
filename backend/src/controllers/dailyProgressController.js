@@ -1,52 +1,12 @@
 import prisma from "../config/prisma.js";
-import { grantDailyTreeIfNeeded } from "../services/treeGardenService.js";
-
-/** Canonical keys — ตรงกับ seed Feature.name */
-const CANONICAL_FEATURES = ["water", "food", "mood", "sleep", "exercise"];
-
-/** รองรับ client / log เก่า */
-const LEGACY_FEATURE_ALIASES = {
-  calorie: "food",
-  step: "exercise",
-};
-
-const VALID_FEATURES = CANONICAL_FEATURES;
-
-const startOfDay = (date = new Date()) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
-const normalizeFeatureKey = (name = "") => {
-  let k = String(name).replace(/feature$/i, "").trim().toLowerCase();
-  k = LEGACY_FEATURE_ALIASES[k] ?? k;
-  return k;
-};
-
-const getSelectedFeatureKeys = async (userId) => {
-  const selected = await prisma.userFeature.findMany({
-    where: { userId },
-    include: { feature: true },
-  });
-
-  const keys = selected
-    .map((row) => normalizeFeatureKey(row.feature?.name))
-    .filter(Boolean);
-
-  return keys.length > 0 ? Array.from(new Set(keys)) : VALID_FEATURES;
-};
-
-const getCompletedFeatureKeys = async (userId, date = new Date()) => {
-  const logDate = startOfDay(date);
-  const rows = await prisma.dailyFeatureLog.findMany({
-    where: { userId, logDate },
-    include: { feature: true },
-  });
-  return Array.from(
-    new Set(rows.map((row) => normalizeFeatureKey(row.feature?.name)).filter(Boolean)),
-  );
-};
+import {
+  getSelectedFeatureKeys,
+  getCompletedFeatureKeys,
+  normalizeFeatureKey,
+  recomputeDailyProgress,
+  startOfDay,
+  VALID_FEATURES,
+} from "../services/dailyProgressRecompute.js";
 
 const countMonthEarnedDays = async (userId, year, month) => {
   const monthStart = new Date(year, month - 1, 1);
@@ -104,39 +64,16 @@ export const logFeature = async (req, res) => {
     }
 
     const today = startOfDay();
-    await prisma.dailyFeatureLog.upsert({
-      where: {
-        userId_featureId_logDate: { userId, featureId: feature.id, logDate: today },
-      },
-      update: {},
-      create: { userId, featureId: feature.id, logDate: today },
+    const { completedToday, targetFeatures, allCompleted } = await prisma.$transaction(async (tx) => {
+      await tx.dailyFeatureLog.upsert({
+        where: {
+          userId_featureId_logDate: { userId, featureId: feature.id, logDate: today },
+        },
+        update: {},
+        create: { userId, featureId: feature.id, logDate: today },
+      });
+      return recomputeDailyProgress(userId, today, tx);
     });
-
-    const targetFeatures = await getSelectedFeatureKeys(userId);
-    const completedKeys = await getCompletedFeatureKeys(userId, today);
-    const completedToday = targetFeatures.filter((k) => completedKeys.includes(k));
-    const allCompleted = completedToday.length >= targetFeatures.length;
-
-    await prisma.dailyProgress.upsert({
-      where: { userId_date: { userId, date: today } },
-      update: {
-        completed: completedToday.length,
-        total: targetFeatures.length,
-        treeLevel: allCompleted ? 1 : 0,
-      },
-      create: {
-        userId,
-        date: today,
-        completed: completedToday.length,
-        total: targetFeatures.length,
-        treeLevel: allCompleted ? 1 : 0,
-      },
-    });
-
-    let dailyTreeGrant = null;
-    if (allCompleted) {
-      dailyTreeGrant = await grantDailyTreeIfNeeded(userId, today);
-    }
 
     const monthEarned = await countMonthEarnedDays(userId, today.getFullYear(), today.getMonth() + 1);
 
@@ -149,8 +86,6 @@ export const logFeature = async (req, res) => {
         allCompleted,
         treeGrown: allCompleted,
         treeCount: monthEarned.length,
-        dailyTreeCreated: Boolean(dailyTreeGrant?.created),
-        earnedTree: dailyTreeGrant?.earnedTree ?? null,
       },
     });
   } catch (err) {
@@ -166,10 +101,8 @@ export const getTodayProgress = async (req, res) => {
     const targetFeatures = await getSelectedFeatureKeys(userId);
     const completedKeys = await getCompletedFeatureKeys(userId, today);
     const completedFeatures = targetFeatures.filter((k) => completedKeys.includes(k));
-    const daily = await prisma.dailyProgress.findUnique({
-      where: { userId_date: { userId, date: today } },
-    });
-    const treeEarnedToday = daily ? daily.completed >= daily.total && daily.total > 0 : false;
+    const treeEarnedToday =
+      targetFeatures.length > 0 && completedFeatures.length >= targetFeatures.length;
 
     return res.json({
       success: true,
@@ -210,6 +143,8 @@ export const selectFeatures = async (req, res) => {
         skipDuplicates: true,
       }),
     ]);
+
+    await recomputeDailyProgress(userId, startOfDay());
 
     return res.json({ success: true, data: { selectedFeatures: normalized } });
   } catch (err) {

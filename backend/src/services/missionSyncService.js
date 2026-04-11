@@ -29,6 +29,12 @@ export const formatLocalDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+/** Calendar entry day matches local day of first save — excludes backfilled past days. */
+export function sameLocalEntryAndLoggedDay(entryDate, recordedAt) {
+  if (!entryDate || !recordedAt) return false;
+  return formatLocalDate(entryDate) === formatLocalDate(recordedAt);
+}
+
 export const startOfWeekMonday = (date = new Date()) => {
   const s = startOfDay(date);
   const day = s.getDay();
@@ -132,6 +138,46 @@ function buildSleepByDay(rows) {
   return map;
 }
 
+function buildStreakWaterMlByDay(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    if (!sameLocalEntryAndLoggedDay(row.logDate, row.createdAt)) continue;
+    const key = formatLocalDate(row.logDate);
+    map.set(key, (map.get(key) ?? 0) + (Number(row.amountMl) || 0));
+  }
+  return map;
+}
+
+function buildStreakFoodCountByDay(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    if (!sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
+    const key = formatLocalDate(row.date);
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return map;
+}
+
+function buildStreakMoodByDay(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    if (!sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
+    const key = formatLocalDate(row.date);
+    map.set(key, row.mood);
+  }
+  return map;
+}
+
+function buildStreakSleepByDay(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    if (!sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
+    const key = formatLocalDate(row.date);
+    map.set(key, Number(row.hours) || 0);
+  }
+  return map;
+}
+
 function sumStepsInRange(dailySteps, dateKeys) {
   let t = 0;
   for (const k of dateKeys) t += dailySteps.get(k) ?? 0;
@@ -172,6 +218,26 @@ function buildExercisePlanDoneDayKeys(rows) {
   const set = new Set();
   for (const row of rows) {
     if (!row?.date) continue;
+    if (!dayHasCompletedPlanProgress(row.progressJson)) continue;
+    set.add(formatLocalDate(row.date));
+  }
+  return set;
+}
+
+/** ActivitySession days that count toward streak (session date = first-save local day). */
+function buildExerciseSessionDayKeysStreak(rows) {
+  const set = new Set();
+  for (const row of rows) {
+    if (!row?.date || !sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
+    set.add(formatLocalDate(row.date));
+  }
+  return set;
+}
+
+function buildExercisePlanDoneDayKeysStreak(rows) {
+  const set = new Set();
+  for (const row of rows) {
+    if (!row?.date || !sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
     if (!dayHasCompletedPlanProgress(row.progressJson)) continue;
     set.add(formatLocalDate(row.date));
   }
@@ -225,6 +291,7 @@ function activityStreakDays(
  * @param {string} ctx.sunKey
  * @param {Set<string>} [ctx.exerciseDayKeys] days with at least one ActivitySession
  * @param {Date} [ctx.syncTodayDate] anchor calendar day for water-goal streak (mission sync "today")
+ * @param {Map<string, number>} [ctx.waterMlByDayStreak] same-day-logged water only (anti backfill)
  */
 export function computeMetricProgress(metric, ctx) {
   const {
@@ -232,6 +299,7 @@ export function computeMetricProgress(metric, ctx) {
     weekDayKeys,
     monthDayKeys,
     waterMlByDay,
+    waterMlByDayStreak,
     foodCountByDay,
     dailySteps,
     moodByDay,
@@ -286,7 +354,7 @@ export function computeMetricProgress(metric, ctx) {
     }
     case "water_goal_streak":
       return countWaterGoalStreakEndingToday(
-        waterMlByDay,
+        waterMlByDayStreak ?? waterMlByDay,
         syncTodayDate ?? new Date(),
         waterGoalMl
       );
@@ -367,36 +435,41 @@ export async function syncMissionsForUser(prisma, userId, now = new Date()) {
     const [waterRows, foodRows, sessionRows, moodRows, sleepRows, exercisePlanRows] = await Promise.all([
       tx.waterLog.findMany({
         where: { userId, logDate: { gte: dataStart, lte: endOfDay(today) } },
-        select: { logDate: true, amountMl: true },
+        select: { logDate: true, amountMl: true, createdAt: true },
       }),
       tx.foodLog.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true },
+        select: { date: true, createdAt: true },
       }),
       tx.activitySession.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true, steps: true },
+        select: { date: true, steps: true, createdAt: true },
       }),
       tx.moodLog.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true, mood: true },
+        select: { date: true, mood: true, createdAt: true },
       }),
       tx.sleep.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true, hours: true },
+        select: { date: true, hours: true, createdAt: true },
       }),
       tx.exerciseDay.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true, progressJson: true },
+        select: { date: true, progressJson: true, createdAt: true },
       }),
     ]);
 
     const waterMlByDay = buildDailyMapFromWater(waterRows);
+    const waterMlByDayStreak = buildStreakWaterMlByDay(waterRows);
     const foodCountByDay = buildDailyCountMapFood(foodRows);
     const dailySteps = buildDailySteps(sessionRows);
     const exerciseDayKeys = buildExerciseSessionDayKeys(sessionRows);
     const exercisePlanDoneDayKeys = buildExercisePlanDoneDayKeys(exercisePlanRows);
     const activeExerciseDayKeys = mergeDayKeySets(exerciseDayKeys, exercisePlanDoneDayKeys);
+    const activeExerciseDayKeysStreak = mergeDayKeySets(
+      buildExerciseSessionDayKeysStreak(sessionRows),
+      buildExercisePlanDoneDayKeysStreak(exercisePlanRows),
+    );
     const moodByDay = buildMoodByDay(moodRows);
     const sleepByDay = buildSleepByDay(sleepRows);
 
@@ -405,6 +478,7 @@ export async function syncMissionsForUser(prisma, userId, now = new Date()) {
       weekDayKeys,
       monthDayKeys,
       waterMlByDay,
+      waterMlByDayStreak,
       foodCountByDay,
       dailySteps,
       exerciseDayKeys,
@@ -418,11 +492,11 @@ export async function syncMissionsForUser(prisma, userId, now = new Date()) {
     };
 
     const streak = activityStreakDays(
-      waterMlByDay,
-      foodCountByDay,
-      moodByDay,
-      sleepByDay,
-      activeExerciseDayKeys,
+      waterMlByDayStreak,
+      buildStreakFoodCountByDay(foodRows),
+      buildStreakMoodByDay(moodRows),
+      buildStreakSleepByDay(sleepRows),
+      activeExerciseDayKeysStreak,
       today
     );
 
