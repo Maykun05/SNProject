@@ -238,12 +238,6 @@ model CoinTransaction {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-model MissionReward {
-  id     Int    @id @default(autoincrement())
-  type   String @unique
-  reward Int
-}
-
 model ActivitySession {
   id        Int      @id @default(autoincrement())
   userId    Int
