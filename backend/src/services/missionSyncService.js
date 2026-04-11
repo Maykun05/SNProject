@@ -102,11 +102,12 @@ function buildDailySteps(rows) {
   return map;
 }
 
-/** Calendar days (YYYY-MM-DD) that have at least one ActivitySession */
-function buildExerciseSessionDayKeys(rows) {
+/** Calendar days with at least one ActivitySession where isQualified === true (null/false do not count). */
+export function buildQualifiedExerciseSessionDayKeys(rows) {
   const set = new Set();
   for (const row of rows) {
     if (!row?.date) continue;
+    if (row.isQualified !== true) continue;
     set.add(formatLocalDate(row.date));
   }
   return set;
@@ -224,11 +225,12 @@ function buildExercisePlanDoneDayKeys(rows) {
   return set;
 }
 
-/** ActivitySession days that count toward streak (session date = first-save local day). */
-function buildExerciseSessionDayKeysStreak(rows) {
+/** Qualified ActivitySession days for streak (same-day log + isQualified true only). */
+function buildQualifiedExerciseSessionDayKeysStreak(rows) {
   const set = new Set();
   for (const row of rows) {
     if (!row?.date || !sameLocalEntryAndLoggedDay(row.date, row.createdAt)) continue;
+    if (row.isQualified !== true) continue;
     set.add(formatLocalDate(row.date));
   }
   return set;
@@ -250,7 +252,7 @@ function mergeDayKeySets(a, b) {
   return out;
 }
 
-/** Streak: logged activities only (no raw step totals). Exercise = session or completed plan day. */
+/** Streak: logged activities only (no raw step totals). Exercise = qualified session or completed plan day. */
 function activityStreakDays(
   waterMlByDay,
   foodCountByDay,
@@ -289,7 +291,7 @@ function activityStreakDays(
  * @param {string} ctx.weekStartKey
  * @param {string} ctx.satKey
  * @param {string} ctx.sunKey
- * @param {Set<string>} [ctx.exerciseDayKeys] days with at least one ActivitySession
+ * @param {Set<string>} [ctx.exerciseDayKeys] merged calendar days: qualified ActivitySession OR ExerciseDay plan progress
  * @param {Date} [ctx.syncTodayDate] anchor calendar day for water-goal streak (mission sync "today")
  * @param {Map<string, number>} [ctx.waterMlByDayStreak] same-day-logged water only (anti backfill)
  */
@@ -443,7 +445,7 @@ export async function syncMissionsForUser(prisma, userId, now = new Date()) {
       }),
       tx.activitySession.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
-        select: { date: true, steps: true, createdAt: true },
+        select: { date: true, steps: true, createdAt: true, isQualified: true },
       }),
       tx.moodLog.findMany({
         where: { userId, date: { gte: dataStart, lte: endOfDay(today) } },
@@ -463,11 +465,11 @@ export async function syncMissionsForUser(prisma, userId, now = new Date()) {
     const waterMlByDayStreak = buildStreakWaterMlByDay(waterRows);
     const foodCountByDay = buildDailyCountMapFood(foodRows);
     const dailySteps = buildDailySteps(sessionRows);
-    const exerciseDayKeys = buildExerciseSessionDayKeys(sessionRows);
+    const qualifiedSessionDayKeys = buildQualifiedExerciseSessionDayKeys(sessionRows);
     const exercisePlanDoneDayKeys = buildExercisePlanDoneDayKeys(exercisePlanRows);
-    const activeExerciseDayKeys = mergeDayKeySets(exerciseDayKeys, exercisePlanDoneDayKeys);
+    const exerciseDayKeys = mergeDayKeySets(qualifiedSessionDayKeys, exercisePlanDoneDayKeys);
     const activeExerciseDayKeysStreak = mergeDayKeySets(
-      buildExerciseSessionDayKeysStreak(sessionRows),
+      buildQualifiedExerciseSessionDayKeysStreak(sessionRows),
       buildExercisePlanDoneDayKeysStreak(exercisePlanRows),
     );
     const moodByDay = buildMoodByDay(moodRows);

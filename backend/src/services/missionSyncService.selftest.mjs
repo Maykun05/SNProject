@@ -2,7 +2,12 @@
  * Smoke checks for mission metrics (run: npm run test:missions)
  */
 import assert from "node:assert/strict";
-import { computeMetricProgress, formatLocalDate, startOfDay } from "./missionSyncService.js";
+import {
+  computeMetricProgress,
+  formatLocalDate,
+  startOfDay,
+  buildQualifiedExerciseSessionDayKeys,
+} from "./missionSyncService.js";
 
 const today = startOfDay(new Date());
 const todayKey = formatLocalDate(today);
@@ -29,6 +34,7 @@ assert.equal(computeMetricProgress("food_logs_today", baseCtx), 3);
 assert.equal(computeMetricProgress("steps_today", baseCtx), 6000);
 assert.equal(computeMetricProgress("mood_logged_today", baseCtx), 1);
 
+// exerciseDayKeys = merged days (qualified session OR plan-done); empty => no exercise day
 assert.equal(computeMetricProgress("exercise_session_days_today", baseCtx), 0);
 assert.equal(
   computeMetricProgress("exercise_session_days_today", {
@@ -57,6 +63,26 @@ assert.equal(computeMetricProgress("food_distinct_days_week", foodStreakCtx), 3)
 assert.equal(
   computeMetricProgress("exercise_distinct_days_week", {
     ...foodStreakCtx,
+    exerciseDayKeys: new Set([mon, wed]),
+  }),
+  2
+);
+
+// Qualified session day keys: only isQualified === true
+const sampleDate = startOfDay(new Date("2026-04-10T12:00:00"));
+const keyApr10 = formatLocalDate(sampleDate);
+assert.equal(
+  buildQualifiedExerciseSessionDayKeys([{ date: sampleDate, isQualified: true }]).has(keyApr10),
+  true
+);
+assert.equal(buildQualifiedExerciseSessionDayKeys([{ date: sampleDate, isQualified: false }]).size, 0);
+assert.equal(buildQualifiedExerciseSessionDayKeys([{ date: sampleDate, isQualified: null }]).size, 0);
+assert.equal(buildQualifiedExerciseSessionDayKeys([{ date: sampleDate }]).size, 0);
+
+assert.equal(
+  computeMetricProgress("exercise_distinct_days_month", {
+    ...baseCtx,
+    monthDayKeys: [mon, wed, "2026-04-30"],
     exerciseDayKeys: new Set([mon, wed]),
   }),
   2
