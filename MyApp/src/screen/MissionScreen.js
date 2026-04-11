@@ -191,7 +191,7 @@ const MissionScreen = () => {
         ) : null}
 
         <LinearGradient
-          colors={['#2E7D5B', '#1B5E45']}
+          colors={[GREEN, '#1B5E45']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.heroCard}
@@ -263,7 +263,7 @@ const MissionScreen = () => {
     </SafeAreaView>
   );
 };
-
+const GREEN = '#1E4D2B';
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
   centerPad: { paddingVertical: 24, alignItems: 'center', paddingHorizontal: 24 },
@@ -279,6 +279,7 @@ const styles = StyleSheet.create({
   retryBtnText: { color: '#fff', fontWeight: '700' },
   header: {
     justifyContent: 'center',
+    marginTop: 18,
     paddingTop: 18,
     paddingHorizontal: 24,
     paddingBottom: 10,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   headerSmall: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#2E7D5B',
+    color: GREEN,
     opacity: 0.9,
     textAlign: 'center',
     letterSpacing: 0.2,

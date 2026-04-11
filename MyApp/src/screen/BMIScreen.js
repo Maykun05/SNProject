@@ -1,118 +1,200 @@
-import {useContext, useEffect, useState} from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native"; 
-import { API_URL } from "../config";
-import { AuthContext } from "../context/AuthProvider";
+import { useContext, useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { API_URL } from '../config';
+import { AuthContext } from '../context/AuthProvider';
+import { getProfileAge } from '../utils/profileHealth';
+
+const GREEN = '#1E4D2B';
+const GRADIENT_END = '#1B5E45';
+const MUTED = '#688A7A';
+const HERO_ICON = 'rgba(255,255,255,0.88)';
+
+/** แถบ 5 สี = ช่วง BMI ตามเกณฑ์ในหน้านี้ — map ค่า BMI ไปยัง % ความกว้างแถบให้ตัวชี้อยู่ในช่องสีที่ถูกต้อง */
+const bmiToMarkerPercent = (bmi) => {
+  const clamp01 = (t) => Math.min(1, Math.max(0, t));
+  if (bmi < 18.5) {
+    const lo = 15;
+    const hi = 18.5;
+    const t = bmi <= lo ? 0 : clamp01((bmi - lo) / (hi - lo));
+    return t * 20;
+  }
+  if (bmi < 23) {
+    const t = clamp01((bmi - 18.5) / (23 - 18.5));
+    return 20 + t * 20;
+  }
+  if (bmi < 25) {
+    const t = clamp01((bmi - 23) / (25 - 23));
+    return 40 + t * 20;
+  }
+  if (bmi < 30) {
+    const t = clamp01((bmi - 25) / (30 - 25));
+    return 60 + t * 20;
+  }
+  const t = clamp01((bmi - 30) / (40 - 30));
+  return 80 + t * 20;
+};
 
 const BMIScreen = () => {
+  const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { userToken } = useContext(AuthContext);
 
-  // ฟังก์ชันคำนวณอายุจากวันเกิด
-  const calculateAge = (birthday) => {
-    const birthDate = new Date(birthday);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+  const fetchUser = useCallback(async () => {
+    if (!userToken) {
+      setLoading(false);
+      setError('ยังไม่ได้เข้าสู่ระบบ');
+      return;
     }
-    return age;
-  };
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/profile`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error('โหลดโปรไฟล์ไม่สำเร็จ');
+      }
+
+      const data = await res.json();
+      const { activityLevel, ...filteredData } = data;
+      setUserData(filteredData);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'เกิดข้อผิดพลาด');
+      setUserData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userToken]);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/profile`,{
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-             Authorization: `Bearer ${userToken}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch user profile");
-        }
-
-        const data = await res.json();
-        const { activityLevel, ...filteredData } = data;
-
-        setUserData(filteredData);
-      } catch (err) {
-        console.error(err);
-      }
-    };
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
-  if (!userData) {
-    return <Text>Loading...</Text>;
+  if (loading && !userData) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerPad}>
+          <ActivityIndicator size="large" color="#2E7D5B" />
+          <Text style={styles.muted}>กำลังโหลดข้อมูล…</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
-  const { weight, height, birthday, gender } = userData;
-  const age = calculateAge(birthday);
+  if (error && !userData) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerPad}>
+          <Ionicons name="cloud-offline-outline" size={48} color={MUTED} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchUser}>
+            <Text style={styles.retryBtnText}>ลองอีกครั้ง</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerPad}>
+          <Text style={styles.muted}>ไม่มีข้อมูล</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const { weight, height, gender } = userData;
+  const birthRaw = userData.birthDate ?? userData.birthday;
+  const age = getProfileAge(birthRaw);
 
   const heightMeter = height / 100;
   const bmi = (weight / (heightMeter * heightMeter)).toFixed(2);
   const bmiValue = parseFloat(bmi);
 
   const getCategoryColor = () => {
-    if (bmiValue < 18.5) return "#5DADE2"; // ฟ้า
-    if (bmiValue < 23) return "#58D68D"; // เขียว
-    if (bmiValue < 25) return "#F4D03F"; // เหลือง
-    if (bmiValue < 30) return "#EB984E"; // ส้ม
-    return "#E74C3C"; // แดง
+    if (bmiValue < 18.5) return '#5DADE2';
+    if (bmiValue < 23) return '#58D68D';
+    if (bmiValue < 25) return '#F4D03F';
+    if (bmiValue < 30) return '#EB984E';
+    return '#E74C3C';
   };
 
   const getCategory = () => {
-    if (bmiValue < 18.5) return "ผอม";
-    if (bmiValue < 23) return "น้ำหนักเหมาะสม";
-    if (bmiValue < 25) return "น้ำหนักเกิน";
-    if (bmiValue < 30) return "อ้วนระดับ 1";
-    return "อ้วนระดับ 2";
+    if (bmiValue < 18.5) return 'ผอม';
+    if (bmiValue < 23) return 'น้ำหนักเหมาะสม';
+    if (bmiValue < 25) return 'น้ำหนักเกิน';
+    if (bmiValue < 30) return 'อ้วนระดับ 1';
+    return 'อ้วนระดับ 2';
   };
 
   const category = getCategory();
+  const accent = getCategoryColor();
 
   const minWeight = (18.5 * heightMeter * heightMeter).toFixed(1);
-  const maxWeight = (22.9 * heightMeter * heightMeter).toFixed(1);
-  const recommendedWeight =
-    ((parseFloat(minWeight) + parseFloat(maxWeight)) / 2).toFixed(0);
-  const weightToLose = (weight - maxWeight).toFixed(1);
+  const maxWeightNum = 22.9 * heightMeter * heightMeter;
+  const maxWeight = maxWeightNum.toFixed(1);
+  const recommendedWeight = (
+    (parseFloat(minWeight) + parseFloat(maxWeight)) /
+    2
+  ).toFixed(0);
+  const weightToLose = (weight - maxWeightNum).toFixed(1);
+  const shouldShowLoseWeight = parseFloat(weightToLose) > 0;
+
+  const markerPercent = bmiToMarkerPercent(bmiValue);
 
   const generateAdvice = () => {
-    let advice = [];
+    const advice = [];
 
     if (bmiValue < 18.5) {
-      advice.push("เพิ่มแคลอรี่ในแต่ละวัน");
-      advice.push("เพิ่มโปรตีน เช่น ไข่ ปลา นม");
-      advice.push("ออกกำลังกายแบบ Strength Training");
+      advice.push('เพิ่มแคลอรี่ในแต่ละวัน');
+      advice.push('เพิ่มโปรตีน เช่น ไข่ ปลา นม');
+      advice.push('ออกกำลังกายแบบ Strength Training');
     } else if (bmiValue < 23) {
-      advice.push("รักษาพฤติกรรมการกินที่ดี");
-      advice.push("ออกกำลังกายสม่ำเสมอ");
+      advice.push('รักษาพฤติกรรมการกินที่ดี');
+      advice.push('ออกกำลังกายสม่ำเสมอ');
     } else if (bmiValue < 25) {
-      advice.push("ควบคุมปริมาณแคลอรี่");
-      advice.push("ลดน้ำตาลและของหวาน");
+      advice.push('ควบคุมปริมาณแคลอรี่');
+      advice.push('ลดน้ำตาลและของหวาน');
     } else {
-      advice.push("ควบคุมแคลอรี่");
-      advice.push("เพิ่มคาร์ดิโอ เช่น เดินเร็ว วิ่ง ปั่นจักรยาน");
-      advice.push("Strength Training 2-3 ครั้ง/สัปดาห์");
+      advice.push('ควบคุมแคลอรี่');
+      advice.push('เพิ่มคาร์ดิโอ เช่น เดินเร็ว วิ่ง ปั่นจักรยาน');
+      advice.push('Strength Training 2-3 ครั้ง/สัปดาห์');
     }
 
-    if (age > 40) {
-      advice.push("เพิ่มคาร์ดิโอเพื่อสุขภาพหัวใจ");
+    if (age != null && age > 40) {
+      advice.push('เพิ่มคาร์ดิโอเพื่อสุขภาพหัวใจ');
     }
 
-    if (gender === "female") {
-      advice.push("เพิ่มอาหารที่มีธาตุเหล็ก เช่น ผักใบเขียว");
+    if (gender === 'female') {
+      advice.push('เพิ่มอาหารที่มีธาตุเหล็ก เช่น ผักใบเขียว');
     }
 
-    if (gender === "male") {
-      advice.push("เพิ่มโปรตีนเพื่อเสริมสร้างกล้ามเนื้อ");
+    if (gender === 'male') {
+      advice.push('เพิ่มโปรตีนเพื่อเสริมสร้างกล้ามเนื้อ');
     }
 
-    advice.push("ดื่มน้ำวันละ 1.5 - 2 ลิตร");
-    advice.push("นอนหลับอย่างน้อย 7-8 ชั่วโมง");
+    advice.push('ดื่มน้ำวันละ 1.5 - 2 ลิตร');
+    advice.push('นอนหลับอย่างน้อย 7-8 ชั่วโมง');
 
     return advice;
   };
@@ -120,146 +202,385 @@ const BMIScreen = () => {
   const adviceList = generateAdvice();
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>BMI</Text>
-
-      {/* BMI Value */}
-      <Text style={[styles.bmiValue, { color: getCategoryColor() }]}>{bmi}</Text>
-
-      {/* Category Box */}
-      <View style={[styles.categoryBox, { backgroundColor: getCategoryColor() }]}>
-        <Text style={styles.categoryText}>{category}</Text>
-      </View>
-
-      {/* BMI BAR */}
-      <View style={styles.barContainer}>
-        <View style={[styles.bar,{backgroundColor:"#5DADE2"}]} />
-        <View style={[styles.bar,{backgroundColor:"#58D68D"}]} />
-        <View style={[styles.bar,{backgroundColor:"#F4D03F"}]} />
-        <View style={[styles.bar,{backgroundColor:"#EB984E"}]} />
-        <View style={[styles.bar,{backgroundColor:"#E74C3C"}]} />
-      </View>
-
-      <View style={styles.greenBox}>
-        <Text style={styles.bigText}>
-          น้ำหนักที่เหมาะสำหรับคุณ {minWeight}-{maxWeight} kg
-        </Text>
-        {weightToLose > 0 && (
-          <Text style={styles.smallText}>
-            ควรลดประมาณ {weightToLose} kg
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{
+          paddingTop: 4,
+          paddingBottom: insets.bottom + 56,
+          paddingHorizontal: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>ดัชนีมวลกาย</Text>
+          <Text style={styles.headerSub}>
+            คำนวณจากส่วนสูงและน้ำหนักในโปรไฟล์ของคุณ
           </Text>
-        )}
-      </View>
+        </View>
 
-      <View style={styles.blueBox}>
-        <Text style={styles.bigText}>
-          น้ำหนักที่แนะนำสำหรับคุณ {recommendedWeight} kg
-        </Text>
-        <Text style={styles.smallText}>
-          ตั้งเป้า BMI กลางช่วงปกติ
-        </Text>
-      </View>
-
-      <View style={styles.adviceContainer}>
-        <Text style={styles.adviceTitle}>AI Health Advice</Text>
-        {adviceList.map((item,index)=>(
-          <View key={index} style={styles.adviceItem}>
-            <Text style={styles.adviceText}>{item}</Text>
+        <LinearGradient
+          colors={[GREEN, GRADIENT_END]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <Text style={styles.heroLabel}>BMI</Text>
+          <Text style={[styles.heroBmi, { color: accent }]}>{bmi}</Text>
+          <View style={[styles.categoryPill, { backgroundColor: accent }]}>
+            <Text style={styles.categoryPillText}>{category}</Text>
           </View>
-        ))}
-      </View>
-    </ScrollView>
+          <View style={styles.heroStatsRow}>
+            <View style={styles.heroStat}>
+              <MaterialCommunityIcons
+                name="human-male-height"
+                size={18}
+                color={HERO_ICON}
+              />
+              <Text style={styles.heroStatValue}>{height} cm</Text>
+              <Text style={styles.heroStatLabel}>ส่วนสูง</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <MaterialCommunityIcons
+                name="scale-bathroom"
+                size={18}
+                color={HERO_ICON}
+              />
+              <Text style={styles.heroStatValue}>{weight} kg</Text>
+              <Text style={styles.heroStatLabel}>น้ำหนัก</Text>
+            </View>
+            <View style={styles.heroStatDivider} />
+            <View style={styles.heroStat}>
+              <MaterialCommunityIcons
+                name="calendar-account"
+                size={18}
+                color={HERO_ICON}
+              />
+              <Text style={styles.heroStatValue}>
+                {age != null ? `${age} ปี` : '—'}
+              </Text>
+              <Text style={styles.heroStatLabel}>อายุ</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <Text style={styles.sectionLabel}>ช่วง BMI (อ้างอิง)</Text>
+        <View style={styles.scaleSection}>
+          <View style={styles.markerRow}>
+            <View
+              style={[
+                styles.markerHit,
+                {
+                  left: `${markerPercent}%`,
+                  transform: [{ translateX: -MARKER_WIDTH / 2 }],
+                },
+              ]}
+            >
+              <View style={styles.markerTriangle} />
+            </View>
+          </View>
+          <View style={styles.barContainer}>
+            <View style={[styles.bar, { backgroundColor: '#5DADE2' }]} />
+            <View style={[styles.bar, { backgroundColor: '#58D68D' }]} />
+            <View style={[styles.bar, { backgroundColor: '#F4D03F' }]} />
+            <View style={[styles.bar, { backgroundColor: '#EB984E' }]} />
+            <View style={[styles.bar, { backgroundColor: '#E74C3C' }]} />
+          </View>
+          <View style={styles.scaleLegend}>
+            <Text style={styles.scaleLegendText}>ผอม</Text>
+            <Text style={styles.scaleLegendText}>ปกติ</Text>
+            <Text style={styles.scaleLegendText}>เกิน</Text>
+            <Text style={styles.scaleLegendText}>อ้วน 1</Text>
+            <Text style={styles.scaleLegendText}>อ้วน 2</Text>
+          </View>
+        </View>
+
+        <View style={styles.statCard}>
+          <View style={styles.statCardHeader}>
+            <Ionicons name="analytics-outline" size={22} color={GREEN} style={styles.statCardIcon} />
+            <Text style={styles.statCardTitle}>น้ำหนักที่เหมาะสม</Text>
+          </View>
+          <Text style={styles.statCardBody}>
+            ช่วงแนะนำ {minWeight}–{maxWeight} kg
+          </Text>
+          {shouldShowLoseWeight ? (
+            <Text style={styles.statCardHint}>
+              ควรลดประมาณ {weightToLose} kg เพื่อเข้าช่วงปกติ
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.statCard}>
+          <View style={styles.statCardHeader}>
+            <Ionicons name="flag-outline" size={22} color={GREEN} style={styles.statCardIcon} />
+            <Text style={styles.statCardTitle}>น้ำหนักเป้าหมาย</Text>
+          </View>
+          <Text style={styles.statCardBody}>แนะนำประมาณ {recommendedWeight} kg</Text>
+          <Text style={styles.statCardHint}>ตั้งเป้า BMI กลางช่วงปกติ</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>คำแนะสำหรับคุณ</Text>
+        <View style={styles.adviceCard}>
+          {adviceList.map((item, index) => (
+            <View
+              key={index}
+              style={[
+                styles.adviceRow,
+                index === adviceList.length - 1 && styles.adviceRowLast,
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={22}
+                color="#2E7D5B"
+                style={styles.adviceIcon}
+              />
+              <Text style={styles.adviceText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+const MARKER_WIDTH = 12;
+
 const styles = StyleSheet.create({
-  container:{
-    flex:1,
-    backgroundColor:"#F4F4F4",
-    paddingTop:60
+  safe: {
+    flex: 1,
+    backgroundColor: '#F9FBF9',
   },
-  title:{
-    alignSelf:"center",
-    fontSize:26,
-    backgroundColor:"#3D7F5F",
-    color:"#fff",
-    paddingHorizontal:40,
-    paddingVertical:5,
-    borderRadius:20
+  scroll: {
+    flex: 1,
   },
-  bmiValue:{
-    alignSelf:"center",
-    fontSize:42,
-    marginTop:20
+  centerPad: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
   },
-  categoryBox:{
-    alignSelf:"center",
-    paddingHorizontal:20,
-    paddingVertical:8,
-    borderRadius:20,
-    marginTop:10
+  muted: {
+    marginTop: 10,
+    color: MUTED,
+    fontSize: 14,
   },
-  categoryText:{
-    color:"#fff",
-    fontSize:18
+  errorText: {
+    marginTop: 12,
+    color: '#C62828',
+    textAlign: 'center',
+    fontSize: 15,
   },
-  barContainer:{
-    flexDirection:"row",
-    width:"85%",
-    height:25,
-    borderRadius:20,
-    overflow:"hidden",
-    alignSelf:"center",
-    marginTop:25
+  retryBtn: {
+    marginTop: 16,
+    backgroundColor: '#2E7D5B',
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 12,
   },
-  bar:{
-    flex:1
+  retryBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
-  greenBox:{
-    backgroundColor:"#C8E6C9",
-    marginTop:30,
-    marginHorizontal:20,
-    padding:20,
-    borderRadius:15
+  header: {
+    marginTop: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  blueBox:{
-    backgroundColor:"#B3E5FC",
-    marginTop:15,
-    marginHorizontal:20,
-    padding:20,
-    borderRadius:15
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: GREEN,
   },
-  bigText:{
-    fontSize:18,
-    fontWeight:"bold"
+  headerSub: {
+    marginTop: 6,
+    fontSize: 14,
+    color: MUTED,
+    lineHeight: 20,
   },
-  smallText:{
-    fontSize:14,
-    marginTop:5
+  heroCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
   },
-  adviceContainer:{
-    marginTop:30,
-    paddingHorizontal:20
+  heroLabel: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
-  adviceTitle:{
-    alignSelf:"center",
-    fontSize:18,
-    backgroundColor:"#3D7F5F",
-    color:"#fff",
-    paddingHorizontal:20,
-    paddingVertical:8,
-    borderRadius:20,
-    marginBottom:15
+  heroBmi: {
+    fontSize: 52,
+    fontWeight: '800',
+    marginTop: 4,
   },
-  adviceItem:{
-    backgroundColor:"#B2DFDB",
-    padding:12,
-    borderRadius:20,
-    marginBottom:10
+  categoryPill: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  adviceText:{
-    fontSize:16
-  }
+  categoryPillText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  heroStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.25)',
+  },
+  heroStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  heroStatValue: {
+    marginTop: 6,
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  heroStatLabel: {
+    marginTop: 2,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: MUTED,
+    marginBottom: 8,
+  },
+  scaleSection: {
+    marginBottom: 20,
+  },
+  markerRow: {
+    height: 10,
+    marginBottom: 4,
+    marginHorizontal: 2,
+    position: 'relative',
+  },
+  markerHit: {
+    position: 'absolute',
+    bottom: 0,
+    alignItems: 'center',
+  },
+  markerTriangle: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: MARKER_WIDTH / 2,
+    borderRightWidth: MARKER_WIDTH / 2,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#1a1a1a',
+  },
+  barContainer: {
+    flexDirection: 'row',
+    height: 14,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  bar: {
+    flex: 1,
+  },
+  scaleLegend: {
+    flexDirection: 'row',
+    marginTop: 6,
+  },
+  scaleLegendText: {
+    flex: 1,
+    fontSize: 10,
+    color: MUTED,
+    textAlign: 'center',
+  },
+  statCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statCardIcon: {
+    marginRight: 8,
+  },
+  statCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  statCardBody: {
+    fontSize: 16,
+    color: '#1a2e24',
+    lineHeight: 22,
+  },
+  statCardHint: {
+    marginTop: 8,
+    fontSize: 14,
+    color: MUTED,
+    lineHeight: 20,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: GREEN,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  adviceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  adviceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8EFEA',
+  },
+  adviceRowLast: {
+    borderBottomWidth: 0,
+  },
+  adviceIcon: {
+    marginTop: 1,
+    marginRight: 10,
+  },
+  adviceText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#24352c',
+    lineHeight: 22,
+  },
 });
 
 export default BMIScreen;

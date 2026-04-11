@@ -12,6 +12,9 @@ import { getLocalDateKey } from '../utils/dateUtils';
 import { AuthContext } from "../context/AuthProvider";
 import { useWater } from "../context/WaterContext";
 
+/** สอดคล้องกับหน้า BMI (`BMIScreen.js`) */
+const GREEN = '#1E4D2B';
+
 export default function CalendarScreen() {
   const [mode, setMode] = useState('mood'); // 'mood' | 'water'
   const [waterData, setWaterData] = useState({});
@@ -103,20 +106,6 @@ export default function CalendarScreen() {
       {/* ===== TOP HEADER ===== */}
       <View style={styles.topHeader}>
         <Text style={styles.mainTitle}>ปฏิทิน</Text>
-
-        {/* <View style={styles.modeSwitch}>
-          <TouchableOpacity onPress={() => setMode('water')}>
-            <Text style={[styles.modeText, mode === 'water' && styles.active]}>
-              น้ำ
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setMode('mood')}>
-            <Text style={[styles.modeText, mode === 'mood' && styles.active]}>
-              อารมณ์
-            </Text>
-          </TouchableOpacity>
-        </View> */}
         <View style={styles.segment}>
           {/* WATER */}
           <TouchableOpacity
@@ -228,7 +217,7 @@ const styles = StyleSheet.create({
 
   arrow: {
     fontSize: 30,
-    color: '#2D4F45',
+    color: GREEN,
     paddingHorizontal: 12,
   },
 
@@ -247,6 +236,8 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 22,
     fontWeight: 'bold',
+    color: GREEN,
+    lineHeight: 32
   },
 
   modeSwitch: {
@@ -267,6 +258,7 @@ const styles = StyleSheet.create({
   },
 
   calendarCard: {
+    marginTop: 10,
     marginHorizontal: 16,
     padding: 12,
     borderRadius: 20,
@@ -309,10 +301,10 @@ const styles = StyleSheet.create({
   },
 
   activeLeft: {
-    backgroundColor: '#2D4F45',
+    backgroundColor: GREEN,
   },
 
   activeRight: {
-    backgroundColor: '#2D4F45',
+    backgroundColor: GREEN,
   },
 });

@@ -242,13 +242,15 @@ const handleChangePassword = async () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
         <LinearGradient
           colors={['#EEF5F0', '#FFFFFF']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.heroCard}
         >
+          <View style={styles.heroCoinWrap}>
+            <CoinBadge amount={profile.coins ?? 0} inline />
+          </View>
           <View style={styles.avatarShadowWrap}>
             <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.avatarOuterRing}>
               <View style={styles.avatarContainer}>
@@ -268,9 +270,7 @@ const handleChangePassword = async () => {
           <Text style={styles.changePhotoText}>เปลี่ยนรูป</Text>
 
           <View style={styles.nameRow}>
-            <View style={[styles.nameRowSide, styles.nameRowSideLeft]}>
-              <CoinBadge amount={profile.coins} inline compact />
-            </View>
+            <View style={[styles.nameRowSide, styles.nameRowSideLeft]} />
             <View style={styles.nameCenterWrap}>
               <Text style={styles.userNameText} numberOfLines={1}>
                 {username || profile.name || 'ชื่อผู้ใช้'}
@@ -567,11 +567,12 @@ const handleChangePassword = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContent: { paddingBottom: 100, paddingTop: 8 },
+  scrollContent: { paddingBottom: 100, paddingTop: 0 },
 
   heroCard: {
+    position: 'relative',
     marginHorizontal: 20,
-    marginTop: 12,
+    marginTop: 18,
     borderRadius: 20,
     paddingTop: 22,
     paddingBottom: 18,
@@ -582,6 +583,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
+  },
+  heroCoinWrap: {
+    position: 'absolute',
+    right: 20,
+    top: 10,
+    zIndex: 2,
   },
   avatarShadowWrap: {
     borderRadius: 60,
