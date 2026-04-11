@@ -328,15 +328,17 @@ export default function ExerciseScreen({ navigation, route }) {
       >
         <View style={styles.topCard}>
           <View style={styles.ringWrapper}>
-            <ExerciseProgressRing progress={ringArcProgress} />
-            <Text style={styles.ringText}>{ringLabelText}</Text>
-            <Text style={styles.ringCaption}>สำเร็จ / โควตาโบนัส XP วันนี้ (3)</Text>
+            <ExerciseProgressRing
+              progress={ringArcProgress}
+              centerLabel={ringLabelText}
+              caption="สำเร็จ / โควตาโบนัส XP วันนี้ (3)"
+            />
           </View>
         </View>
 
         <Text style={styles.helperText}>
-          กด &quot;เพิ่ม&quot; เพื่อสร้างกิจกรรมและกำหนดเป้าหมาย — ทำสำเร็จอย่างน้อย 1 รายการเพื่อนับฟีเจอร์ exercise บนโฮม
-          โบนัส 10 XP ต่อครั้งที่ผ่านเป้า สูงสุด 3 ครั้งต่อวัน (เลขซ้ายคือจำนวนที่สำเร็จจริง เลขขวาคือโควตา)
+          กด &quot;เพิ่ม&quot; เพื่อสร้างกิจกรรม — ทำสำเร็จอย่างน้อย 1 กิจกรรมเพื่ออัปเดตความคืบหน้าออกกำลังกายบนหน้าแรก
+          ได้รับโบนัส 10 XP ต่อครั้งที่บรรลุเป้าหมายของกิจกรรม สูงสุด 3 ครั้งต่อวัน
         </Text>
 
         {activityInstances.length > 1 && pendingLabels.length > 0 && (
@@ -500,7 +502,7 @@ export default function ExerciseScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F4FAF7',
   },
   scroll: {
     flex: 1,
@@ -513,7 +515,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    marginTop: 4,
+    marginTop: 105,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#ECEFF1',
@@ -528,22 +530,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     paddingTop: 2,
     paddingBottom: 2,
-  },
-  ringText: {
-    position: 'absolute',
-    top: '40%',
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2E7D5B',
-  },
-  ringCaption: {
-    position: 'absolute',
-    top: '58%',
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#8AA39A',
-    textAlign: 'center',
-    paddingHorizontal: 24,
   },
 
   sectionTitle: {
