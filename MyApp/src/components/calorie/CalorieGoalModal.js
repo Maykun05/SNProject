@@ -16,6 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 const MIN_KCAL = 800;
 const MAX_KCAL = 8000;
 
+/** โทนเดียวกับการ์ดแคลอรี่หน้าแรก / CalorieScreen */
+const CAL = {
+  main: '#B85C14',
+  accent: '#D9781C',
+  border: 'rgba(30, 77, 43, 0.12)',
+  soft: '#FDF6EF',
+  inputBorder: 'rgba(184, 92, 20, 0.35)',
+};
+
 export default function CalorieGoalModal({
   visible,
   onClose,
@@ -79,7 +88,7 @@ export default function CalorieGoalModal({
       >
         <View style={styles.box}>
           <View style={styles.header}>
-            <Ionicons name="nutrition-outline" size={24} color="#1565C0" />
+            <Ionicons name="nutrition-outline" size={24} color={CAL.main} />
             <Text style={styles.title}>ตั้งเป้าแคลอรี่</Text>
           </View>
           <Text style={styles.sub}>แนะนำจากโปรไฟล์: {recommendedDaily} kcal/วัน</Text>
@@ -130,15 +139,15 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
   box: { width: '88%', backgroundColor: '#FFF', borderRadius: 24, padding: 24, gap: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 18, fontWeight: '800', color: '#0D47A1' },
+  title: { fontSize: 18, fontWeight: '800', color: CAL.main },
   sub: { fontSize: 13, color: '#78909C' },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F9FF',
+    backgroundColor: CAL.soft,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#BBDEFB',
+    borderColor: CAL.inputBorder,
     paddingHorizontal: 16,
   },
   input: { flex: 1, fontSize: 22, fontWeight: '800', color: '#263238', paddingVertical: 12, textAlign: 'center' },
@@ -153,11 +162,11 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     backgroundColor: '#FAFAFA',
   },
-  presetOn: { backgroundColor: '#1565C0', borderColor: '#1565C0' },
+  presetOn: { backgroundColor: CAL.accent, borderColor: CAL.accent },
   presetTxt: { fontSize: 14, fontWeight: '600', color: '#546E7A' },
   presetTxtOn: { color: '#FFF' },
   resetRow: { paddingVertical: 8 },
-  resetTxt: { fontSize: 13, color: '#1565C0', fontWeight: '700', textAlign: 'center' },
+  resetTxt: { fontSize: 13, color: CAL.main, fontWeight: '700', textAlign: 'center' },
   btns: { flexDirection: 'row', gap: 10, marginTop: 8 },
   cancel: {
     flex: 1,
@@ -172,7 +181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#1565C0',
+    backgroundColor: CAL.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -111,16 +111,14 @@ export default function HomeCircle({
       </View>
 
       <View style={styles.goalBadge}>
-        <View style={styles.goalIconRing}>
-          <Ionicons name="leaf" size={18} color={GREEN} />
-        </View>
-        <View style={styles.goalTextBlock}>
-          <View style={styles.goalCountRow}>
-            <Text style={styles.goalCountNum}>{String(doneCount)}</Text>
-            <Text style={styles.goalCountSlash}>/</Text>
-            <Text style={styles.goalCountTotal}>{String(totalCount)}</Text>
-          </View>
+        <View style={styles.goalLabelRow}>
+          <Ionicons name="leaf-outline" size={15} color="#7A9A84" />
           <Text style={styles.goalCaption}>เป้าหมายวันนี้</Text>
+        </View>
+        <View style={styles.goalCountRow}>
+          <Text style={styles.goalCountNum}>{String(doneCount)}</Text>
+          <Text style={styles.goalCountSlash}>/</Text>
+          <Text style={styles.goalCountTotal}>{String(totalCount)}</Text>
         </View>
       </View>
     </View>
@@ -130,7 +128,7 @@ export default function HomeCircle({
 const styles = StyleSheet.create({
   outerWrapper: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 1,
     marginBottom: 8,
   },
   wrapper: {
@@ -188,63 +186,54 @@ const styles = StyleSheet.create({
     height: ICON_SIZE - 14,
   },
   goalBadge: {
+    width: WRAPPER_SIZE - 8,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    paddingRight: 22,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(30, 77, 43, 0.14)',
-    elevation: 3,
-    shadowColor: GREEN,
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 10,
-  },
-  goalIconRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    justifyContent: 'space-between',
+    marginTop: -10,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     backgroundColor: HERO_MINT,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: RING_MUTE,
-    justifyContent: 'center',
-    alignItems: 'center',
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  goalTextBlock: {
-    minWidth: 0,
+  goalLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flexShrink: 1,
   },
   goalCountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    flexShrink: 0,
   },
   goalCountNum: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: GREEN,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   goalCountSlash: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     color: '#9AAB9E',
-    marginHorizontal: 2,
+    marginHorizontal: 1,
   },
   goalCountTotal: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#5A6F62',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   goalCaption: {
-    marginTop: 2,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#6E8B78',
-    letterSpacing: 0.2,
+    color: '#5A6F62',
+    letterSpacing: 0.15,
   },
 });

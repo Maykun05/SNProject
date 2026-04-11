@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,7 +24,10 @@ import { TREE_ASSETS } from '../constants/treeAssets'; // ✅ ใหม่
 import useHomeState from '../hooks/useHomeState';
 import ProfileAvatar from '../components/home/ProfileAvatar.js';
 import { useWater } from '../context/WaterContext';
-import { useStep } from '../context/StepContext';
+import { AuthContext } from '../context/AuthProvider';
+import { useProfile } from '../context/ProfileContext';
+import { fetchFoodToday } from '../services/foodService';
+import { recommendedDailyCaloriesFromProfile } from '../utils/recommendedCalFromProfile';
 
 import GardenCard from '../components/home/GardenCard';
 import { API_URL } from '../config';
@@ -31,22 +35,22 @@ import { API_URL } from '../config';
 /** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md (สไลด์ 6) */
 const GREEN = '#1E4D2B';
 const PAGE_BG = '#F8F9FA';
-const HERO_MINT = '#EEF5F0';
 const CARD_BORDER = 'rgba(30, 77, 43, 0.12)';
 const TEXT_MUTED = '#5A6F62';
+/** โทนฟ้าเดียวกับ WaterScreen.js + WaterProgressRing (accent/track) */
 const WATER = {
-  main: GREEN,
-  soft: HERO_MINT,
-  border: CARD_BORDER,
-  bar: '#3D7A52',
-  iconBg: 'rgba(30, 77, 43, 0.14)',
+  main: '#1565C0',
+  soft: '#F5F9FF',
+  border: '#ECEFF1',
+  bar: '#1976D2',
+  iconBg: '#E8EEF5',
 };
-const STEPS = {
-  main: '#14321E',
-  soft: '#FFFFFF',
+const CALORIES = {
+  main: '#B85C14',
+  soft: '#FDF6EF',
   border: CARD_BORDER,
-  bar: GREEN,
-  iconBg: 'rgba(30, 77, 43, 0.1)',
+  bar: '#D9781C',
+  iconBg: 'rgba(184, 92, 20, 0.12)',
 };
 
 export default function HomeScreen({ navigation }) {
@@ -144,7 +148,37 @@ export default function HomeScreen({ navigation }) {
   // };
 
   const { consumed: waterConsumed, waterGoal } = useWater();
-  const { steps, stepGoal } = useStep();
+  const { userToken } = useContext(AuthContext);
+  const { profile } = useProfile();
+  const [consumedCal, setConsumedCal] = useState(0);
+
+  const calorieGoal = useMemo(
+    () => recommendedDailyCaloriesFromProfile(profile, Boolean(userToken)),
+    [profile, userToken]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userToken) {
+        setConsumedCal(0);
+        return undefined;
+      }
+      let cancelled = false;
+      (async () => {
+        try {
+          const data = await fetchFoodToday(userToken);
+          if (cancelled) return;
+          const list = Array.isArray(data) ? data : [];
+          setConsumedCal(list.reduce((s, f) => s + (Number(f.calories) || 0), 0));
+        } catch {
+          if (!cancelled) setConsumedCal(0);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [userToken])
+  );
 
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
@@ -163,12 +197,12 @@ export default function HomeScreen({ navigation }) {
     return Math.min(100, Math.round((c / g) * 100));
   }, [waterConsumed, waterGoal]);
 
-  const stepPct = useMemo(() => {
-    const g = Number(stepGoal) || 0;
-    const s = Number(steps) || 0;
+  const calPct = useMemo(() => {
+    const g = Number(calorieGoal) || 0;
+    const c = Number(consumedCal) || 0;
     if (g <= 0) return 0;
-    return Math.min(100, Math.round((s / g) * 100));
-  }, [steps, stepGoal]);
+    return Math.min(100, Math.round((c / g) * 100));
+  }, [consumedCal, calorieGoal]);
 
   return (
     <SafeAreaView style={styles.root} edges={['left', 'right']}>
@@ -220,32 +254,32 @@ export default function HomeScreen({ navigation }) {
             </View>
             <Text style={[styles.summaryValue, { color: WATER.main }]}>
               {waterConsumed}
-              <Text style={styles.summaryUnit}> ml</Text>
+              <Text style={styles.summaryUnit}> มล.</Text>
             </Text>
-            <Text style={styles.summaryTarget}>เป้า {waterGoal} ml · {waterPct}%</Text>
+            <Text style={styles.summaryTarget}>เป้าหมาย {waterGoal} มล. · {waterPct}%</Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${waterPct}%`, backgroundColor: WATER.bar }]} />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.summaryCard, { backgroundColor: STEPS.soft, borderColor: STEPS.border }]}
-            onPress={() => navigation.navigate('StepTracker')}
+            style={[styles.summaryCard, { backgroundColor: CALORIES.soft, borderColor: CALORIES.border }]}
+            onPress={() => navigation.navigate('Calorie', { fromHomeFeature: true })}
             activeOpacity={0.85}
           >
             <View style={styles.summaryCardTop}>
-              <View style={[styles.summaryIconBg, { backgroundColor: STEPS.iconBg }]}>
-                <Ionicons name="footsteps" size={22} color={GREEN} />
+              <View style={[styles.summaryIconBg, { backgroundColor: CALORIES.iconBg }]}>
+                <Ionicons name="flame" size={22} color={CALORIES.main} />
               </View>
-              <Text style={[styles.summaryLabel, { color: GREEN }]}>ก้าวเดิน</Text>
+              <Text style={[styles.summaryLabel, { color: CALORIES.main }]}>แคลอรี่</Text>
             </View>
-            <Text style={[styles.summaryValue, { color: STEPS.main }]}>
-              {steps}
-              <Text style={styles.summaryUnit}> ก้าว</Text>
+            <Text style={[styles.summaryValue, { color: CALORIES.main }]}>
+              {Math.round(consumedCal)}
+              <Text style={styles.summaryUnit}> กิโลแคลอรี่</Text>
             </Text>
-            <Text style={styles.summaryTarget}>เป้า {stepGoal} · {stepPct}%</Text>
+            <Text style={styles.summaryTarget}>เป้าหมาย {calorieGoal} กิโลแคลอรี่ · {calPct}%</Text>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${stepPct}%`, backgroundColor: STEPS.bar }]} />
+              <View style={[styles.progressFill, { width: `${calPct}%`, backgroundColor: CALORIES.bar }]} />
             </View>
           </TouchableOpacity>
         </View>
@@ -319,8 +353,10 @@ const styles = StyleSheet.create({
   },
   plusCircle: {
     position: 'absolute',
-    top: -28,
-    right: 36,
+    zIndex: 4,
+    /* กึ่งกลางช่องระหว่างขอบล่างวงกลมกับแถบเป้าหมายวันนี้ (HomeCircle) — เยื้องขวา */
+    top: -100,
+    right: 16,
     width: 48,
     height: 48,
     borderRadius: 24,
