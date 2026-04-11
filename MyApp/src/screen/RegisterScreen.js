@@ -12,6 +12,8 @@ const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryQuestion, setRecoveryQuestion] = useState('');
+  const [recoveryAnswer, setRecoveryAnswer] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +26,27 @@ const RegisterScreen = ({ navigation }) => {
       Alert.alert('ผิดพลาด', 'รหัสผ่านไม่ตรงกัน');
       return;
     }
+    const qTrim = recoveryQuestion.trim();
+    const aTrim = recoveryAnswer.trim();
+    if (!qTrim || !aTrim) {
+      Alert.alert('ผิดพลาด', 'กรุณากรอกคำถามและคำตอบกู้คืนรหัสผ่าน');
+      return;
+    }
+    if (qTrim.length < 5) {
+      Alert.alert('ผิดพลาด', 'คำถามต้องมีอย่างน้อย 5 ตัวอักษร');
+      return;
+    }
+    if (aTrim.length < 4) {
+      Alert.alert('ผิดพลาด', 'คำตอบต้องมีอย่างน้อย 4 ตัวอักษร');
+      return;
+    }
     if (!isAgreed) {
       Alert.alert('คำเตือน', 'กรุณายอมรับเงื่อนไข');
       return;
     }
 
     try {
+      setLoading(true);
       const res = await fetch(`${API_URL}/api/register`, {
         method: "POST",
         headers: {
@@ -39,6 +56,8 @@ const RegisterScreen = ({ navigation }) => {
           username,
           email,
           password,
+          recoveryQuestion: qTrim,
+          recoveryAnswer: aTrim,
         }),
       });
 
@@ -102,6 +121,28 @@ const RegisterScreen = ({ navigation }) => {
           <Text style={styles.label}>ยืนยันรหัสผ่าน</Text>
           <TextInput style={styles.input} secureTextEntry onChangeText={setConfirmPassword} placeholder="Confirm Password" />
 
+          <Text style={styles.sectionRecovery}>คำถามกู้คืนรหัสผ่าน</Text>
+          <Text style={styles.helperRecovery}>
+            ใช้เมื่อลืมรหัสผ่าน — ตั้งคำถามที่จำคำตอบได้เฉพาะคุณ
+          </Text>
+          <Text style={styles.label}>คำถามของคุณ</Text>
+          <TextInput
+            style={styles.input}
+            onChangeText={setRecoveryQuestion}
+            autoCorrect={false}
+            maxLength={200}
+            placeholder="เช่น ชื่อเล่นสัตว์เลี้ยงตัวแรกของฉันคือ?"
+          />
+          <Text style={styles.label}>คำตอบ</Text>
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            onChangeText={setRecoveryAnswer}
+            autoCorrect={false}
+            maxLength={200}
+            placeholder="คำตอบของคุณ"
+          />
+
           <View style={styles.checkboxContainer}>
             <TouchableOpacity
               style={[styles.checkbox, isAgreed && styles.checkboxChecked]}
@@ -154,7 +195,20 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontWeight: 'bold', color: '#2D4F45', textAlign: 'center', marginBottom: 25 },
   label: { color: '#2D4F45', marginBottom: 6, fontWeight: '500' },
   input: { backgroundColor: '#E5E5E5', borderRadius: 15, padding: 16, marginBottom: 15 },
-  
+  sectionRecovery: {
+    color: '#2D4F45',
+    fontSize: 17,
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  helperRecovery: {
+    color: '#9E9E9E',
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   checkbox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#2D4F45',

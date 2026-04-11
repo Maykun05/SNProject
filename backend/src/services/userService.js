@@ -127,7 +127,13 @@ export const applyXpGrant = async (userId, amount) => {
   return prisma.$transaction((tx) => applyXpInTransaction(tx, userId, a));
 };
 
-export const registerUser = async ({ username, email, password }) => {
+export const registerUser = async ({
+  username,
+  email,
+  password,
+  recoveryQuestion,
+  recoveryAnswer,
+}) => {
   const existing = await prisma.user.findUnique({
     where: { email },
   });
@@ -136,13 +142,28 @@ export const registerUser = async ({ username, email, password }) => {
     throw new Error("Email already exists");
   }
 
+  const q = typeof recoveryQuestion === "string" ? recoveryQuestion.trim() : "";
+  const rawAnswer =
+    typeof recoveryAnswer === "string" ? recoveryAnswer.trim() : "";
+  const normalizedAnswer = rawAnswer.toLowerCase();
+
+  if (!q || q.length < 5) {
+    throw new Error("Recovery question must be at least 5 characters");
+  }
+  if (!normalizedAnswer || normalizedAnswer.length < 4) {
+    throw new Error("Recovery answer must be at least 4 characters");
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
+  const recoveryAnswerHash = await bcrypt.hash(normalizedAnswer, 10);
 
   const user = await prisma.user.create({
     data: {
       username,
       email,
       password: hashedPassword,
+      recoveryQuestion: q,
+      recoveryAnswerHash,
     },
   });
 

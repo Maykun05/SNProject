@@ -15,10 +15,12 @@ datasource db {
 }
 
 model User {
-  id           Int               @id @default(autoincrement())
-  email        String            @unique
-  username     String
-  password     String
+  id                   Int               @id @default(autoincrement())
+  email                String            @unique
+  username             String
+  password             String
+  recoveryQuestion     String?
+  recoveryAnswerHash   String?
 
   profile      Profile?
 

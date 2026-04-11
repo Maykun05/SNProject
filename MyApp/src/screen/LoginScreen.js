@@ -89,7 +89,7 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.title}>เข้าสู่ระบบ</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>ชื่อ</Text>
+            <Text style={styles.label}>อีเมล</Text>
             <TextInput
               style={styles.input}
               value={email}
