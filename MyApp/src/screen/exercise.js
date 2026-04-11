@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,8 +27,6 @@ import {
   getExercisePlanDateKey,
   openGoalEditorValues,
   buildOverrideFromEditor,
-  customStep,
-  formatTarget,
   normalizeExerciseState,
   buildPlanForStorage,
   newExerciseInstanceId,
@@ -38,19 +37,10 @@ import { useGarden } from '../context/GardenContext';
 import { useLevel } from '../context/LevelContext';
 import { getExerciseDay, putExerciseDay } from '../services/exerciseApi';
 import { clearStepTrackerDraft } from '../utils/stepTrackerDraft';
+import StackScreenBackButton from '../components/StackScreenBackButton';
 
 /** เว้นพื้นที่ล่างให้เลื่อนเห็นรายการสุดท้าย (รวมแท็บ / home indicator) */
 const SCROLL_BOTTOM_EXTRA = 88;
-
-const CUSTOM_METRIC_OPTIONS = [
-  { key: 'duration', label: 'เวลา (วินาที)' },
-  { key: 'distance', label: 'ระยะทาง (km)' },
-  { key: 'steps', label: 'ก้าว' },
-  { key: 'sets', label: 'เซต' },
-  { key: 'reps', label: 'ครั้ง' },
-  { key: 'laps', label: 'รอบ' },
-  { key: 'calories', label: 'kcal' },
-];
 
 const PRESET_TEMPLATE_KEYS = ['walk', 'run', 'bike', 'gym'];
 
@@ -65,8 +55,9 @@ export default function ExerciseScreen({ navigation, route }) {
   const [editLabels, setEditLabels] = useState({ labelA: '', labelB: '' });
 
   const [customModalVisible, setCustomModalVisible] = useState(false);
-  const [customMetric, setCustomMetric] = useState('duration');
-  const [customTarget, setCustomTarget] = useState(900);
+  /** เป้าเวลาในโมดัล — บันทึกเป็นวินาที (นาที × 60) */
+  const [customTargetMinutes, setCustomTargetMinutes] = useState(10);
+  const [customName, setCustomName] = useState('');
 
   const today = getExercisePlanDateKey();
   const fromHomeFeature = route?.params?.fromHomeFeature === true;
@@ -241,27 +232,41 @@ export default function ExerciseScreen({ navigation, route }) {
   };
 
   const openCustomModal = () => {
-    setCustomMetric('duration');
-    setCustomTarget(900);
+    setCustomTargetMinutes(10);
+    setCustomName('');
     setCustomModalVisible(true);
   };
 
   const saveCustomCreate = () => {
     const id = newExerciseInstanceId();
+    const trimmed = customName.trim().slice(0, 40);
+    const minutes = Math.max(1, Math.round(Number(customTargetMinutes)) || 1);
+    const targetSec = minutes * 60;
     setActivityInstances((prev) => [
       ...prev,
       {
         id,
         templateKey: 'custom',
         goalOverride: null,
-        customConfig: { metric: customMetric, target: customTarget },
+        customConfig: {
+          metric: 'duration',
+          target: targetSec,
+          ...(trimmed ? { name: trimmed } : {}),
+        },
       },
     ]);
     setCustomModalVisible(false);
   };
 
+  const customInstanceTitle = (instance) => {
+    if (instance.templateKey === 'custom' && instance.customConfig?.name?.trim()) {
+      return instance.customConfig.name.trim();
+    }
+    return ACTIVITY_TEMPLATES[instance.templateKey]?.label ?? instance.templateKey;
+  };
+
   const confirmDeleteInstance = (instance) => {
-    Alert.alert('ลบกิจกรรม', `ลบ "${ACTIVITY_TEMPLATES[instance.templateKey]?.label ?? instance.templateKey}" จากรายการวันนี้?`, [
+    Alert.alert('ลบกิจกรรม', `ลบ "${customInstanceTitle(instance)}" จากรายการวันนี้?`, [
       { text: 'ยกเลิก', style: 'cancel' },
       {
         text: 'ลบ',
@@ -306,11 +311,12 @@ export default function ExerciseScreen({ navigation, route }) {
 
   const pendingLabels = activityInstances
     .filter((i) => !progressById[i.id])
-    .map((i) => ACTIVITY_TEMPLATES[i.templateKey]?.label)
+    .map((i) => customInstanceTitle(i))
     .filter(Boolean);
 
   return (
     <View style={styles.screen}>
+      <StackScreenBackButton />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -383,7 +389,11 @@ export default function ExerciseScreen({ navigation, route }) {
                   <View style={styles.activityLeft}>
                     <Ionicons name={meta.icon} size={20} color={meta.color} />
                     <View style={styles.activityTextCol}>
-                      <Text style={styles.activityLabel}>{meta.label}</Text>
+                      <Text style={styles.activityLabel}>
+                        {inst.templateKey === 'custom' && inst.customConfig?.name?.trim()
+                          ? inst.customConfig.name.trim()
+                          : meta.label}
+                      </Text>
                       {hasPreset ? (
                         <>
                           <Text style={styles.activityRecommendLine} numberOfLines={2}>
@@ -443,41 +453,30 @@ export default function ExerciseScreen({ navigation, route }) {
           style={styles.modalBackdrop}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>สร้างกิจกรรม — กำหนดเอง</Text>
-            <Text style={styles.modalHint}>เลือก metric และกำหนดเป้าหมาย</Text>
-            <View style={styles.chipWrap}>
-              {CUSTOM_METRIC_OPTIONS.map((item) => {
-                const active = customMetric === item.key;
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[styles.chip, active && styles.customMetricChip]}
-                    onPress={() => setCustomMetric(item.key)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <Text style={styles.modalTitle}>สร้างกิจกรรม — กำหนดเวลาและชื่อ</Text>
+            <Text style={styles.modalHint}>ตั้งชื่อที่จำได้ แล้วกำหนดระยะเวลาเป้าหมาย (นาที)</Text>
+            <Text style={styles.nameFieldLabel}>ชื่อกิจกรรม</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={customName}
+              onChangeText={setCustomName}
+              placeholder="เช่น โยคะเช้า · ปั่นกลับบ้าน"
+              placeholderTextColor="#9E9E9E"
+              maxLength={40}
+            />
             <View style={styles.targetRow}>
-              <Text style={styles.targetLabel}>เป้าหมาย</Text>
+              <Text style={styles.targetLabel}>เป้าเวลา</Text>
               <View style={styles.targetActions}>
                 <TouchableOpacity
                   style={styles.targetBtn}
-                  onPress={() =>
-                    setCustomTarget((v) =>
-                      Math.max(1, Number((v - customStep(customMetric)).toFixed(2)))
-                    )
-                  }
+                  onPress={() => setCustomTargetMinutes((v) => Math.max(1, v - 1))}
                 >
                   <Text style={styles.targetBtnText}>-</Text>
                 </TouchableOpacity>
-                <Text style={styles.targetValue}>{formatTarget(customTarget, customMetric)}</Text>
+                <Text style={styles.targetValue}>{customTargetMinutes} นาที</Text>
                 <TouchableOpacity
                   style={styles.targetBtn}
-                  onPress={() =>
-                    setCustomTarget((v) => Number((v + customStep(customMetric)).toFixed(2)))
-                  }
+                  onPress={() => setCustomTargetMinutes((v) => v + 1)}
                 >
                   <Text style={styles.targetBtnText}>+</Text>
                 </TouchableOpacity>
@@ -581,24 +580,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   addTypeBtnText: { fontWeight: '700', fontSize: 14 },
-  chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#DADADA',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-  },
-  chipText: { color: '#444', fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
   activityBtn: {
     borderRadius: 14,
     marginBottom: 10,
@@ -652,7 +633,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 17,
   },
-  customMetricChip: { backgroundColor: '#8D6E63', borderColor: '#8D6E63' },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -673,7 +653,24 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: '#78909C',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  nameFieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4E342E',
+    marginBottom: 6,
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: '#D7CCC8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#2A2A2A',
+    marginBottom: 14,
+    backgroundColor: '#FAFAFA',
   },
   modalActions: {
     flexDirection: 'row',

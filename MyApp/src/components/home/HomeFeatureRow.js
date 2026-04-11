@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     width: '100%',          // แนะนำให้ใส่
-    marginTop: 25,
+    marginTop: 5,
     paddingHorizontal: 10,
   },
   item: {

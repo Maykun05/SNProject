@@ -25,7 +25,7 @@ export default function WaterQuickPick({ amounts = DEFAULT_ML, onPick }) {
         {amounts.map((ml) => (
           <TouchableOpacity key={ml} style={styles.chip} onPress={() => onPick(ml)} activeOpacity={0.85}>
             <Text style={styles.chipText}>+{ml}</Text>
-            <Text style={styles.chipUnit}>ml</Text>
+            <Text style={styles.chipUnit}>มล.</Text>
           </TouchableOpacity>
         ))}
       </View>

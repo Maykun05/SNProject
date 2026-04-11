@@ -5,7 +5,10 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
+
+const SCREEN_H = Dimensions.get('window').height;
 
 export default function FeatureSelectorModal({
   visible,
@@ -57,8 +60,9 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: SCREEN_H * 0.22,
   },
 
   modal: {
@@ -66,6 +70,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 25,
     width: '80%',
+    maxWidth: 400,
   },
 
   title: {
@@ -78,18 +83,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    height: 50,
+    width: '100%',
+    paddingHorizontal: 10,
+    marginVertical: 4,
     borderRadius: 10,
   },
 
   rowActive: {
-    backgroundColor: '#abb9a7ff', 
-    height: 50,          // ความสูงของ row
-    width: '100%',       // ความกว้างเต็ม
-    padding: 10,         // ระยะห่างด้านใน
-    marginVertical: 4,   // ระยะห่างด้านบน/ล่าง
-    borderRadius: 30,  
+    backgroundColor: '#abb9a7ff',
+    borderRadius: 30,
   },
 
   label: {

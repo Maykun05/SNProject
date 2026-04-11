@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet,Image } from 'react-native';
 import { MOODS } from '../../constants/moods';
 import { getLocalDateKey } from '../../utils/dateUtils';
 
+const GREEN = '#1E4D2B';
 /* ===== utils ===== */
 const getEmptyDays = (year, month) => {
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   },
   today: {
     borderWidth: 2,
-    borderColor: '#2EC4B6',
+    borderColor: GREEN,
   },
   disabled: {
     opacity: 0.3,

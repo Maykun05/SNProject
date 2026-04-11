@@ -28,11 +28,23 @@ import {
   loadLatestSavedStepSession,
   extractHydrationFields,
 } from '../utils/stepSessionsStorage';
+import { ProfileContext } from './ProfileContext';
+import { buildGoalSnapshot, getOrBranchProgress } from '../exercise/goalRules';
+import {
+  shouldShowGoalAchievedNotification,
+  showExerciseGoalMilestoneNotification,
+} from '../notifications/exerciseSessionNotification';
 
 const Ctx = createContext(null);
 
 function sameCustomConfig(a, b) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  const ma = a.metric || 'duration';
+  const mb = b.metric || 'duration';
+  const ta = Number(a.target);
+  const tb = Number(b.target);
+  return ma === mb && ta === tb;
 }
 
 function buildActivityFromParams(activityKey, customConfig) {
@@ -48,8 +60,11 @@ function buildActivityFromParams(activityKey, customConfig) {
       useGps: customMetric === 'distance',
     }
     : baseActivity.tracking;
+  const customName =
+    isCustom && typeof customConfig?.name === 'string' ? customConfig.name.trim().slice(0, 40) : '';
   return {
     ...baseActivity,
+    label: customName || baseActivity.label,
     metrics: customMetrics,
     tracking: customTracking,
   };
@@ -58,6 +73,9 @@ function buildActivityFromParams(activityKey, customConfig) {
 const DRAFT_MS = 5000;
 
 export function ExerciseTrackingProvider({ children }) {
+  const profileContext = useContext(ProfileContext);
+  const profileSettings = profileContext?.profile?.settings;
+
   const [meta, setMeta] = useState(null);
   const metaRef = useRef(null);
   metaRef.current = meta;
@@ -579,6 +597,84 @@ export function ExerciseTrackingProvider({ children }) {
       });
     })();
   }, [meta?.useGps, meta, routeCoords.length]);
+
+  const goalMilestoneInitRef = useRef(false);
+  const goalMilestoneNotifiedKeysRef = useRef(new Set());
+  const milestoneMetaKeyRef = useRef('');
+
+  useEffect(() => {
+    if (!meta?.instanceId) {
+      milestoneMetaKeyRef.current = '';
+      goalMilestoneInitRef.current = false;
+      goalMilestoneNotifiedKeysRef.current = new Set();
+      return;
+    }
+    const key = `${meta.instanceId}|${meta.planDate}|${meta.activityKey}|${JSON.stringify(meta.customConfig ?? null)}`;
+    if (key !== milestoneMetaKeyRef.current) {
+      milestoneMetaKeyRef.current = key;
+      goalMilestoneInitRef.current = false;
+      goalMilestoneNotifiedKeysRef.current = new Set();
+    }
+  }, [meta]);
+
+  useEffect(() => {
+    if (!meta?.instanceId) return;
+    if (!shouldShowGoalAchievedNotification(profileSettings)) return;
+
+    const snapshot = buildGoalSnapshot({
+      activityKey: meta.activityKey,
+      useAccelerometer: meta.useAccelerometer,
+      useGps: meta.useGps,
+      steps,
+      distance,
+      duration: elapsedTime,
+      calories,
+      sets,
+      reps,
+      laps,
+      metrics: meta.metrics,
+      customConfig: meta.isCustom ? meta.customConfig : null,
+    });
+
+    const branches = getOrBranchProgress(
+      meta.activityKey,
+      meta.isCustom ? meta.customConfig : null,
+      snapshot,
+      meta.isCustom ? null : meta.activityGoalOverride
+    );
+
+    if (branches.length === 0) return;
+
+    if (!goalMilestoneInitRef.current) {
+      goalMilestoneNotifiedKeysRef.current = new Set(
+        branches.filter((b) => b.done).map((b) => b.key)
+      );
+      goalMilestoneInitRef.current = true;
+      return;
+    }
+
+    const label = meta.activity?.label ?? meta.activityKey;
+    for (const b of branches) {
+      if (!b.done || goalMilestoneNotifiedKeysRef.current.has(b.key)) continue;
+      goalMilestoneNotifiedKeysRef.current.add(b.key);
+      const title =
+        b.metric === 'duration'
+          ? 'ถึงเวลาเป้าหมายแล้ว'
+          : 'ถึงเกณฑ์ที่ตั้งไว้แล้ว';
+      const body = `${label} · ครบ ${b.label}`;
+      void showExerciseGoalMilestoneNotification({ title, body });
+    }
+  }, [
+    meta,
+    elapsedTime,
+    steps,
+    distance,
+    calories,
+    sets,
+    reps,
+    laps,
+    profileSettings,
+  ]);
 
   const finishSnapshot = useCallback(() => {
     const m = metaRef.current;

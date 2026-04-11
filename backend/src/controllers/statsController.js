@@ -161,6 +161,50 @@ const buildStepsSeries = async (userId, startDate, endDate, dateKeys) => {
   return dateKeys.map((date) => ({ date, value: map.get(date) ?? 0 }));
 };
 
+const emptyExerciseDay = (date) => ({
+  date,
+  sessions: 0,
+  steps: 0,
+  durationSec: 0,
+  calories: 0,
+  distance: 0,
+});
+
+const buildExerciseSeries = async (userId, startDate, endDate, dateKeys) => {
+  const rows = await prisma.activitySession.findMany({
+    where: { userId, date: { gte: startDate, lte: endOfDay(endDate) } },
+    select: { date: true, steps: true, distance: true, calories: true, duration: true },
+    orderBy: { date: "asc" },
+  });
+  const map = new Map(dateKeys.map((d) => [d, { ...emptyExerciseDay(d) }]));
+  for (const row of rows) {
+    const key = formatLocalDate(row.date);
+    const cur = map.get(key);
+    if (!cur) continue;
+    cur.sessions += 1;
+    cur.steps += Number(row.steps) || 0;
+    cur.durationSec += Number(row.duration) || 0;
+    cur.calories += Number(row.calories) || 0;
+    cur.distance += Number(row.distance) || 0;
+  }
+  return dateKeys.map((date) => map.get(date));
+};
+
+const toExerciseSummary = (series) => {
+  const totals = series.reduce(
+    (acc, d) => ({
+      sessions: acc.sessions + (Number(d.sessions) || 0),
+      steps: acc.steps + (Number(d.steps) || 0),
+      durationSec: acc.durationSec + (Number(d.durationSec) || 0),
+      calories: acc.calories + (Number(d.calories) || 0),
+      distance: acc.distance + (Number(d.distance) || 0),
+    }),
+    { sessions: 0, steps: 0, durationSec: 0, calories: 0, distance: 0 },
+  );
+  const activeDays = series.filter((d) => (Number(d.sessions) || 0) > 0).length;
+  return { activeDays, totals };
+};
+
 const buildFoodSeries = async (userId, startDate, endDate, dateKeys) => {
   const rows = await prisma.foodLog.findMany({
     where: { userId, date: { gte: startDate, lte: endOfDay(endDate) } },
@@ -337,15 +381,29 @@ export const getFeatureStats = async (req, res) => {
     } else if (feature === "steps") {
       unit = "steps";
       series = await buildStepsSeries(userId, startDate, endDate, dateKeys);
+    } else if (feature === "exercise") {
+      unit = "exercise";
+      series = await buildExerciseSeries(userId, startDate, endDate, dateKeys);
     } else if (feature === "food") {
       unit = "kcal";
       series = await buildFoodSeries(userId, startDate, endDate, dateKeys);
     } else {
       return res.status(400).json({
         success: false,
-        message: "Unsupported feature. Use one of: water, mood, sleep, steps, food",
+        message: "Unsupported feature. Use one of: water, mood, sleep, steps, exercise, food",
       });
     }
+
+    const summary =
+      feature === "exercise"
+        ? {
+            ...toExerciseSummary(series),
+            total: 0,
+            average: 0,
+            peakValue: 0,
+            peakDate: null,
+          }
+        : toSummary(series);
 
     return res.json({
       success: true,
@@ -358,7 +416,7 @@ export const getFeatureStats = async (req, res) => {
         range,
         granularity: "day",
         unit,
-        summary: toSummary(series),
+        summary,
         series,
       },
     });

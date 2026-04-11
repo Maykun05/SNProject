@@ -23,9 +23,22 @@ import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
 import { useGarden } from "../context/GardenContext";
 import { useLevel } from "../context/LevelContext";
+import StackScreenBackButton from "../components/StackScreenBackButton";
+
+/** โทนเดียวกับการ์ดแคลอรี่ใน homepage.js */
+const CAL = {
+  main: "#B85C14",
+  soft: "#FDF6EF",
+  border: "rgba(30, 77, 43, 0.12)",
+  accent: "#D9781C",
+  track: "rgba(184, 92, 20, 0.12)",
+  ink: "#5A3E26",
+  muted: "#8D6E63",
+  searchBorder: "rgba(184, 92, 20, 0.35)",
+};
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F5F9FF" },
+  safe: { flex: 1, backgroundColor: CAL.soft },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 28 },
   loading: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
@@ -35,11 +48,11 @@ const s = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 14,
-    marginTop: 90,
+    marginTop: 105,
     marginBottom: 8,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ECEFF1",
+    borderColor: CAL.border,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -48,45 +61,51 @@ const s = StyleSheet.create({
   },
   searchWrap: { marginBottom: 16 },
   searchLabel: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 10 },
+  /** โครงสร้างเดียวกับ WaterQuickPick: กรอบเฉพาะช่องพิมพ์ + ปุ่มข้างนอก */
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  searchField: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "#FFF",
     borderWidth: 1.5,
-    borderColor: "#BBDEFB",
+    borderColor: CAL.searchBorder,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  searchIcon: { marginRight: 2 },
   input: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0D47A1",
+    paddingVertical: 0,
+    fontSize: 18,
+    fontWeight: "700",
+    color: CAL.main,
   },
   searchBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#1565C0",
+    backgroundColor: CAL.accent,
   },
-  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15},
+  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 16 },
   previewCard: {
     backgroundColor: "#FFF",
     borderRadius: 14,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#ECEFF1",
+    borderColor: CAL.border,
   },
   previewTitle: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 8 },
   previewBtns: { flexDirection: "row", marginTop: 14, gap: 10 },
   addBtn: {
     flex: 1,
-    backgroundColor: "#1565C0",
+    backgroundColor: CAL.accent,
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: "center",
@@ -95,15 +114,15 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: "#ECEFF1",
+    backgroundColor: "rgba(184, 92, 20, 0.1)",
     justifyContent: "center",
   },
   btnText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
-  cancelBtnText: { color: "#455A64", fontWeight: "700", fontSize: 15 },
+  cancelBtnText: { color: CAL.main, fontWeight: "700", fontSize: 15 },
   logs: { marginTop: 8 },
   logHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  logTitle: { fontSize: 17, fontWeight: "800", color: "#263238" },
-  logSum: { fontSize: 14, color: "#78909C", fontWeight: "600" },
+  logTitle: { fontSize: 17, fontWeight: "800", color: CAL.ink },
+  logSum: { fontSize: 14, color: CAL.muted, fontWeight: "600" },
   empty: {
     backgroundColor: "#FFF",
     borderRadius: 14,
@@ -111,7 +130,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#ECEFF1",
+    borderColor: CAL.border,
   },
   emptyTxt: { fontSize: 14, color: "#78909C", textAlign: "center" },
   row: {
@@ -123,12 +142,12 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#ECEFF1",
+    borderColor: CAL.border,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#42A5F5", marginRight: 12 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: CAL.accent, marginRight: 12 },
   foodMain: { flex: 1 },
-  foodName: { fontSize: 15, fontWeight: "700", color: "#263238" },
-  foodCal: { fontSize: 13, fontWeight: "600", color: "#1565C0", marginTop: 2 },
+  foodName: { fontSize: 15, fontWeight: "700", color: CAL.ink },
+  foodCal: { fontSize: 13, fontWeight: "600", color: CAL.main, marginTop: 2 },
   macro: { marginTop: 8, color: "#78909C", fontSize: 13 },
   delBtn: { padding: 8, marginLeft: 4 },
 });
@@ -314,6 +333,7 @@ export default function FoodScreen({ route }) {
 
   return (
     <SafeAreaView style={s.safe} edges={["bottom"]}>
+      <StackScreenBackButton tintColor={CAL.main} />
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
@@ -322,7 +342,7 @@ export default function FoodScreen({ route }) {
       >
         {listLoading ? (
           <View style={s.loading}>
-            <ActivityIndicator color="#1565C0" />
+            <ActivityIndicator color={CAL.main} />
             <Text style={s.loadingTxt}>กำลังโหลด…</Text>
           </View>
         ) : null}
@@ -331,8 +351,9 @@ export default function FoodScreen({ route }) {
           <CalProgressRing
             consumed={consumedCal}
             recommended={recommendedCal}
-            accentColor="#1976D2"
-            trackColor="#E8EEF5"
+            accentColor={CAL.accent}
+            trackColor={CAL.track}
+            themeColor={CAL.main}
             recommendedDaily={userToken ? autoCal : undefined}
             onEditGoal={userToken ? () => setShowCalorieModal(true) : undefined}
           />
@@ -341,16 +362,18 @@ export default function FoodScreen({ route }) {
         <View style={s.searchWrap}>
           <Text style={s.searchLabel}>ค้นหาอาหาร</Text>
           <View style={s.searchRow}>
-            <Ionicons name="search" size={20} color="#78909C" style={s.searchIcon} />
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
-              placeholderTextColor="#B0BEC5"
-              style={s.input}
-              returnKeyType="search"
-              onSubmitEditing={searchFood}
-            />
+            <View style={s.searchField}>
+              <Ionicons name="search" size={20} color="#78909C" />
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
+                placeholderTextColor="#B0BEC5"
+                style={s.input}
+                returnKeyType="search"
+                onSubmitEditing={searchFood}
+              />
+            </View>
             <TouchableOpacity style={s.searchBtn} onPress={searchFood} activeOpacity={0.9}>
               <Text style={s.searchBtnText}>{loading ? "…" : "ค้นหา"}</Text>
             </TouchableOpacity>
@@ -361,7 +384,7 @@ export default function FoodScreen({ route }) {
           <View style={s.previewCard}>
             <Text style={s.previewTitle}>ผลการค้นหา</Text>
             <Text style={s.foodName}>{previewFood.name}</Text>
-            <Text style={s.foodCal}>{previewFood.calories} kcal</Text>
+            <Text style={s.foodCal}>{previewFood.calories} กิโลแคลอรี่</Text>
             {previewFood.protein !== undefined && previewFood.protein !== null ? (
               <Text style={s.macro}>
                 Protein {previewFood.protein}g · Carb {previewFood.carbs}g · Fat {previewFood.fat}g
@@ -385,7 +408,7 @@ export default function FoodScreen({ route }) {
         <View style={s.logs}>
           <View style={s.logHead}>
             <Text style={s.logTitle}>วันนี้</Text>
-            <Text style={s.logSum}>{consumedCal} kcal</Text>
+            <Text style={s.logSum}>{consumedCal} กิโลแคลอรี่</Text>
           </View>
           {!userToken ? (
             <Empty icon="cloud-offline-outline" text="ล็อกอินเพื่อบันทึกมื้ออาหาร" />
@@ -397,7 +420,7 @@ export default function FoodScreen({ route }) {
                 <View style={s.dot} />
                 <View style={s.foodMain}>
                   <Text style={s.foodName}>{item.name}</Text>
-                  <Text style={s.foodCal}>{item.calories} kcal</Text>
+                  <Text style={s.foodCal}>{item.calories} กิโลแคลอรี่</Text>
                 </View>
                 <TouchableOpacity
                   style={s.delBtn}

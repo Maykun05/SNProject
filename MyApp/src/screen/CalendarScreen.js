@@ -12,6 +12,9 @@ import { getLocalDateKey } from '../utils/dateUtils';
 import { AuthContext } from "../context/AuthProvider";
 import { useWater } from "../context/WaterContext";
 
+/** สอดคล้องกับหน้า BMI (`BMIScreen.js`) */
+const GREEN = '#1E4D2B';
+
 export default function CalendarScreen() {
   const [mode, setMode] = useState('mood'); // 'mood' | 'water'
   const [waterData, setWaterData] = useState({});
@@ -103,20 +106,6 @@ export default function CalendarScreen() {
       {/* ===== TOP HEADER ===== */}
       <View style={styles.topHeader}>
         <Text style={styles.mainTitle}>ปฏิทิน</Text>
-
-        {/* <View style={styles.modeSwitch}>
-          <TouchableOpacity onPress={() => setMode('water')}>
-            <Text style={[styles.modeText, mode === 'water' && styles.active]}>
-              น้ำ
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setMode('mood')}>
-            <Text style={[styles.modeText, mode === 'mood' && styles.active]}>
-              อารมณ์
-            </Text>
-          </TouchableOpacity>
-        </View> */}
         <View style={styles.segment}>
           {/* WATER */}
           <TouchableOpacity
@@ -132,7 +121,7 @@ export default function CalendarScreen() {
                 mode === 'water' && styles.activeText,
               ]}
             >
-              น้ำ
+              ดื่มน้ำ
             </Text>
           </TouchableOpacity>
 
@@ -196,7 +185,11 @@ export default function CalendarScreen() {
 
       </View>
 
-      {Boolean(mode === 'mood') && <MoodCount moods={moods} />}
+      {Boolean(mode === 'mood') && (
+        <View style={styles.moodCountOuter}>
+          <MoodCount moods={moods} />
+        </View>
+      )}
 
       {Boolean(mode === 'mood') && (
       <MoodPickerModal
@@ -213,12 +206,13 @@ export default function CalendarScreen() {
    STYLES
 ====================== */
 const styles = StyleSheet.create({
+  /** พื้นหลังเดียวกับ `MissionScreen` container */
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FBF9',
   },
 
+  /** แถวเลือกเดือน (ในการ์ดปฏิทิน) */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -228,7 +222,7 @@ const styles = StyleSheet.create({
 
   arrow: {
     fontSize: 30,
-    color: '#2D4F45',
+    color: GREEN,
     paddingHorizontal: 12,
   },
 
@@ -237,16 +231,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  /**
+   * ระยะเดียวกับ `MissionScreen` → `styles.header` (หัวข้อภารกิจ)
+   * marginTop / paddingTop / paddingHorizontal / paddingBottom / minHeight
+   */
   topHeader: {
-    marginTop: 10,
-    marginBottom: 10,
     justifyContent: 'center',
+    marginTop: 18, 
+    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingBottom: 10,
+    position: 'relative',
+    minHeight: 84,
     alignItems: 'center',
   },
 
+  /** ช่องว่างแนวนอนเดียวกับ `heroCard` (marginHorizontal: 20) */
+  moodCountOuter: {
+    marginHorizontal: 20,
+  },
+
+  /** โทนเดียวกับ `MissionScreen` → `headerSmall` (คำว่า "ภารกิจ") */
   mainTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 30,
+    fontWeight: '800',
+    color: GREEN,
+    opacity: 0.9,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 
   modeSwitch: {
@@ -267,7 +279,8 @@ const styles = StyleSheet.create({
   },
 
   calendarCard: {
-    marginHorizontal: 16,
+    marginTop: 8,
+    marginHorizontal: 20,
     padding: 12,
     borderRadius: 20,
     backgroundColor: '#fff',
@@ -284,6 +297,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'absolute',
     right: 20,
+    top: 34,
   },
 
   segmentItem: {
@@ -309,10 +323,10 @@ const styles = StyleSheet.create({
   },
 
   activeLeft: {
-    backgroundColor: '#2D4F45',
+    backgroundColor: GREEN,
   },
 
   activeRight: {
-    backgroundColor: '#2D4F45',
+    backgroundColor: GREEN,
   },
 });

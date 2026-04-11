@@ -11,6 +11,10 @@ import FeatureStatsScreen from '../screen/FeatureStatsScreen.js';
 
 const Tab = createBottomTabNavigator();
 
+/** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md */
+const GREEN = '#1E4D2B';
+const TAB_INACTIVE = 'rgba(255, 255, 255, 0.78)';
+
 export default function BottomTabNavigator() {
   return (
     <Tab.Navigator
@@ -52,12 +56,12 @@ export default function BottomTabNavigator() {
               <Ionicons
                 name={iconName}
                 size={22}
-                color={focused ? '#2E7D5B' : '#000'}
+                color={focused ? GREEN : TAB_INACTIVE}
               />
               <Text
                 style={[
                   styles.tabText,
-                  { color: focused ? '#2E7D5B' : '#000' },
+                  { color: focused ? GREEN : TAB_INACTIVE },
                 ]}
                 numberOfLines={1}
               >
@@ -91,9 +95,13 @@ const styles = StyleSheet.create({
     right: 32,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2E7D5B',
+    backgroundColor: GREEN,
     borderTopWidth: 0,
     elevation: 8,
+    shadowColor: GREEN,
+    shadowOpacity: 0.22,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
   },
 
   tabItem: {

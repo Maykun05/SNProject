@@ -13,8 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 export default function CalProgressRing({
   consumed,
   recommended,
-  accentColor = "#1976D2",
-  trackColor = "#E8EEF5",
+  accentColor = "#D9781C",
+  trackColor = "rgba(184, 92, 20, 0.12)",
+  themeColor = "#B85C14",
   recommendedDaily,
   onEditGoal,
 }) {
@@ -52,19 +53,19 @@ export default function CalProgressRing({
       </Svg>
 
       <View style={styles.centerWrap} pointerEvents="box-none">
-        <Text style={styles.bigText}>{consumed}</Text>
-        <Text style={styles.unitText}>kcal วันนี้</Text>
+        <Text style={[styles.bigText, { color: themeColor }]}>{consumed}</Text>
+        <Text style={[styles.unitText, { color: themeColor }]}> กิโลแคลอรี่ </Text>
         <View style={styles.goalRow}>
-          <Text style={styles.goalText}>เป้า {recommended} kcal</Text>
+          <Text style={styles.goalText}>เป้าหมาย {recommended} </Text>
           {onEditGoal ? (
             <TouchableOpacity onPress={onEditGoal} hitSlop={10} style={styles.editHit}>
-              <Ionicons name="create-outline" size={17} color="#1565C0" />
+              <Ionicons name="create-outline" size={17} color={themeColor} />
             </TouchableOpacity>
           ) : null}
         </View>
-        {recommendedDaily != null ? (
-          <Text style={styles.recText}>แนะนำ {recommendedDaily} kcal/วัน</Text>
-        ) : null}
+        {/* {recommendedDaily != null ? (
+          <Text style={styles.recText}>แนะนำ {recommendedDaily} </Text>
+        ) : null} */}
       </View>
     </View>
   );
@@ -82,13 +83,11 @@ const styles = StyleSheet.create({
   bigText: {
     fontSize: 32,
     fontWeight: "800",
-    color: "#0D47A1",
     lineHeight: 36,
   },
   unitText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#1565C0",
     marginTop: 0,
   },
   goalRow: {
@@ -101,14 +100,14 @@ const styles = StyleSheet.create({
   goalText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#455A64",
+    color: "#5D4037",
     textAlign: "center",
   },
   editHit: { padding: 2 },
   recText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#607D8B",
+    color: "#8D6E63",
     marginTop: 5,
     textAlign: "center",
   },

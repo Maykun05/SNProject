@@ -6,15 +6,9 @@ const DEFAULT_GOAL = 2000;
 
 /** ฟ้าน้ำชัดขึ้น — ยังนุ่มกว่า #4FC3F7 / #039BE5 ชุดเดิม */
 const WATER_GRADIENT = [
-  '#3A7CAD',
-  '#6CB0DC',
-  '#B8E0F5',
-];
-/** ครบเป้า: ฟ้าอมเขียวน้ำทะเล */
-const WATER_GRADIENT_MET = [
-  '#2D8AA5',
-  '#52B4CC',
-  '#9EE5F2',
+  '#rgba(40, 162, 193, 0.68)',
+  '#rgba(147, 202, 215, 0.68)',
+  '#rgba(209, 228, 233, 0.68)',
 ];
 
 /** วงกลมแต่ละวัน: น้ำเติมจากล่างขึ้นตาม % ของเป้า (ฟีลแก้วน้ำ) */
@@ -41,7 +35,7 @@ export default function WaterCircle({ value = 0, goal = DEFAULT_GOAL }) {
       {percent > 0 && (
         <View style={fillStyle} pointerEvents="none">
           <LinearGradient
-            colors={metGoal ? WATER_GRADIENT_MET : WATER_GRADIENT}
+            colors={metGoal ? WATER_GRADIENT : WATER_GRADIENT}
             locations={[0, 0.45, 1]}
             start={{ x: 0.5, y: 1 }}
             end={{ x: 0.5, y: 0 }}
@@ -61,7 +55,7 @@ export default function WaterCircle({ value = 0, goal = DEFAULT_GOAL }) {
             minimumFontScale={0.65}
           >
             {amountLabel}
-            <Text style={[styles.unit, onWater && styles.unitOnWater]}> ml</Text>
+            {/* <Text style={[styles.unit, onWater && styles.unitOnWater]}> ml</Text> */}
           </Text>
         </View>
       )}
@@ -80,7 +74,7 @@ const styles = StyleSheet.create({
   },
   glassTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(170, 214, 245, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
   },
   fillShell: {
     position: 'absolute',
@@ -113,9 +107,9 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#37474F',
+    color: '#fff',
     textAlign: 'center',
-    textShadowColor: 'rgba(255, 255, 255, 0.85)',
+    textShadowColor: 'rgba(4, 0, 0, 0.85)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 2,
   },

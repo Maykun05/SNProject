@@ -33,7 +33,7 @@ export const FEATURES = [
   {
     id: 1,
     key: 'water',
-    label: 'น้ำ',
+    label: 'ดื่มน้ำ',
     image: require('../assets/featureIcons/water.png'),
     route: 'Water',
     // position: { bottom: 24, left: 24 },

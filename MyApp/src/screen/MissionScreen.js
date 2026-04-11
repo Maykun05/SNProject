@@ -23,14 +23,19 @@ const missionIconMap = {
   water: 'cup-water',
   food: 'food-apple',
   step: 'walk',
+  exercise: 'dumbbell',
   mood: 'emoticon-happy-outline',
   sleep: 'sleep',
   default: 'trophy-outline',
 };
 
+const formatMissionTitleDisplay = (title = '') =>
+  typeof title === 'string' ? title.replace(/บันทึกอาหาร/g, 'บันทึกแคลอรี่') : title;
+
 const inferMissionType = (title = '') => {
   if (title.includes('น้ำ')) return 'water';
-  if (title.includes('อาหาร') || title.includes('Calorie')) return 'food';
+  if (title.includes('อาหาร') || title.includes('แคลอรี่') || title.includes('Calorie')) return 'food';
+  if (title.includes('ออกกำลัง')) return 'exercise';
   if (title.includes('ก้าว') || title.includes('เดิน')) return 'step';
   if (title.includes('อารมณ์') || title.includes('สุข')) return 'mood';
   if (title.includes('นอน') || title.includes('หลับ')) return 'sleep';
@@ -48,6 +53,7 @@ const decorateMissions = (list = [], fallbackXp = 20) =>
       progressPercent: mission.progressPercent ?? 0,
       iconName: missionIconMap[missionType] ?? missionIconMap.default,
       xpReward: mission.xpReward ?? fallbackXp + (mission.reward || 0),
+      unit: mission.unit === 'มื้อ' ? 'ครั้ง' : mission.unit,
     };
   });
 
@@ -123,7 +129,7 @@ const MissionScreen = () => {
         <View style={styles.infoContainer}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              {mission.title}
+              {formatMissionTitleDisplay(mission.title)}
             </Text>
             <Text style={[styles.periodTag, { color }]}>{periodLabel}</Text>
           </View>
@@ -133,7 +139,7 @@ const MissionScreen = () => {
                 <Text style={styles.rewardText}>+{mission.reward}</Text>
                 <Image source={require('../assets/coin.png')} style={styles.inlineCoinImage} />
                 <Text style={styles.rewardXpText}>+{mission.xpReward} XP</Text>
-                <Text style={styles.completedBadge}>Completed</Text>
+                <Text style={styles.completedBadge}>สำเร็จแล้ว</Text>
               </>
             ) : (
               <>
@@ -191,7 +197,7 @@ const MissionScreen = () => {
         ) : null}
 
         <LinearGradient
-          colors={['#2E7D5B', '#1B5E45']}
+          colors={[GREEN, '#1B5E45']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.heroCard}
@@ -230,19 +236,19 @@ const MissionScreen = () => {
           </View>
         </LinearGradient>
 
-        <Text style={styles.sectionTitle}>Today</Text>
+        <Text style={styles.sectionTitle}>วันนี้</Text>
         {missionSections.daily.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#4CAF50" periodLabel="Daily" />
+          <MissionCard key={mission.id} mission={mission} color="#4CAF50" periodLabel="รายวัน" />
         ))}
 
-        <Text style={styles.sectionTitle}>This Week</Text>
+        <Text style={styles.sectionTitle}>สัปดาห์นี้</Text>
         {missionSections.weekly.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#FF9800" periodLabel="Weekly" />
+          <MissionCard key={mission.id} mission={mission} color="#FF9800" periodLabel="รายสัปดาห์" />
         ))}
 
-        <Text style={styles.sectionTitle}>This Month ({currentMonthName})</Text>
+        <Text style={styles.sectionTitle}>เดือนนี้ ({currentMonthName})</Text>
         {missionSections.monthly.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#4F6BED" periodLabel="Monthly" />
+          <MissionCard key={mission.id} mission={mission} color="#4F6BED" periodLabel="รายเดือน" />
         ))}
 
         <View style={styles.streakCard}>
@@ -257,13 +263,15 @@ const MissionScreen = () => {
               <View key={i} style={[styles.stepDot, i <= streakDotsActive ? styles.stepActive : null]} />
             ))}
           </View>
-          <Text style={styles.streakHint}>นับจากวันที่มีกิจกรรม (น้ำ / อาหาร / ก้าว / อารมณ์) อย่างน้อยหนึ่งอย่าง</Text>
+          <Text style={styles.streakHint}>
+            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: ดื่มน้ำ แคลอรี่ อารมณ์ การนอน ออกกำลังกาย
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
-
+const GREEN = '#1E4D2B';
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FBF9' },
   centerPad: { paddingVertical: 24, alignItems: 'center', paddingHorizontal: 24 },
@@ -279,6 +287,7 @@ const styles = StyleSheet.create({
   retryBtnText: { color: '#fff', fontWeight: '700' },
   header: {
     justifyContent: 'center',
+    marginTop: 18,
     paddingTop: 18,
     paddingHorizontal: 24,
     paddingBottom: 10,
@@ -294,7 +303,7 @@ const styles = StyleSheet.create({
   headerSmall: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#2E7D5B',
+    color: GREEN,
     opacity: 0.9,
     textAlign: 'center',
     letterSpacing: 0.2,

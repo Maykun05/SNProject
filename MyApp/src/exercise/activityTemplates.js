@@ -37,7 +37,7 @@ export const ACTIVITY_TEMPLATES = {
   },
   custom: {
     key: 'custom',
-    label: 'กำหนดเอง',
+    label: 'กำหนดเวลา · ตั้งชื่อเอง',
     icon: 'construct-outline',
     color: '#5D4037',
     accent: '#8D6E63',

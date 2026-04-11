@@ -1,5 +1,14 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,18 +22,39 @@ import TreeSelectorModal from '../components/home/TreeSelectorModal'; // ✅ ใ
 import { FEATURES } from '../constants/features';
 import { TREE_ASSETS } from '../constants/treeAssets'; // ✅ ใหม่
 import useHomeState from '../hooks/useHomeState';
-import { AuthContext } from '../context/AuthProvider';
-
 import ProfileAvatar from '../components/home/ProfileAvatar.js';
 import { useWater } from '../context/WaterContext';
-import { useStep } from '../context/StepContext';
-import { useLevel } from '../context/LevelContext';
+import { AuthContext } from '../context/AuthProvider';
+import { useProfile } from '../context/ProfileContext';
+import { fetchFoodToday } from '../services/foodService';
+import { recommendedDailyCaloriesFromProfile } from '../utils/recommendedCalFromProfile';
 
 import GardenCard from '../components/home/GardenCard';
 import { API_URL } from '../config';
 
+/** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md (สไลด์ 6) */
+const GREEN = '#1E4D2B';
+const PAGE_BG = '#F8F9FA';
+const CARD_BORDER = 'rgba(30, 77, 43, 0.12)';
+const TEXT_MUTED = '#5A6F62';
+/** โทนฟ้าเดียวกับ WaterScreen.js + WaterProgressRing (accent/track) */
+const WATER = {
+  main: '#1565C0',
+  soft: '#F5F9FF',
+  border: '#ECEFF1',
+  bar: '#1976D2',
+  iconBg: '#E8EEF5',
+};
+const CALORIES = {
+  main: '#B85C14',
+  soft: '#FDF6EF',
+  border: CARD_BORDER,
+  bar: '#D9781C',
+  iconBg: 'rgba(184, 92, 20, 0.12)',
+};
+
 export default function HomeScreen({ navigation }) {
-  const { addXp, level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
+  const insets = useSafeAreaInsets();
   const {
     doneMap,
     enabledFeatures,
@@ -118,7 +148,37 @@ export default function HomeScreen({ navigation }) {
   // };
 
   const { consumed: waterConsumed, waterGoal } = useWater();
-  const { steps, stepGoal } = useStep();
+  const { userToken } = useContext(AuthContext);
+  const { profile } = useProfile();
+  const [consumedCal, setConsumedCal] = useState(0);
+
+  const calorieGoal = useMemo(
+    () => recommendedDailyCaloriesFromProfile(profile, Boolean(userToken)),
+    [profile, userToken]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userToken) {
+        setConsumedCal(0);
+        return undefined;
+      }
+      let cancelled = false;
+      (async () => {
+        try {
+          const data = await fetchFoodToday(userToken);
+          if (cancelled) return;
+          const list = Array.isArray(data) ? data : [];
+          setConsumedCal(list.reduce((s, f) => s + (Number(f.calories) || 0), 0));
+        } catch {
+          if (!cancelled) setConsumedCal(0);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [userToken])
+  );
 
   const visibleFeatures = Object.keys(enabledFeatures)
     .filter(key => enabledFeatures[key])
@@ -130,12 +190,30 @@ export default function HomeScreen({ navigation }) {
   // ✅ เปลี่ยนมาใช้ TREE_ASSETS แทน TREE_IMAGES เดิม
   const treeImage = TREE_ASSETS[selectedTreeType][Math.min(doneCount, 5)];
 
-  const [sleepHours, setSleepHours] = useState(null);
-  return (
-    <View style={styles.root}>
-      <HomeHeader />
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
+  const waterPct = useMemo(() => {
+    const g = Number(waterGoal) || 0;
+    const c = Number(waterConsumed) || 0;
+    if (g <= 0) return 0;
+    return Math.min(100, Math.round((c / g) * 100));
+  }, [waterConsumed, waterGoal]);
 
+  const calPct = useMemo(() => {
+    const g = Number(calorieGoal) || 0;
+    const c = Number(consumedCal) || 0;
+    if (g <= 0) return 0;
+    return Math.min(100, Math.round((c / g) * 100));
+  }, [consumedCal, calorieGoal]);
+
+  return (
+    <SafeAreaView style={styles.root} edges={['left', 'right']}>
+      <HomeHeader />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 120,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <HomeCircle
           features={visibleFeatures}
           doneMap={doneMap}
@@ -146,50 +224,67 @@ export default function HomeScreen({ navigation }) {
           onPressTree={() => setShowTreeModal(true)}
         />
 
-        <View style={{ position: 'relative' }}>
+        <View style={styles.featureRowWrap}>
           <HomeFeatureRow features={FEATURES} onPress={onPressFeature} />
           <TouchableOpacity
             style={styles.plusCircle}
             onPress={() => setShowFeatureModal(true)}
+            activeOpacity={0.85}
           >
-            <Ionicons name="add" size={24} color="#fff" />
+            <Ionicons name="add" size={26} color="#fff" />
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Ionicons name="pulse-outline" size={18} color={GREEN} />
+          <Text style={styles.sectionTitle}>สรุปวันนี้</Text>
         </View>
 
         <View style={styles.summaryRow}>
-          {/* น้ำหนัก/เป้าน้ำดึงจากโปรไฟล์ + API — อย่าส่ง weight ฮาร์ดโค้ดที่นี่ */}
           <TouchableOpacity
-            style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}
+            style={[styles.summaryCard, { backgroundColor: WATER.soft, borderColor: WATER.border }]}
             onPress={() => navigation.navigate('WaterScreen')}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <Text style={[styles.summaryLabel, { color: '#3B5BDB' }]}>น้ำ</Text>
-            <View style={styles.ringWrapper}>
-              <View style={[styles.ringOuter, { borderColor: '#C5CFFF' }]}>
-                <View style={[styles.ringInner, { borderColor: '#4A90E2', borderTopColor: 'transparent' }]}>
-                  <Ionicons name="water" size={26} color="#4A90E2" />
-                </View>
+            <View style={styles.summaryCardTop}>
+              <View style={[styles.summaryIconBg, { backgroundColor: WATER.iconBg }]}>
+                <Ionicons name="water" size={22} color={WATER.main} />
               </View>
+              <Text style={[styles.summaryLabel, { color: WATER.main }]}>ดื่มน้ำ</Text>
             </View>
-            <Text style={[styles.summaryValue, { color: '#3B5BDB' }]}>{waterConsumed}</Text>
-            <Text style={styles.summaryTarget}>/ {waterGoal} ml</Text>
+            <Text style={[styles.summaryValue, { color: WATER.main }]}>
+              {waterConsumed}
+              <Text style={styles.summaryUnit}> มล.</Text>
+            </Text>
+            <Text style={styles.summaryTarget}>เป้าหมาย {waterGoal} มล. · {waterPct}%</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${waterPct}%`, backgroundColor: WATER.bar }]} />
+            </View>
           </TouchableOpacity>
 
-          <View style={[styles.summaryCard, { backgroundColor: '#FFF8EC' }]}>
-            <Text style={[styles.summaryLabel, { color: '#E07B00' }]}>จำนวนก้าวเดิน</Text>
-            <View style={styles.ringWrapper}>
-              <View style={[styles.ringOuter, { borderColor: '#FFE0B2' }]}>
-                <View style={[styles.ringInner, { borderColor: '#FF9800', borderTopColor: 'transparent' }]}>
-                  <Ionicons name="footsteps" size={26} color="#FF9800" />
-                </View>
+          <TouchableOpacity
+            style={[styles.summaryCard, { backgroundColor: CALORIES.soft, borderColor: CALORIES.border }]}
+            onPress={() => navigation.navigate('Calorie', { fromHomeFeature: true })}
+            activeOpacity={0.85}
+          >
+            <View style={styles.summaryCardTop}>
+              <View style={[styles.summaryIconBg, { backgroundColor: CALORIES.iconBg }]}>
+                <Ionicons name="flame" size={22} color={CALORIES.main} />
               </View>
+              <Text style={[styles.summaryLabel, { color: CALORIES.main }]}>แคลอรี่</Text>
             </View>
-            <Text style={[styles.summaryValue, { color: '#E07B00' }]}>{steps}</Text>
-            <Text style={styles.summaryTarget}>/ {stepGoal}</Text>
-          </View>
+            <Text style={[styles.summaryValue, { color: CALORIES.main }]}>
+              {Math.round(consumedCal)}
+              <Text style={styles.summaryUnit}> กิโลแคลอรี่</Text>
+            </Text>
+            <Text style={styles.summaryTarget}>เป้าหมาย {calorieGoal} กิโลแคลอรี่ · {calPct}%</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${calPct}%`, backgroundColor: CALORIES.bar }]} />
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <GardenCard />
+        {/* <GardenCard /> */}
 
         {/* ✅ Modal ที่ไม่ใช่ overlay ใส่ใน ScrollView ได้ */}
         <FeatureSelectorModal
@@ -212,8 +307,6 @@ export default function HomeScreen({ navigation }) {
         />
 
       </ScrollView>
-
-      {/* ✅ ย้าย SleepQuickPicker และ MoodQuickPicker ออกนอก ScrollView */}
       
       <SleepQuickPicker
         visible={showSleepPicker}
@@ -229,92 +322,128 @@ export default function HomeScreen({ navigation }) {
         onClose={() => setShowMoodPicker(false)}  
       />
 
-      <View style={styles.profilePosition}>
-        <ProfileAvatar size={60} />
+      <View style={[styles.profilePosition, { top: Math.max(insets.top, 8) + 6 }]}>
+        <ProfileAvatar size={56} />
       </View>
 
       {/* <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={24} color="#000" />
       </TouchableOpacity> */}
 
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: PAGE_BG,
   },
   container: {
     flex: 1,
-    paddingTop: -10,
   },
   profilePosition: {
     position: 'absolute',
-    top: 50,
-    right: 16,
+    right: 18,
     zIndex: 100,
+  },
+  featureRowWrap: {
+    position: 'relative',
+    marginBottom: 4,
   },
   plusCircle: {
     position: 'absolute',
-    top: -30,
-    right: 40,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#abb9a7ff',
+    zIndex: 4,
+    /* กึ่งกลางช่องระหว่างขอบล่างวงกลมกับแถบเป้าหมายวันนี้ (HomeCircle) — เยื้องขวา */
+    top: -100,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: GREEN,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 5,
+    shadowColor: GREEN,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 4,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#666',
+    letterSpacing: 0.4,
   },
   summaryRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
-    marginTop: 16,
+    marginTop: 10,
+    marginBottom: 4,
   },
   summaryCard: {
     flex: 1,
-    borderRadius: 20,
-    padding: 16,
-    alignItems: 'center',
-    gap: 6,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: GREEN,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowRadius: 8,
+  },
+  summaryCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  summaryIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    alignSelf: 'flex-start',
-  },
-  ringWrapper: {
-    marginVertical: 8,
-  },
-  ringOuter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ringInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1,
   },
   summaryValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  summaryUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.85,
   },
   summaryTarget: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: 12,
+    color: TEXT_MUTED,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  progressTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(30, 77, 43, 0.1)',
+    marginTop: 10,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 5,
+    borderRadius: 3,
   },
 });

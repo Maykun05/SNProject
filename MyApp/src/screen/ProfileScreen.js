@@ -13,6 +13,7 @@ import { useLevel } from '../context/LevelContext';
 import CoinBadge from '../components/CoinBadge.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthProvider.js';
+import StackScreenBackButton from '../components/StackScreenBackButton';
 import ProfileHealthRow from '../components/profile/ProfileHealthRow';
 import ProfileAccountCard from '../components/profile/ProfileAccountCard';
 import BirthDatePickerCard from '../components/BirthDatePickerCard';
@@ -79,8 +80,8 @@ const ProfileScreen = ({ navigation }) => {
   const [showBirthPicker, setShowBirthPicker] = useState(false);
 
   const bmi = calculateBMI(profile.weight, profile.height);
-  const levelAccent = levelInfo?.color ?? GREEN;
   const xpFillPercent = Math.min(100, Math.max(0, Number.isFinite(xpPercent) ? xpPercent : 0));
+  const xpBarGradient = [GREEN, lightenColor(GREEN)];
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -241,14 +242,17 @@ const handleChangePassword = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StackScreenBackButton />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
         <LinearGradient
           colors={['#EEF5F0', '#FFFFFF']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.heroCard}
         >
+          <View style={styles.heroCoinWrap}>
+            <CoinBadge amount={profile.coins ?? 0} inline />
+          </View>
           <View style={styles.avatarShadowWrap}>
             <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.avatarOuterRing}>
               <View style={styles.avatarContainer}>
@@ -268,9 +272,7 @@ const handleChangePassword = async () => {
           <Text style={styles.changePhotoText}>เปลี่ยนรูป</Text>
 
           <View style={styles.nameRow}>
-            <View style={[styles.nameRowSide, styles.nameRowSideLeft]}>
-              <CoinBadge amount={profile.coins} inline compact />
-            </View>
+            <View style={[styles.nameRowSide, styles.nameRowSideLeft]} />
             <View style={styles.nameCenterWrap}>
               <Text style={styles.userNameText} numberOfLines={1}>
                 {username || profile.name || 'ชื่อผู้ใช้'}
@@ -288,18 +290,18 @@ const handleChangePassword = async () => {
           </View>
 
           <View style={styles.levelSection}>
-            <View style={[styles.levelCircle, { borderColor: levelAccent }]}>
-              <Text style={[styles.levelNum, { color: levelAccent }]}>{String(level)}</Text>
+            <View style={[styles.levelCircle, { borderColor: 'rgba(30, 77, 43, 0.45)' }]}>
+              <Text style={[styles.levelNum, { color: GREEN }]}>{String(level)}</Text>
               <Text style={styles.levelLv}>LV</Text>
             </View>
             <View style={styles.levelInfo}>
-              <Text style={[styles.levelName, { color: levelAccent }]}>
+              <Text style={[styles.levelName, { color: '#14321E' }]}>
                 {levelInfo?.displayName ?? 'นักสำรวจมือใหม่'}
               </Text>
               <View style={styles.xpBarBg}>
                 <View style={[styles.xpBarFillWrap, { width: `${xpFillPercent}%` }]}>
                   <LinearGradient
-                    colors={[levelAccent, lightenColor(levelAccent)]}
+                    colors={xpBarGradient}
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0.5 }}
                     style={StyleSheet.absoluteFill}
@@ -567,11 +569,12 @@ const handleChangePassword = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  scrollContent: { paddingBottom: 100, paddingTop: 8 },
+  scrollContent: { paddingBottom: 100, paddingTop: 0 },
 
   heroCard: {
+    position: 'relative',
     marginHorizontal: 20,
-    marginTop: 12,
+    marginTop: 18,
     borderRadius: 20,
     paddingTop: 22,
     paddingBottom: 18,
@@ -582,6 +585,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
+  },
+  heroCoinWrap: {
+    position: 'absolute',
+    right: 20,
+    top: 10,
+    zIndex: 2,
   },
   avatarShadowWrap: {
     borderRadius: 60,
@@ -662,7 +671,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(30, 77, 43, 0.12)',
+    borderTopColor: 'rgba(30, 77, 43, 0.1)',
   },
   levelCircle: {
     width: 50,
@@ -671,15 +680,15 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   levelNum: { fontSize: 17, fontWeight: '700', lineHeight: 20 },
-  levelLv: { fontSize: 8, color: '#999', letterSpacing: 0.5 },
+  levelLv: { fontSize: 8, color: '#6E8B78', letterSpacing: 0.5 },
   levelInfo: { flex: 1, minWidth: 0 },
   levelName: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
   xpBarBg: {
     height: 8,
-    backgroundColor: '#E3EDE5',
+    backgroundColor: 'rgba(30, 77, 43, 0.1)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -688,7 +697,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  xpText: { fontSize: 11, color: '#777', marginTop: 4, fontWeight: '500' },
+  xpText: { fontSize: 11, color: '#5A6F62', marginTop: 4, fontWeight: '500' },
 
   sectionHeaderRow: {
     flexDirection: 'row',
