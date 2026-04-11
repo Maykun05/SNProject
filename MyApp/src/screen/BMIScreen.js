@@ -172,17 +172,17 @@ const BMIScreen = () => {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={{
-          paddingTop: 4,
           paddingBottom: insets.bottom + 56,
-          paddingHorizontal: 20,
         }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>ดัชนีมวลกาย</Text>
-          <Text style={styles.headerSub}>
-            คำนวณจากส่วนสูงและน้ำหนักในโปรไฟล์ของคุณ
-          </Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerSmall}>ดัชนีมวลกาย</Text>
+            <Text style={styles.headerSubText}>
+              คำนวณจากส่วนสูงและน้ำหนักในโปรไฟล์ของคุณ
+            </Text>
+          </View>
         </View>
 
         <LinearGradient
@@ -231,8 +231,8 @@ const BMIScreen = () => {
           </View>
         </LinearGradient>
 
-        <Text style={styles.sectionLabel}>ช่วง BMI (อ้างอิง)</Text>
-        <View style={styles.scaleSection}>
+        <Text style={[styles.sectionLabel, styles.sectionLabelInset]}>ช่วง BMI (อ้างอิง)</Text>
+        <View style={[styles.scaleSection, styles.contentInset]}>
           <View style={styles.markerRow}>
             <View
               style={[
@@ -262,7 +262,7 @@ const BMIScreen = () => {
           </View>
         </View>
 
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, styles.contentInset]}>
           <View style={styles.statCardHeader}>
             <Ionicons name="analytics-outline" size={22} color={GREEN} style={styles.statCardIcon} />
             <Text style={styles.statCardTitle}>น้ำหนักที่เหมาะสม</Text>
@@ -277,7 +277,7 @@ const BMIScreen = () => {
           ) : null}
         </View>
 
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, styles.contentInset]}>
           <View style={styles.statCardHeader}>
             <Ionicons name="flag-outline" size={22} color={GREEN} style={styles.statCardIcon} />
             <Text style={styles.statCardTitle}>น้ำหนักเป้าหมาย</Text>
@@ -287,7 +287,7 @@ const BMIScreen = () => {
         </View>
 
         <Text style={styles.sectionTitle}>คำแนะสำหรับคุณ</Text>
-        <View style={styles.adviceCard}>
+        <View style={[styles.adviceCard, styles.contentInset]}>
           {adviceList.map((item, index) => (
             <View
               key={index}
@@ -351,25 +351,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   header: {
-    marginTop: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
+    justifyContent: 'center',
+    marginTop: 18,
+    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingBottom: 10,
+    position: 'relative',
+    minHeight: 84,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+  headerTitleWrap: {
+    alignItems: 'center',
+  },
+  headerSmall: {
+    fontSize: 30,
+    fontWeight: '800',
     color: GREEN,
+    opacity: 0.9,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
-  headerSub: {
-    marginTop: 6,
-    fontSize: 14,
-    color: MUTED,
-    lineHeight: 20,
+  headerSubText: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#5C7A6E',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   heroCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 22,
+    borderRadius: 24,
+    padding: 18,
+    elevation: 4,
+  },
+  contentInset: {
+    marginHorizontal: 20,
+  },
+  sectionLabelInset: {
+    marginHorizontal: 20,
   },
   heroLabel: {
     color: 'rgba(255,255,255,0.75)',
@@ -430,7 +450,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   scaleSection: {
-    marginBottom: 20,
+    marginBottom: 22,
   },
   markerRow: {
     height: 10,
@@ -474,7 +494,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
@@ -508,15 +528,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 24,
+    marginBottom: 12,
     marginTop: 8,
-    marginBottom: 10,
+    color: '#1B4332',
   },
   adviceCard: {
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 8,
     paddingHorizontal: 4,
     marginBottom: 8,

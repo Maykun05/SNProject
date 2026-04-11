@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthProvider';
 import { fetchFeatureStats } from '../services/apiStats';
 
@@ -140,7 +140,7 @@ const BarChart = ({ data, unit, formatBar }) => {
   return (
     <View style={styles.chartCard}>
       <View style={styles.chartHeaderRow}>
-        <Text style={styles.sectionTitle}>แนวโน้มรายวัน</Text>
+        <Text style={styles.chartSectionHeading}>แนวโน้มรายวัน</Text>
         <Text style={styles.chartUnit}>{unit}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartRow}>
@@ -162,7 +162,10 @@ const BarChart = ({ data, unit, formatBar }) => {
   );
 };
 
+const GREEN = '#1E4D2B';
+
 export default function FeatureStatsScreen() {
+  const insets = useSafeAreaInsets();
   const { userToken } = useContext(AuthContext);
   const [feature, setFeature] = useState('water');
   const [range, setRange] = useState('7d');
@@ -284,17 +287,20 @@ export default function FeatureStatsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#1E4D2B" />}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 56 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} colors={['#2E7D5B']} />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Health Feature Stats</Text>
-          <Text style={styles.dateRange}>
-            {formatThaiDate(stats.dateRange?.startDate)} - {formatThaiDate(stats.dateRange?.endDate)}
-          </Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerSmall}>Health Feature Stats</Text>
+            <Text style={styles.headerSubText}>
+              {formatThaiDate(stats.dateRange?.startDate)} - {formatThaiDate(stats.dateRange?.endDate)}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.tabRow}>
+        <View style={[styles.tabRow, styles.contentInset, styles.tabsTop]}>
           {FEATURE_OPTIONS.map((item) => {
             const active = item.key === feature;
             return (
@@ -305,7 +311,7 @@ export default function FeatureStatsScreen() {
           })}
         </View>
 
-        <View style={styles.tabRow}>
+        <View style={[styles.tabRow, styles.contentInset]}>
           {RANGE_OPTIONS.map((item) => {
             const active = item.key === range;
             return (
@@ -318,7 +324,7 @@ export default function FeatureStatsScreen() {
 
         {isExercise ? (
           <>
-            <View style={styles.summaryGrid}>
+            <View style={[styles.summaryGrid, styles.contentInset]}>
               <SummaryCard label="เซสชันรวม" value={`${exerciseTotals.sessions}`} helper="ครั้ง" />
               <SummaryCard label="เวลารวม" value={formatDurationTotal(exerciseTotals.durationSec)} helper="จากเซสชันทั้งหมด" />
               <SummaryCard label="ก้าวรวม" value={`${exerciseTotals.steps.toLocaleString()}`} helper="ก้าว (เซสชัน)" />
@@ -327,7 +333,7 @@ export default function FeatureStatsScreen() {
               <SummaryCard label="วันมีเซสชัน" value={`${stats.summary.activeDays}`} helper="วัน" />
             </View>
 
-            <View style={styles.metricPillRow}>
+            <View style={[styles.metricPillRow, styles.contentInset]}>
               {EXERCISE_METRICS.map((m) => {
                 const active = m.key === exerciseMetric;
                 return (
@@ -350,7 +356,7 @@ export default function FeatureStatsScreen() {
           </>
         ) : (
           <>
-            <View style={styles.summaryGrid}>
+            <View style={[styles.summaryGrid, styles.contentInset]}>
               <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
               <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
               <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
@@ -361,8 +367,8 @@ export default function FeatureStatsScreen() {
           </>
         )}
 
-        <View style={styles.insightCard}>
-          <Text style={styles.sectionTitle}>Insight</Text>
+        <Text style={styles.pageSectionTitle}>Insight</Text>
+        <View style={[styles.insightCard, styles.contentInset]}>
           <Text style={styles.insightText}>{insightText}</Text>
         </View>
       </ScrollView>
@@ -371,11 +377,34 @@ export default function FeatureStatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F7F5' },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120 },
-  header: { marginBottom: 14 },
-  title: { fontSize: 24, fontWeight: '800', color: '#1E4D2B' },
-  dateRange: { marginTop: 4, fontSize: 12, color: '#607768' },
+  container: { flex: 1, backgroundColor: '#F9FBF9' },
+  contentInset: { marginHorizontal: 20 },
+  tabsTop: { marginTop: 8 },
+  header: {
+    justifyContent: 'center',
+    marginTop: 18,
+    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingBottom: 10,
+    position: 'relative',
+    minHeight: 84,
+  },
+  headerTitleWrap: { alignItems: 'center' },
+  headerSmall: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: GREEN,
+    opacity: 0.9,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  headerSubText: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#5C7A6E',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   tabRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   pill: {
     paddingHorizontal: 12,
@@ -398,7 +427,7 @@ const styles = StyleSheet.create({
   summaryCard: {
     width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 12,
     borderWidth: 1,
     borderColor: '#E1EAE4',
@@ -408,14 +437,23 @@ const styles = StyleSheet.create({
   summaryHelper: { marginTop: 2, fontSize: 11, color: '#7A8D81' },
   chartCard: {
     marginTop: 14,
+    marginHorizontal: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E1EAE4',
     padding: 12,
   },
   chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1E4D2B' },
+  chartSectionHeading: { fontSize: 14, fontWeight: '700', color: '#1E4D2B' },
+  pageSectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginLeft: 24,
+    marginBottom: 12,
+    marginTop: 8,
+    color: '#1B4332',
+  },
   chartUnit: { fontSize: 12, color: '#6A7E70' },
   chartRow: { alignItems: 'flex-end', gap: 8, paddingRight: 8 },
   barItem: { alignItems: 'center' },
@@ -431,9 +469,9 @@ const styles = StyleSheet.create({
   barFill: { width: '100%', backgroundColor: '#2F8D58', borderRadius: 10 },
   barLabel: { marginTop: 6, fontSize: 10, color: '#667E6F' },
   insightCard: {
-    marginTop: 14,
+    marginTop: 0,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E1EAE4',
     padding: 14,
