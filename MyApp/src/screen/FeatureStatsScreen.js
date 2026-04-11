@@ -19,11 +19,11 @@ import { MOODS } from '../constants/moods';
 import { fetchFeatureStats } from '../services/apiStats';
 
 const FEATURE_OPTIONS = [
-  { key: 'water', label: 'น้ำ', unitLabel: 'มล.' },
+  { key: 'water', label: 'ดื่มน้ำ', unitLabel: 'มล.' },
   { key: 'mood', label: 'อารมณ์', unitLabel: 'คะแนน' },
-  { key: 'sleep', label: 'นอนหลับ', unitLabel: 'ชม.' },
+  { key: 'sleep', label: 'การนอน', unitLabel: 'ชม.' },
   { key: 'exercise', label: 'ออกกำลังกาย', unitLabel: 'ครั้ง' },
-  { key: 'food', label: 'อาหาร', unitLabel: 'กิโลแคลอรี่' },
+  { key: 'food', label: 'แคลอรี่', unitLabel: 'กิโลแคลอรี่' },
 ];
 
 const RANGE_OPTIONS = [

@@ -121,7 +121,7 @@ export default function CalendarScreen() {
                 mode === 'water' && styles.activeText,
               ]}
             >
-              น้ำ
+              ดื่มน้ำ
             </Text>
           </TouchableOpacity>
 

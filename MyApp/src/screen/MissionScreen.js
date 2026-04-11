@@ -29,9 +29,12 @@ const missionIconMap = {
   default: 'trophy-outline',
 };
 
+const formatMissionTitleDisplay = (title = '') =>
+  typeof title === 'string' ? title.replace(/บันทึกอาหาร/g, 'บันทึกแคลอรี่') : title;
+
 const inferMissionType = (title = '') => {
   if (title.includes('น้ำ')) return 'water';
-  if (title.includes('อาหาร') || title.includes('Calorie')) return 'food';
+  if (title.includes('อาหาร') || title.includes('แคลอรี่') || title.includes('Calorie')) return 'food';
   if (title.includes('ออกกำลัง')) return 'exercise';
   if (title.includes('ก้าว') || title.includes('เดิน')) return 'step';
   if (title.includes('อารมณ์') || title.includes('สุข')) return 'mood';
@@ -126,7 +129,7 @@ const MissionScreen = () => {
         <View style={styles.infoContainer}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              {mission.title}
+              {formatMissionTitleDisplay(mission.title)}
             </Text>
             <Text style={[styles.periodTag, { color }]}>{periodLabel}</Text>
           </View>
@@ -261,7 +264,7 @@ const MissionScreen = () => {
             ))}
           </View>
           <Text style={styles.streakHint}>
-            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: น้ำ อาหาร อารมณ์ การนอน ออกกำลังกาย 
+            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: ดื่มน้ำ แคลอรี่ อารมณ์ การนอน ออกกำลังกาย
           </Text>
         </View>
       </ScrollView>
