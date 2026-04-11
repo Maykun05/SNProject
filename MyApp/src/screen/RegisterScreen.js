@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from '../context/AuthProvider';
+import { isValidEmail } from '../utils/emailValidation';
 
 const RegisterScreen = ({ navigation }) => {
   const { login } = useContext(AuthContext);
@@ -20,6 +21,11 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     if (!username || !email || !password) {
       Alert.alert('ผิดพลาด', 'กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+    const e = email.trim();
+    if (!isValidEmail(e)) {
+      Alert.alert('ผิดพลาด', 'รูปแบบอีเมลไม่ถูกต้อง');
       return;
     }
     if (password !== confirmPassword) {
@@ -54,7 +60,7 @@ const RegisterScreen = ({ navigation }) => {
         },
         body: JSON.stringify({
           username,
-          email,
+          email: e,
           password,
           recoveryQuestion: qTrim,
           recoveryAnswer: aTrim,
@@ -107,7 +113,8 @@ const RegisterScreen = ({ navigation }) => {
             onChangeText={setEmail} 
             keyboardType="email-address" 
             autoCapitalize="none"
-            placeholder="Email"
+            placeholder="เช่น yourname@email.com"
+            placeholderTextColor="#9E9E9E"
           />
 
           <Text style={styles.label}>รหัสผ่าน</Text>
