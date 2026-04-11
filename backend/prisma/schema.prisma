@@ -51,6 +51,7 @@ model ExerciseDay {
   date         DateTime
   planJson     Json
   progressJson Json
+  createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -168,11 +169,12 @@ model UserFeature {
 }
 
 model MoodLog {
-  id     Int      @id @default(autoincrement())
-  userId Int
-  mood   String
-  note   String?
-  date   DateTime
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  mood      String
+  note      String?
+  date      DateTime
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -207,13 +209,14 @@ model DailyFeatureLog {
 }
 
 model Sleep {
-  id     Int      @id @default(autoincrement())
-  userId Int
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  hours  Float
-  date   DateTime 
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hours     Float
+  date      DateTime
+  createdAt DateTime @default(now())
 
-  @@unique([userId, date])  
+  @@unique([userId, date])
 }
 
 model MissionProgress {
@@ -278,6 +281,7 @@ model FoodLog {
   fat       Float?
 
   date      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, date])
 }
