@@ -88,10 +88,10 @@ export default function CalorieGoalModal({
       >
         <View style={styles.box}>
           <View style={styles.header}>
-            <Ionicons name="nutrition-outline" size={24} color={CAL.main} />
+            <Ionicons name="flag-outline" size={24} color={CAL.main} />
             <Text style={styles.title}>ตั้งเป้าแคลอรี่</Text>
           </View>
-          <Text style={styles.sub}>แนะนำจากโปรไฟล์: {recommendedDaily} kcal/วัน</Text>
+          <Text style={styles.sub}>แนะนำจากโปรไฟล์: {recommendedDaily} กิโลแคลอรี่/วัน</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.input}
@@ -102,7 +102,7 @@ export default function CalorieGoalModal({
               placeholderTextColor="#bbb"
               maxLength={5}
             />
-            <Text style={styles.unit}>kcal</Text>
+            <Text style={styles.unit}>กิโลแคลอรี่</Text>
           </View>
           <Text style={styles.presetLabel}>ค่าสำเร็จรูป</Text>
           <View style={styles.presetRow}>

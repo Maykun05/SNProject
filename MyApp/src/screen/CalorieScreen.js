@@ -48,7 +48,7 @@ const s = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 14,
-    marginTop: 90,
+    marginTop: 105,
     marginBottom: 8,
     alignItems: "center",
     borderWidth: 1,
@@ -61,32 +61,38 @@ const s = StyleSheet.create({
   },
   searchWrap: { marginBottom: 16 },
   searchLabel: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 10 },
+  /** โครงสร้างเดียวกับ WaterQuickPick: กรอบเฉพาะช่องพิมพ์ + ปุ่มข้างนอก */
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  searchField: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "#FFF",
     borderWidth: 1.5,
     borderColor: CAL.searchBorder,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  searchIcon: { marginRight: 2 },
   input: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-    fontWeight: "600",
+    paddingVertical: 0,
+    fontSize: 18,
+    fontWeight: "700",
     color: CAL.main,
   },
   searchBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: CAL.accent,
   },
-  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15},
+  searchBtnText: { color: "#FFF", fontWeight: "800", fontSize: 16 },
   previewCard: {
     backgroundColor: "#FFF",
     borderRadius: 14,
@@ -356,16 +362,18 @@ export default function FoodScreen({ route }) {
         <View style={s.searchWrap}>
           <Text style={s.searchLabel}>ค้นหาอาหาร</Text>
           <View style={s.searchRow}>
-            <Ionicons name="search" size={20} color="#78909C" style={s.searchIcon} />
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
-              placeholderTextColor="#B0BEC5"
-              style={s.input}
-              returnKeyType="search"
-              onSubmitEditing={searchFood}
-            />
+            <View style={s.searchField}>
+              <Ionicons name="search" size={20} color="#78909C" />
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
+                placeholderTextColor="#B0BEC5"
+                style={s.input}
+                returnKeyType="search"
+                onSubmitEditing={searchFood}
+              />
+            </View>
             <TouchableOpacity style={s.searchBtn} onPress={searchFood} activeOpacity={0.9}>
               <Text style={s.searchBtnText}>{loading ? "…" : "ค้นหา"}</Text>
             </TouchableOpacity>
@@ -376,7 +384,7 @@ export default function FoodScreen({ route }) {
           <View style={s.previewCard}>
             <Text style={s.previewTitle}>ผลการค้นหา</Text>
             <Text style={s.foodName}>{previewFood.name}</Text>
-            <Text style={s.foodCal}>{previewFood.calories} kcal</Text>
+            <Text style={s.foodCal}>{previewFood.calories} กิโลแคลอรี่</Text>
             {previewFood.protein !== undefined && previewFood.protein !== null ? (
               <Text style={s.macro}>
                 Protein {previewFood.protein}g · Carb {previewFood.carbs}g · Fat {previewFood.fat}g
@@ -400,7 +408,7 @@ export default function FoodScreen({ route }) {
         <View style={s.logs}>
           <View style={s.logHead}>
             <Text style={s.logTitle}>วันนี้</Text>
-            <Text style={s.logSum}>{consumedCal} kcal</Text>
+            <Text style={s.logSum}>{consumedCal} กิโลแคลอรี่</Text>
           </View>
           {!userToken ? (
             <Empty icon="cloud-offline-outline" text="ล็อกอินเพื่อบันทึกมื้ออาหาร" />
@@ -412,7 +420,7 @@ export default function FoodScreen({ route }) {
                 <View style={s.dot} />
                 <View style={s.foodMain}>
                   <Text style={s.foodName}>{item.name}</Text>
-                  <Text style={s.foodCal}>{item.calories} kcal</Text>
+                  <Text style={s.foodCal}>{item.calories} กิโลแคลอรี่</Text>
                 </View>
                 <TouchableOpacity
                   style={s.delBtn}

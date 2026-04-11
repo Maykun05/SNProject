@@ -54,18 +54,18 @@ export default function CalProgressRing({
 
       <View style={styles.centerWrap} pointerEvents="box-none">
         <Text style={[styles.bigText, { color: themeColor }]}>{consumed}</Text>
-        <Text style={[styles.unitText, { color: themeColor }]}>kcal วันนี้</Text>
+        <Text style={[styles.unitText, { color: themeColor }]}> กิโลแคลอรี่ </Text>
         <View style={styles.goalRow}>
-          <Text style={styles.goalText}>เป้า {recommended} kcal</Text>
+          <Text style={styles.goalText}>เป้าหมาย {recommended} </Text>
           {onEditGoal ? (
             <TouchableOpacity onPress={onEditGoal} hitSlop={10} style={styles.editHit}>
               <Ionicons name="create-outline" size={17} color={themeColor} />
             </TouchableOpacity>
           ) : null}
         </View>
-        {recommendedDaily != null ? (
-          <Text style={styles.recText}>แนะนำ {recommendedDaily} kcal/วัน</Text>
-        ) : null}
+        {/* {recommendedDaily != null ? (
+          <Text style={styles.recText}>แนะนำ {recommendedDaily} </Text>
+        ) : null} */}
       </View>
     </View>
   );
