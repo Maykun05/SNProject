@@ -234,7 +234,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <GardenCard />
+        {/* <GardenCard /> */}
 
         {/* ✅ Modal ที่ไม่ใช่ overlay ใส่ใน ScrollView ได้ */}
         <FeatureSelectorModal

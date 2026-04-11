@@ -79,8 +79,8 @@ const ProfileScreen = ({ navigation }) => {
   const [showBirthPicker, setShowBirthPicker] = useState(false);
 
   const bmi = calculateBMI(profile.weight, profile.height);
-  const levelAccent = levelInfo?.color ?? GREEN;
   const xpFillPercent = Math.min(100, Math.max(0, Number.isFinite(xpPercent) ? xpPercent : 0));
+  const xpBarGradient = [GREEN, lightenColor(GREEN)];
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -288,18 +288,18 @@ const handleChangePassword = async () => {
           </View>
 
           <View style={styles.levelSection}>
-            <View style={[styles.levelCircle, { borderColor: levelAccent }]}>
-              <Text style={[styles.levelNum, { color: levelAccent }]}>{String(level)}</Text>
+            <View style={[styles.levelCircle, { borderColor: 'rgba(30, 77, 43, 0.45)' }]}>
+              <Text style={[styles.levelNum, { color: GREEN }]}>{String(level)}</Text>
               <Text style={styles.levelLv}>LV</Text>
             </View>
             <View style={styles.levelInfo}>
-              <Text style={[styles.levelName, { color: levelAccent }]}>
+              <Text style={[styles.levelName, { color: '#14321E' }]}>
                 {levelInfo?.displayName ?? 'นักสำรวจมือใหม่'}
               </Text>
               <View style={styles.xpBarBg}>
                 <View style={[styles.xpBarFillWrap, { width: `${xpFillPercent}%` }]}>
                   <LinearGradient
-                    colors={[levelAccent, lightenColor(levelAccent)]}
+                    colors={xpBarGradient}
                     start={{ x: 0, y: 0.5 }}
                     end={{ x: 1, y: 0.5 }}
                     style={StyleSheet.absoluteFill}
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(30, 77, 43, 0.12)',
+    borderTopColor: 'rgba(30, 77, 43, 0.1)',
   },
   levelCircle: {
     width: 50,
@@ -678,15 +678,15 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   levelNum: { fontSize: 17, fontWeight: '700', lineHeight: 20 },
-  levelLv: { fontSize: 8, color: '#999', letterSpacing: 0.5 },
+  levelLv: { fontSize: 8, color: '#6E8B78', letterSpacing: 0.5 },
   levelInfo: { flex: 1, minWidth: 0 },
   levelName: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
   xpBarBg: {
     height: 8,
-    backgroundColor: '#E3EDE5',
+    backgroundColor: 'rgba(30, 77, 43, 0.1)',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  xpText: { fontSize: 11, color: '#777', marginTop: 4, fontWeight: '500' },
+  xpText: { fontSize: 11, color: '#5A6F62', marginTop: 4, fontWeight: '500' },
 
   sectionHeaderRow: {
     flexDirection: 'row',
