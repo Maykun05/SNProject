@@ -86,7 +86,7 @@ export const updateUserProfile = async (userId, data) => {
   if (data.calorieGoal !== undefined) patch.calorieGoal = data.calorieGoal;
   if (data.waterGoal !== undefined) patch.waterGoal = data.waterGoal;
   if (data.profileImage !== undefined) patch.profileImage = data.profileImage;
-  if (data.selectedTreeType !== undefined) patch.selectedTreeType = data.selectedTreeType;
+  // selectedTreeType: ใช้ PUT /api/tree-type เท่านั้น (มี validation + unlock)
 
   return prisma.profile.upsert({
     where: { userId },

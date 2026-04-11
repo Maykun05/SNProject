@@ -68,6 +68,7 @@ model TreeType {
 
   unlocks     UserTreeUnlock[]
   earnedTrees EarnedTree[]
+  profiles      Profile[]
 }
 
 model UserTreeUnlock {
@@ -118,13 +119,14 @@ model Profile {
   birthDate     DateTime?
   activityLevel Int?
   gender        Gender?
-  selectedTreeType Int   @default(1)  
+  selectedTreeType Int      @default(1)
+  treeType        TreeType @relation(fields: [selectedTreeType], references: [id], onDelete: Restrict)
 
   calorieGoal     Int?  
   waterGoal       Int?
   profileImage    String?
 
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WaterLog {
@@ -159,7 +161,7 @@ model UserFeature {
   userId    Int
   featureId Int
 
-  user      User    @relation(fields: [userId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   feature   Feature @relation(fields: [featureId], references: [id])
 
   @@unique([userId, featureId])
@@ -172,7 +174,7 @@ model MoodLog {
   note   String?
   date   DateTime
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
 }
@@ -185,7 +187,7 @@ model DailyProgress {
   total     Int
   treeLevel Int
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
 }
@@ -197,7 +199,7 @@ model DailyFeatureLog {
   logDate    DateTime
   createdAt  DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   feature Feature @relation(fields: [featureId], references: [id], onDelete: Restrict)
 
   @@unique([userId, featureId, logDate])
@@ -207,7 +209,7 @@ model DailyFeatureLog {
 model Sleep {
   id     Int      @id @default(autoincrement())
   userId Int
-  user   User     @relation(fields: [userId], references: [id])
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   hours  Float
   date   DateTime 
 
@@ -224,7 +226,7 @@ model MissionProgress {
   goal        Int
   isCompleted Boolean   @default(false)
   completedAt DateTime?
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, missionId, periodKey])
 }
@@ -235,7 +237,7 @@ model CoinTransaction {
   amount    Int
   source    String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ActivitySession {
@@ -259,7 +261,7 @@ model ActivitySession {
   customGoalJson Json?
   isQualified    Boolean?
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, planDateKey, instanceId])
 }
@@ -267,7 +269,7 @@ model ActivitySession {
 model FoodLog {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name      String
   calories  Int
