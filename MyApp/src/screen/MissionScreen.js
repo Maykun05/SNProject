@@ -50,6 +50,7 @@ const decorateMissions = (list = [], fallbackXp = 20) =>
       progressPercent: mission.progressPercent ?? 0,
       iconName: missionIconMap[missionType] ?? missionIconMap.default,
       xpReward: mission.xpReward ?? fallbackXp + (mission.reward || 0),
+      unit: mission.unit === 'มื้อ' ? 'ครั้ง' : mission.unit,
     };
   });
 
@@ -135,7 +136,7 @@ const MissionScreen = () => {
                 <Text style={styles.rewardText}>+{mission.reward}</Text>
                 <Image source={require('../assets/coin.png')} style={styles.inlineCoinImage} />
                 <Text style={styles.rewardXpText}>+{mission.xpReward} XP</Text>
-                <Text style={styles.completedBadge}>Completed</Text>
+                <Text style={styles.completedBadge}>สำเร็จแล้ว</Text>
               </>
             ) : (
               <>
@@ -232,19 +233,19 @@ const MissionScreen = () => {
           </View>
         </LinearGradient>
 
-        <Text style={styles.sectionTitle}>Today</Text>
+        <Text style={styles.sectionTitle}>วันนี้</Text>
         {missionSections.daily.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#4CAF50" periodLabel="Daily" />
+          <MissionCard key={mission.id} mission={mission} color="#4CAF50" periodLabel="รายวัน" />
         ))}
 
-        <Text style={styles.sectionTitle}>This Week</Text>
+        <Text style={styles.sectionTitle}>สัปดาห์นี้</Text>
         {missionSections.weekly.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#FF9800" periodLabel="Weekly" />
+          <MissionCard key={mission.id} mission={mission} color="#FF9800" periodLabel="รายสัปดาห์" />
         ))}
 
-        <Text style={styles.sectionTitle}>This Month ({currentMonthName})</Text>
+        <Text style={styles.sectionTitle}>เดือนนี้ ({currentMonthName})</Text>
         {missionSections.monthly.map((mission) => (
-          <MissionCard key={mission.id} mission={mission} color="#4F6BED" periodLabel="Monthly" />
+          <MissionCard key={mission.id} mission={mission} color="#4F6BED" periodLabel="รายเดือน" />
         ))}
 
         <View style={styles.streakCard}>
@@ -260,8 +261,7 @@ const MissionScreen = () => {
             ))}
           </View>
           <Text style={styles.streakHint}>
-            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: น้ำ อาหาร อารมณ์ การนอน ออกกำลังกาย (บันทึกเซสชันหรือทำแผน Exercise
-            ครบอย่างน้อยหนึ่งรายการ)
+            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: น้ำ อาหาร อารมณ์ การนอน ออกกำลังกาย 
           </Text>
         </View>
       </ScrollView>

@@ -5,7 +5,7 @@
 export const ALL_MISSIONS = {
   daily: [
     { id: 'd1', title: "ดื่มน้ำอย่างน้อย 1 ครั้ง", reward: 5, goal: 1, unit: 'ครั้ง' },
-    { id: 'd2', title: "บันทึกอาหารอย่างน้อย 3 ครั้ง", reward: 10, goal: 3, unit: 'มื้อ' },
+    { id: 'd2', title: "บันทึกอาหารอย่างน้อย 3 ครั้ง", reward: 10, goal: 3, unit: 'ครั้ง' },
     { id: 'd3', title: "ออกกำลังกาย อย่างน้อย 1 วัน", reward: 10, goal: 1, unit: 'วัน' },
     { id: 'd4', title: "บันทึกอารมณ์ก่อนหมดวัน", reward: 10, goal: 1, unit: 'ครั้ง' },
   ],

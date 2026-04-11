@@ -21,7 +21,7 @@ export const MISSION_CATALOG = {
       title: "บันทึกอาหารอย่างน้อย 3 ครั้ง",
       reward: 10,
       goal: 3,
-      unit: "มื้อ",
+      unit: "ครั้ง",
       metric: "food_logs_today",
     },
     {
