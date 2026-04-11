@@ -39,8 +39,6 @@ model User {
   foods        FoodLog[]
 
   treeUnlocks  UserTreeUnlock[]
-  earnedTrees  EarnedTree[]
-  gardenSlots  HomeGardenSlot[]
   waterLogs    WaterLog[]
   exerciseDays ExerciseDay[]
 }
@@ -68,7 +66,6 @@ model TreeType {
   sortOrder      Int    @default(0)
 
   unlocks     UserTreeUnlock[]
-  earnedTrees EarnedTree[]
   profiles      Profile[]
 }
 
@@ -82,34 +79,6 @@ model UserTreeUnlock {
   treeType TreeType @relation(fields: [treeTypeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, treeTypeId])
-}
-
-model EarnedTree {
-  id         Int       @id @default(autoincrement())
-  userId     Int
-  treeTypeId Int
-  source     String
-  refDate    DateTime?
-  createdAt  DateTime  @default(now())
-
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  treeType TreeType        @relation(fields: [treeTypeId], references: [id], onDelete: Cascade)
-  placedSlot HomeGardenSlot?
-
-  @@unique([userId, refDate, source])
-  @@index([userId, createdAt])
-}
-
-model HomeGardenSlot {
-  id           Int  @id @default(autoincrement())
-  userId       Int
-  slotIndex    Int
-  earnedTreeId Int? @unique
-
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  earnedTree EarnedTree? @relation(fields: [earnedTreeId], references: [id], onDelete: SetNull)
-
-  @@unique([userId, slotIndex])
 }
 
 model Profile {

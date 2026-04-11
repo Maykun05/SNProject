@@ -1,9 +1,5 @@
 import prisma from "../config/prisma.js";
-import {
-  HOME_GARDEN_SLOT_COUNT,
-  ensureHomeGardenSlots,
-  isTreeTypeUnlocked,
-} from "../services/treeGardenService.js";
+import { isTreeTypeUnlocked } from "../services/treeGardenService.js";
 
 const treeTypeSelect = {
   id: true,
@@ -31,7 +27,6 @@ export const getTreeCatalog = async (req, res) => {
       data: {
         treeTypes: data,
         coins: user?.coins ?? 0,
-        homeSlotCount: HOME_GARDEN_SLOT_COUNT,
       },
     });
   } catch (err) {
@@ -95,148 +90,6 @@ export const postUnlockTreeType = async (req, res) => {
       return res.status(400).json({ success: false, message: "Already unlocked" });
     }
     console.error("postUnlockTreeType error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-export const getTreeInventory = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const trees = await prisma.earnedTree.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        treeType: { select: treeTypeSelect },
-        placedSlot: { select: { slotIndex: true } },
-      },
-    });
-    const data = trees.map((t) => ({
-      id: t.id,
-      treeTypeId: t.treeTypeId,
-      source: t.source,
-      refDate: t.refDate,
-      createdAt: t.createdAt,
-      treeType: t.treeType,
-      placedSlotIndex: t.placedSlot?.slotIndex ?? null,
-    }));
-    return res.json({ success: true, data: { trees: data } });
-  } catch (err) {
-    console.error("getTreeInventory error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-export const getHomeGardenLayout = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    await ensureHomeGardenSlots(userId);
-    const slots = await prisma.homeGardenSlot.findMany({
-      where: { userId },
-      orderBy: { slotIndex: "asc" },
-      include: {
-        earnedTree: {
-          include: { treeType: { select: treeTypeSelect } },
-        },
-      },
-    });
-    const data = slots.map((s) => ({
-      slotIndex: s.slotIndex,
-      earnedTreeId: s.earnedTreeId,
-      tree: s.earnedTree
-        ? {
-            id: s.earnedTree.id,
-            treeTypeId: s.earnedTree.treeTypeId,
-            treeType: s.earnedTree.treeType,
-          }
-        : null,
-    }));
-    return res.json({
-      success: true,
-      data: { slots: data, slotCount: HOME_GARDEN_SLOT_COUNT },
-    });
-  } catch (err) {
-    console.error("getHomeGardenLayout error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-/**
- * Body: { layout: (number|null)[] } — index = slotIndex, value = earnedTreeId หรือ null
- */
-export const putHomeGardenLayout = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const layout = req.body?.layout;
-    if (!Array.isArray(layout) || layout.length !== HOME_GARDEN_SLOT_COUNT) {
-      return res.status(400).json({
-        success: false,
-        message: `layout must be an array of length ${HOME_GARDEN_SLOT_COUNT}`,
-      });
-    }
-
-    const ids = layout.filter((x) => x != null).map((x) => Number(x));
-    if (ids.some((id) => !Number.isFinite(id))) {
-      return res.status(400).json({ success: false, message: "Invalid earnedTree id in layout" });
-    }
-    if (new Set(ids).size !== ids.length) {
-      return res.status(400).json({ success: false, message: "Duplicate tree in layout" });
-    }
-
-    if (ids.length) {
-      const trees = await prisma.earnedTree.findMany({
-        where: { userId, id: { in: ids } },
-        select: { id: true },
-      });
-      if (trees.length !== ids.length) {
-        return res.status(400).json({ success: false, message: "Invalid or foreign earned tree" });
-      }
-    }
-
-    await ensureHomeGardenSlots(userId);
-
-    await prisma.$transaction(async (tx) => {
-      await tx.homeGardenSlot.updateMany({
-        where: { userId },
-        data: { earnedTreeId: null },
-      });
-      for (let slotIndex = 0; slotIndex < layout.length; slotIndex++) {
-        const raw = layout[slotIndex];
-        const earnedTreeId = raw == null ? null : Number(raw);
-        await tx.homeGardenSlot.update({
-          where: { userId_slotIndex: { userId, slotIndex } },
-          data: { earnedTreeId },
-        });
-      }
-    });
-
-    const slots = await prisma.homeGardenSlot.findMany({
-      where: { userId },
-      orderBy: { slotIndex: "asc" },
-      include: {
-        earnedTree: {
-          include: { treeType: { select: treeTypeSelect } },
-        },
-      },
-    });
-
-    return res.json({
-      success: true,
-      data: {
-        slots: slots.map((s) => ({
-          slotIndex: s.slotIndex,
-          earnedTreeId: s.earnedTreeId,
-          tree: s.earnedTree
-            ? {
-                id: s.earnedTree.id,
-                treeTypeId: s.earnedTree.treeTypeId,
-                treeType: s.earnedTree.treeType,
-              }
-            : null,
-        })),
-      },
-    });
-  } catch (err) {
-    console.error("putHomeGardenLayout error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
