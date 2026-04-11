@@ -23,6 +23,7 @@ const missionIconMap = {
   water: 'cup-water',
   food: 'food-apple',
   step: 'walk',
+  exercise: 'dumbbell',
   mood: 'emoticon-happy-outline',
   sleep: 'sleep',
   default: 'trophy-outline',
@@ -31,6 +32,7 @@ const missionIconMap = {
 const inferMissionType = (title = '') => {
   if (title.includes('น้ำ')) return 'water';
   if (title.includes('อาหาร') || title.includes('Calorie')) return 'food';
+  if (title.includes('ออกกำลัง')) return 'exercise';
   if (title.includes('ก้าว') || title.includes('เดิน')) return 'step';
   if (title.includes('อารมณ์') || title.includes('สุข')) return 'mood';
   if (title.includes('นอน') || title.includes('หลับ')) return 'sleep';
@@ -257,7 +259,10 @@ const MissionScreen = () => {
               <View key={i} style={[styles.stepDot, i <= streakDotsActive ? styles.stepActive : null]} />
             ))}
           </View>
-          <Text style={styles.streakHint}>นับจากวันที่มีกิจกรรม (น้ำ / อาหาร / ก้าว / อารมณ์) อย่างน้อยหนึ่งอย่าง</Text>
+          <Text style={styles.streakHint}>
+            นับจากวันที่มีกิจกรรมอย่างน้อยหนึ่งอย่าง: น้ำ อาหาร อารมณ์ การนอน ออกกำลังกาย (บันทึกเซสชันหรือทำแผน Exercise
+            ครบอย่างน้อยหนึ่งรายการ)
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

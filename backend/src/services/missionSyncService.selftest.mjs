@@ -29,6 +29,15 @@ assert.equal(computeMetricProgress("food_logs_today", baseCtx), 3);
 assert.equal(computeMetricProgress("steps_today", baseCtx), 6000);
 assert.equal(computeMetricProgress("mood_logged_today", baseCtx), 1);
 
+assert.equal(computeMetricProgress("exercise_session_days_today", baseCtx), 0);
+assert.equal(
+  computeMetricProgress("exercise_session_days_today", {
+    ...baseCtx,
+    exerciseDayKeys: new Set([todayKey]),
+  }),
+  1
+);
+
 assert.equal(computeMetricProgress("water_logs_today", { ...baseCtx, waterMlByDay: new Map() }), 0);
 
 // Consecutive food: Mon Wed Fri in week → best streak 1
@@ -45,5 +54,12 @@ const foodStreakCtx = {
   ]),
 };
 assert.equal(computeMetricProgress("food_distinct_days_week", foodStreakCtx), 3);
+assert.equal(
+  computeMetricProgress("exercise_distinct_days_week", {
+    ...foodStreakCtx,
+    exerciseDayKeys: new Set([mon, wed]),
+  }),
+  2
+);
 
 console.log("missionSyncService selftest: OK");
