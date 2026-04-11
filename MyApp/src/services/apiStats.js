@@ -47,6 +47,14 @@ export const fetchFeatureStats7d = async (token) => {
   return parseJsonOrThrow(res, 'feature-stats');
 };
 
+const DEFAULT_SUMMARY_TOTALS = {
+  sessions: 0,
+  steps: 0,
+  durationSec: 0,
+  calories: 0,
+  distance: 0,
+};
+
 const DEFAULT_FEATURE_STATS = {
   dateRange: { startDate: null, endDate: null },
   feature: 'water',
@@ -59,6 +67,7 @@ const DEFAULT_FEATURE_STATS = {
     average: 0,
     peakValue: 0,
     peakDate: null,
+    totals: { ...DEFAULT_SUMMARY_TOTALS },
   },
   series: [],
 };
@@ -76,6 +85,11 @@ const normalizeFeatureStats = (payload = {}, fallback = {}) => ({
     ...DEFAULT_FEATURE_STATS.summary,
     ...(fallback?.summary ?? {}),
     ...(payload?.summary ?? {}),
+    totals: {
+      ...DEFAULT_SUMMARY_TOTALS,
+      ...(fallback?.summary?.totals ?? {}),
+      ...(payload?.summary?.totals ?? {}),
+    },
   },
   series: Array.isArray(payload?.series) ? payload.series : [],
 });

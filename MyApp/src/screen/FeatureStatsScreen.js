@@ -8,7 +8,7 @@ const FEATURE_OPTIONS = [
   { key: 'water', label: 'Water', unitLabel: 'ml' },
   { key: 'mood', label: 'Mood', unitLabel: 'score' },
   { key: 'sleep', label: 'Sleep', unitLabel: 'hrs' },
-  { key: 'steps', label: 'Steps', unitLabel: 'steps' },
+  { key: 'exercise', label: 'Exercise', unitLabel: 'exercise' },
   { key: 'food', label: 'Food', unitLabel: 'kcal' },
 ];
 
@@ -17,14 +17,37 @@ const RANGE_OPTIONS = [
   { key: 'month', label: 'เดือนนี้' },
 ];
 
+const EMPTY_TOTALS = {
+  sessions: 0,
+  steps: 0,
+  durationSec: 0,
+  calories: 0,
+  distance: 0,
+};
+
 const EMPTY_DATA = {
   dateRange: { startDate: null, endDate: null },
   feature: 'water',
   range: '7d',
   unit: 'count',
-  summary: { total: 0, activeDays: 0, average: 0, peakValue: 0, peakDate: null },
+  summary: {
+    total: 0,
+    activeDays: 0,
+    average: 0,
+    peakValue: 0,
+    peakDate: null,
+    totals: { ...EMPTY_TOTALS },
+  },
   series: [],
 };
+
+const EXERCISE_METRICS = [
+  { key: 'duration', label: 'เวลา', chartUnit: 'นาที/วัน' },
+  { key: 'steps', label: 'ก้าว', chartUnit: 'ก้าว/วัน' },
+  { key: 'calories', label: 'kcal', chartUnit: 'kcal/วัน' },
+  { key: 'distance', label: 'km', chartUnit: 'km/วัน' },
+  { key: 'sessions', label: 'เซสชัน', chartUnit: 'ครั้ง/วัน' },
+];
 
 const formatThaiDate = (value) => {
   if (!value) return '-';
@@ -41,13 +64,63 @@ const formatTickDate = (value, dense = false) => {
   return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 };
 
+const formatDurationTotal = (sec) => {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h <= 0) return `${m} นาที`;
+  return m > 0 ? `${h} ชม. ${m} นาที` : `${h} ชม.`;
+};
+
+const getExercisePointValue = (item, metricKey) => {
+  switch (metricKey) {
+    case 'duration':
+      return (Number(item.durationSec) || 0) / 60;
+    case 'steps':
+      return Number(item.steps) || 0;
+    case 'calories':
+      return Number(item.calories) || 0;
+    case 'distance':
+      return Number(item.distance) || 0;
+    case 'sessions':
+      return Number(item.sessions) || 0;
+    default:
+      return 0;
+  }
+};
+
+const formatExerciseBarValue = (metricKey, value) => {
+  if (metricKey === 'duration') {
+    return value < 10 && value % 1 !== 0 ? value.toFixed(1) : String(Math.round(value));
+  }
+  if (metricKey === 'distance') {
+    return value < 10 ? value.toFixed(2) : value.toFixed(1);
+  }
+  return String(Math.round(value));
+};
+
+const formatExercisePeakDisplay = (metricKey, value) => {
+  if (metricKey === 'duration') {
+    const sec = Math.round(value * 60);
+    return formatDurationTotal(sec);
+  }
+  if (metricKey === 'distance') return `${value.toFixed(2)} km`;
+  if (metricKey === 'calories') return `${Math.round(value)} kcal`;
+  if (metricKey === 'sessions') return `${Math.round(value)} ครั้ง`;
+  return `${Math.round(value).toLocaleString()} ก้าว`;
+};
+
 const normalize = (payload = {}, feature = 'water', range = '7d') => ({
   ...EMPTY_DATA,
   ...payload,
   feature,
   range,
   dateRange: { ...EMPTY_DATA.dateRange, ...(payload?.dateRange ?? {}) },
-  summary: { ...EMPTY_DATA.summary, ...(payload?.summary ?? {}) },
+  summary: {
+    ...EMPTY_DATA.summary,
+    ...(payload?.summary ?? {}),
+    totals: { ...EMPTY_TOTALS, ...(payload?.summary?.totals ?? {}) },
+  },
   series: Array.isArray(payload?.series) ? payload.series : [],
 });
 
@@ -59,7 +132,8 @@ const SummaryCard = ({ label, value, helper }) => (
   </View>
 );
 
-const BarChart = ({ data, unit }) => {
+const BarChart = ({ data, unit, formatBar }) => {
+  const fmt = formatBar ?? ((v) => String(v));
   const maxValue = Math.max(1, ...data.map((item) => Number(item.value) || 0));
   const isDense = data.length > 10;
 
@@ -75,7 +149,7 @@ const BarChart = ({ data, unit }) => {
           const barHeight = Math.max(6, Math.round((value / maxValue) * 130));
           return (
             <View key={item.date} style={styles.barItem}>
-              <Text style={styles.barValue}>{value}</Text>
+              <Text style={styles.barValue}>{fmt(value)}</Text>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, { height: barHeight }]} />
               </View>
@@ -96,9 +170,31 @@ export default function FeatureStatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [exerciseMetric, setExerciseMetric] = useState('duration');
 
   const featureMeta = useMemo(() => FEATURE_OPTIONS.find((item) => item.key === feature) ?? FEATURE_OPTIONS[0], [feature]);
-  const isEmpty = useMemo(() => stats.series.every((item) => (Number(item.value) || 0) === 0), [stats.series]);
+
+  const isExercise = feature === 'exercise';
+
+  const isEmpty = useMemo(() => {
+    if (isExercise) {
+      return stats.series.every((item) => (Number(item.sessions) || 0) === 0);
+    }
+    return stats.series.every((item) => (Number(item.value) || 0) === 0);
+  }, [isExercise, stats.series]);
+
+  const chartData = useMemo(() => {
+    if (!isExercise) return stats.series;
+    return stats.series.map((item) => ({
+      date: item.date,
+      value: getExercisePointValue(item, exerciseMetric),
+    }));
+  }, [exerciseMetric, isExercise, stats.series]);
+
+  const exerciseChartUnit = useMemo(
+    () => EXERCISE_METRICS.find((m) => m.key === exerciseMetric)?.chartUnit ?? '',
+    [exerciseMetric],
+  );
 
   const loadData = useCallback(
     async (isRefresh = false) => {
@@ -132,9 +228,34 @@ export default function FeatureStatsScreen() {
   }, [loadData]);
 
   const insightText = useMemo(() => {
+    if (isExercise) {
+      if (isEmpty) {
+        return 'ยังไม่มีเซสชันออกกำลังกายในช่วงนี้ ลองบันทึกเซสชันจากหน้า Exercise เพื่อดูแนวโน้ม';
+      }
+      let best = { date: null, value: -1 };
+      for (const item of stats.series) {
+        const v = getExercisePointValue(item, exerciseMetric);
+        if (v > best.value) best = { date: item.date, value: v };
+      }
+      if (best.value <= 0 || !best.date) {
+        return 'ยังไม่มีข้อมูลตามมิติที่เลือกในช่วงนี้';
+      }
+      const label = EXERCISE_METRICS.find((m) => m.key === exerciseMetric)?.label ?? '';
+      return `วันที่ ${label} สูงสุด: ${formatThaiDate(best.date)} — ${formatExercisePeakDisplay(exerciseMetric, best.value)}`;
+    }
     if (isEmpty) return 'ยังไม่มีข้อมูลในช่วงเวลานี้ ลองบันทึกกิจกรรมเพิ่มเพื่อเริ่มเห็นแนวโน้ม';
     return `วันที่ทำได้สูงสุด: ${formatThaiDate(stats.summary.peakDate)} (${stats.summary.peakValue} ${featureMeta.unitLabel})`;
-  }, [featureMeta.unitLabel, isEmpty, stats.summary.peakDate, stats.summary.peakValue]);
+  }, [
+    exerciseMetric,
+    featureMeta.unitLabel,
+    isEmpty,
+    isExercise,
+    stats.series,
+    stats.summary.peakDate,
+    stats.summary.peakValue,
+  ]);
+
+  const exerciseTotals = stats.summary.totals ?? EMPTY_TOTALS;
 
   if (loading) {
     return (
@@ -195,14 +316,50 @@ export default function FeatureStatsScreen() {
           })}
         </View>
 
-        <View style={styles.summaryGrid}>
-          <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
-          <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
-          <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
-          <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
-        </View>
+        {isExercise ? (
+          <>
+            <View style={styles.summaryGrid}>
+              <SummaryCard label="เซสชันรวม" value={`${exerciseTotals.sessions}`} helper="ครั้ง" />
+              <SummaryCard label="เวลารวม" value={formatDurationTotal(exerciseTotals.durationSec)} helper="จากเซสชันทั้งหมด" />
+              <SummaryCard label="ก้าวรวม" value={`${exerciseTotals.steps.toLocaleString()}`} helper="ก้าว (เซสชัน)" />
+              <SummaryCard label="แคลอรี่รวม" value={`${exerciseTotals.calories}`} helper="kcal" />
+              <SummaryCard label="ระยะทางรวม" value={`${(Number(exerciseTotals.distance) || 0).toFixed(2)}`} helper="km" />
+              <SummaryCard label="วันมีเซสชัน" value={`${stats.summary.activeDays}`} helper="วัน" />
+            </View>
 
-        <BarChart data={stats.series} unit={featureMeta.unitLabel} />
+            <View style={styles.metricPillRow}>
+              {EXERCISE_METRICS.map((m) => {
+                const active = m.key === exerciseMetric;
+                return (
+                  <TouchableOpacity
+                    key={m.key}
+                    style={[styles.metricPill, active && styles.pillActive]}
+                    onPress={() => setExerciseMetric(m.key)}
+                  >
+                    <Text style={[styles.metricPillText, active && styles.pillTextActive]}>{m.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <BarChart
+              data={chartData}
+              unit={exerciseChartUnit}
+              formatBar={(v) => formatExerciseBarValue(exerciseMetric, v)}
+            />
+          </>
+        ) : (
+          <>
+            <View style={styles.summaryGrid}>
+              <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
+              <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
+              <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
+              <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
+            </View>
+
+            <BarChart data={stats.series} unit={featureMeta.unitLabel} />
+          </>
+        )}
 
         <View style={styles.insightCard}>
           <Text style={styles.sectionTitle}>Insight</Text>
@@ -229,6 +386,14 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: '#1E4D2B' },
   pillText: { color: '#2F4A3A', fontWeight: '600', fontSize: 12 },
   pillTextActive: { color: '#FFFFFF' },
+  metricPillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  metricPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#E8EFEB',
+  },
+  metricPillText: { color: '#2F4A3A', fontWeight: '600', fontSize: 11 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 4 },
   summaryCard: {
     width: '48%',
