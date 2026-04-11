@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useCallback } from 'react';
+import { useContext } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { API_URL } from '../config';
 import { AuthContext } from '../context/AuthProvider';
+import { useProfile } from '../context/ProfileContext';
 import { getProfileAge } from '../utils/profileHealth';
 
 const GREEN = '#1E4D2B';
@@ -46,49 +46,20 @@ const bmiToMarkerPercent = (bmi) => {
 
 const BMIScreen = () => {
   const insets = useSafeAreaInsets();
-  const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { userToken } = useContext(AuthContext);
+  const { profile, loading: profileLoading, refreshProfile } = useProfile();
 
-  const fetchUser = useCallback(async () => {
-    if (!userToken) {
-      setLoading(false);
-      setError('ยังไม่ได้เข้าสู่ระบบ');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_URL}/api/profile`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
+  if (!userToken) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerPad}>
+          <Text style={styles.muted}>ยังไม่ได้เข้าสู่ระบบ</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-      if (!res.ok) {
-        throw new Error('โหลดโปรไฟล์ไม่สำเร็จ');
-      }
-
-      const data = await res.json();
-      const { activityLevel, ...filteredData } = data;
-      setUserData(filteredData);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'เกิดข้อผิดพลาด');
-      setUserData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [userToken]);
-
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-
-  if (loading && !userData) {
+  if (profileLoading) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerPad}>
@@ -99,32 +70,26 @@ const BMIScreen = () => {
     );
   }
 
-  if (error && !userData) {
+  const weight = Number(profile.weight);
+  const height = Number(profile.height);
+  const gender = profile.gender;
+  const birthRaw = profile.birthDate;
+
+  if (!Number.isFinite(weight) || !Number.isFinite(height) || weight <= 0 || height <= 0) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerPad}>
-          <Ionicons name="cloud-offline-outline" size={48} color={MUTED} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchUser}>
-            <Text style={styles.retryBtnText}>ลองอีกครั้ง</Text>
+          <Ionicons name="person-outline" size={48} color={MUTED} />
+          <Text style={styles.errorText}>
+            กรุณากรอกส่วนสูงและน้ำหนักในโปรไฟล์เพื่อคำนวณ BMI
+          </Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => refreshProfile?.()}>
+            <Text style={styles.retryBtnText}>โหลดข้อมูลอีกครั้ง</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
-
-  if (!userData) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centerPad}>
-          <Text style={styles.muted}>ไม่มีข้อมูล</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const { weight, height, gender } = userData;
-  const birthRaw = userData.birthDate ?? userData.birthday;
   const age = getProfileAge(birthRaw);
 
   const heightMeter = height / 100;
@@ -185,11 +150,12 @@ const BMIScreen = () => {
       advice.push('เพิ่มคาร์ดิโอเพื่อสุขภาพหัวใจ');
     }
 
-    if (gender === 'female') {
+    const g = String(gender || '').toUpperCase();
+    if (g === 'FEMALE') {
       advice.push('เพิ่มอาหารที่มีธาตุเหล็ก เช่น ผักใบเขียว');
     }
 
-    if (gender === 'male') {
+    if (g === 'MALE') {
       advice.push('เพิ่มโปรตีนเพื่อเสริมสร้างกล้ามเนื้อ');
     }
 

@@ -28,10 +28,26 @@ import { useStep } from '../context/StepContext';
 import GardenCard from '../components/home/GardenCard';
 import { API_URL } from '../config';
 
+/** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md (สไลด์ 6) */
 const GREEN = '#1E4D2B';
-const PAGE_BG = '#F9FBF9';
-const WATER = { main: '#2E6BC6', soft: '#E8EEF9', border: '#C5D4F0', bar: '#4A7FD4' };
-const STEPS = { main: '#C45C00', soft: '#FFF5E6', border: '#F0D4A8', bar: '#FF9800' };
+const PAGE_BG = '#F8F9FA';
+const HERO_MINT = '#EEF5F0';
+const CARD_BORDER = 'rgba(30, 77, 43, 0.12)';
+const TEXT_MUTED = '#5A6F62';
+const WATER = {
+  main: GREEN,
+  soft: HERO_MINT,
+  border: CARD_BORDER,
+  bar: '#3D7A52',
+  iconBg: 'rgba(30, 77, 43, 0.14)',
+};
+const STEPS = {
+  main: '#14321E',
+  soft: '#FFFFFF',
+  border: CARD_BORDER,
+  bar: GREEN,
+  iconBg: 'rgba(30, 77, 43, 0.1)',
+};
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -197,7 +213,7 @@ export default function HomeScreen({ navigation }) {
             activeOpacity={0.85}
           >
             <View style={styles.summaryCardTop}>
-              <View style={[styles.summaryIconBg, { backgroundColor: 'rgba(74, 127, 212, 0.18)' }]}>
+              <View style={[styles.summaryIconBg, { backgroundColor: WATER.iconBg }]}>
                 <Ionicons name="water" size={22} color={WATER.main} />
               </View>
               <Text style={[styles.summaryLabel, { color: WATER.main }]}>ดื่มน้ำ</Text>
@@ -218,10 +234,10 @@ export default function HomeScreen({ navigation }) {
             activeOpacity={0.85}
           >
             <View style={styles.summaryCardTop}>
-              <View style={[styles.summaryIconBg, { backgroundColor: 'rgba(255, 152, 0, 0.22)' }]}>
-                <Ionicons name="footsteps" size={22} color={STEPS.main} />
+              <View style={[styles.summaryIconBg, { backgroundColor: STEPS.iconBg }]}>
+                <Ionicons name="footsteps" size={22} color={GREEN} />
               </View>
-              <Text style={[styles.summaryLabel, { color: STEPS.main }]}>ก้าวเดิน</Text>
+              <Text style={[styles.summaryLabel, { color: GREEN }]}>ก้าวเดิน</Text>
             </View>
             <Text style={[styles.summaryValue, { color: STEPS.main }]}>
               {steps}
@@ -308,12 +324,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#2E7D5B',
+    backgroundColor: GREEN,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-    shadowColor: '#1E4D2B',
-    shadowOpacity: 0.28,
+    shadowColor: GREEN,
+    shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 6,
   },
@@ -326,10 +342,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
-    color: GREEN,
-    letterSpacing: -0.2,
+    color: '#666',
+    letterSpacing: 0.4,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -343,9 +359,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
+    elevation: 2,
+    shadowColor: GREEN,
+    shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
   },
@@ -379,14 +395,14 @@ const styles = StyleSheet.create({
   },
   summaryTarget: {
     fontSize: 12,
-    color: '#5C6B72',
+    color: TEXT_MUTED,
     marginTop: 4,
     fontWeight: '500',
   },
   progressTrack: {
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(30, 77, 43, 0.1)',
     marginTop: 10,
     overflow: 'hidden',
   },

@@ -1,11 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   FadeOut,
 } from 'react-native-reanimated';
+/** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md */
+const GREEN = '#1E4D2B';
+const HERO_MINT = '#EEF5F0';
+const RING_MUTE = '#E8EFE9';
 
 const CIRCLE_DIAMETER = 220;
 const ICON_SIZE = 48;
@@ -40,8 +45,8 @@ function CircleIcon({ f, index, total, onPressFeature }) {
       <TouchableOpacity
         style={styles.iconTouchable}
         onPress={() => {
-          console.log("TOUCH ICON:", f.key);
-          onPressFeature(f);}}
+          onPressFeature(f);
+        }}
         activeOpacity={0.75}
       >
         <Image source={f.image} style={styles.iconImage} />
@@ -106,8 +111,17 @@ export default function HomeCircle({
       </View>
 
       <View style={styles.goalBadge}>
-        <Text style={styles.goalEmoji}>🌿</Text>
-        <Text style={styles.goalText}>{doneCount}/{totalCount} เป้าหมาย</Text>
+        <View style={styles.goalIconRing}>
+          <Ionicons name="leaf" size={18} color={GREEN} />
+        </View>
+        <View style={styles.goalTextBlock}>
+          <View style={styles.goalCountRow}>
+            <Text style={styles.goalCountNum}>{String(doneCount)}</Text>
+            <Text style={styles.goalCountSlash}>/</Text>
+            <Text style={styles.goalCountTotal}>{String(totalCount)}</Text>
+          </View>
+          <Text style={styles.goalCaption}>เป้าหมายวันนี้</Text>
+        </View>
       </View>
     </View>
   );
@@ -131,16 +145,16 @@ const styles = StyleSheet.create({
     height: CIRCLE_DIAMETER,
     borderRadius: CIRCLE_DIAMETER / 2,
     overflow: 'hidden',
-    borderWidth: 4,
-    borderColor: '#7aab6d',
-    backgroundColor: '#e8f5e2',
+    borderWidth: 3,
+    borderColor: GREEN,
+    backgroundColor: HERO_MINT,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#4a7c3f',
-    shadowOpacity: 0.2,
+    elevation: 4,
+    shadowColor: GREEN,
+    shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    shadowRadius: 12,
   },
   treeImage: {
     width: CIRCLE_DIAMETER,
@@ -151,16 +165,16 @@ const styles = StyleSheet.create({
     width: ICON_SIZE,
     height: ICON_SIZE,
     borderRadius: ICON_SIZE / 2,
-    backgroundColor: '#ffffffee',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
+    elevation: 3,
+    shadowColor: GREEN,
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowRadius: 6,
     borderWidth: 2,
-    borderColor: '#a8c89f',
+    borderColor: RING_MUTE,
   },
   iconTouchable: {
     width: '100%',
@@ -176,23 +190,61 @@ const styles = StyleSheet.create({
   goalBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 14,
-    backgroundColor: '#4a7c3f',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#2d5a1b',
-    shadowOpacity: 0.25,
+    gap: 12,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingRight: 22,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(30, 77, 43, 0.14)',
+    elevation: 3,
+    shadowColor: GREEN,
+    shadowOpacity: 0.07,
     shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
+    shadowRadius: 10,
   },
-  goalEmoji: { fontSize: 16 },
-  goalText: {
-    fontSize: 15,
+  goalIconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: HERO_MINT,
+    borderWidth: 2,
+    borderColor: RING_MUTE,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  goalTextBlock: {
+    minWidth: 0,
+  },
+  goalCountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  goalCountNum: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: GREEN,
+    letterSpacing: -0.5,
+  },
+  goalCountSlash: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9AAB9E',
+    marginHorizontal: 2,
+  },
+  goalCountTotal: {
+    fontSize: 18,
     fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.5,
+    color: '#5A6F62',
+    letterSpacing: -0.3,
+  },
+  goalCaption: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6E8B78',
+    letterSpacing: 0.2,
   },
 });

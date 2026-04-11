@@ -1,54 +1,77 @@
 import React from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
-import { useLevel } from '../../context/LevelContext'; // ✅ เพิ่ม
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLevel } from '../../context/LevelContext';
+
+/** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md */
+const GREEN = '#1E4D2B';
+const XP_BAR_END = '#5FA578';
 
 export default function HomeHeader() {
-  const { level, xp, xpRequired, xpPercent, levelInfo} = useLevel(); // ✅ เพิ่ม
+  const insets = useSafeAreaInsets();
+  const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
+  const xpFill = Math.min(100, Math.max(0, Number.isFinite(xpPercent) ? xpPercent : 0));
 
   return (
-    <View style={styles.header}>
-      {/* โลโก้ซ้าย */}
+    <LinearGradient
+      colors={['#EEF5F0', '#FFFFFF']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={[
+        styles.header,
+        {
+          paddingTop: Math.max(insets.top, 10) + 6,
+        },
+      ]}
+    >
       <Image
         source={require('../../assets/logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />
 
-      {/* Level ตรงกลาง */}
       <View style={styles.levelCenter}>
-        <Text style={[styles.levelTitle, { color: levelInfo?.color || '#000' }]}>
+        <Text style={styles.levelTitle}>
           {(levelInfo?.emoji ?? '')} Lv.{level ?? 0} {(levelInfo?.name ?? '')}
         </Text>
         <View style={styles.xpBarBg}>
-          <View style={[styles.xpBarFill, {
-            width: `${xpPercent}%`,
-            backgroundColor: levelInfo.color,
-          }]} />
+          <View style={[styles.xpBarFillWrap, { width: `${xpFill}%` }]}>
+            <LinearGradient
+              colors={[GREEN, XP_BAR_END]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
         </View>
-        <Text style={styles.xpText}>{xp} / {xpRequired} XP</Text>
+        <Text style={styles.xpText}>
+          {xp} / {xpRequired} XP
+        </Text>
         <Text style={styles.xpHint} numberOfLines={2}>
           ทำฟีเจอร์วันนี้ครบเป้า +10 XP · ภารกิจ +XP ตามการ์ด
         </Text>
       </View>
 
-      {/* ช่องว่างขวา สำหรับ ProfileAvatar */}
       <View style={styles.rightSpace} />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',   
-    alignItems: 'center',  
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
-    paddingLeft: 0,
-    paddingTop: 5,
-    paddingTop: 44, 
-  backgroundColor: '#fff',
+    paddingBottom: 10,
+    elevation: 4,
+    shadowColor: GREEN,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
   },
   logo: {
-    width: 80,             
+    width: 80,
     height: 80,
     alignSelf: 'flex-start',
   },
@@ -56,34 +79,37 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 8,
-    gap: 3,
+    gap: 4,
   },
   levelTitle: {
     fontSize: 14,
     fontWeight: '700',
+    color: GREEN,
   },
   xpBarBg: {
     width: '100%',
     height: 6,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: 'rgba(30, 77, 43, 0.1)',
     borderRadius: 3,
     overflow: 'hidden',
   },
-  xpBarFill: {
+  xpBarFillWrap: {
     height: 6,
     borderRadius: 3,
+    overflow: 'hidden',
   },
   xpText: {
     fontSize: 11,
-    color: '#999',
+    color: '#5A6F62',
+    fontWeight: '500',
   },
   xpHint: {
-    fontSize: 9,
-    color: '#9EAEA6',
+    fontSize: 10,
+    color: '#6E8B78',
     textAlign: 'center',
     marginTop: 2,
     paddingHorizontal: 4,
-    lineHeight: 12,
+    lineHeight: 14,
   },
   rightSpace: {
     width: 80,
