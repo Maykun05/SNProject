@@ -51,7 +51,6 @@ const ProfileScreen = ({ navigation }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [notificationEnabled, setNotificationEnabled] = useState(false);
   const {userToken} = useContext(AuthContext);
 
   useEffect(() => {
@@ -349,21 +348,17 @@ const handleChangePassword = async () => {
           <Ionicons name="settings-outline" size={16} color={GREEN} />
           <Text style={styles.sectionLabel}>ตั้งค่าแอป</Text>
         </View>
-        <View style={styles.cardFull}>
+        <TouchableOpacity
+          style={styles.cardFull}
+          onPress={() => {}}
+          activeOpacity={0.85}
+        >
           <View style={styles.cardHeaderIndicator} />
-          <View style={styles.notificationRow}>
-            <View style={styles.notificationLeft}>
-              <Ionicons name="notifications-outline" size={20} color={GREEN} />
-              <Text style={styles.optionText}>การแจ้งเตือน</Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.toggleBtn, notificationEnabled && styles.toggleBtnOn]}
-              onPress={() => setNotificationEnabled(prev => !prev)}
-            >
-              <View style={[styles.toggleCircle, notificationEnabled && styles.toggleCircleOn]} />
-            </TouchableOpacity>
+          <View style={styles.privacyRow}>
+            <Text style={[styles.cardTitle, { marginBottom: 0 }]}>การแจ้งเตือน</Text>
+            <Ionicons name="chevron-forward" size={18} color="#ccc" />
           </View>
-        </View>
+        </TouchableOpacity>
         {/* ── ข้อมูลและความปลอดภัย ── */}
         <View style={styles.sectionHeaderRow}>
           <Ionicons name="shield-checkmark-outline" size={16} color={GREEN} />
@@ -738,8 +733,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 15, fontWeight: '700', color: GREEN, marginBottom: 0 },
 
-  optionText: { fontSize: 13, color: '#333', fontWeight: '600' },
-
   privacyRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
@@ -796,25 +789,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowOffset: { width: 0, height: 3 }, shadowRadius: 5,
   },
   confirmBtnText: { fontSize: 14, color: '#FFF', fontWeight: '700' },
-  notificationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  notificationLeft: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-  },
-  toggleBtn: {
-    width: 50, height: 28, borderRadius: 14,
-    backgroundColor: '#E0E0E0', justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleBtnOn: { backgroundColor: GREEN },
-  toggleCircle: {
-    width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff',
-  },
-  toggleCircleOn: { alignSelf: 'flex-end' },
 });
 
 export default ProfileScreen;
