@@ -5,11 +5,11 @@ import { AuthContext } from '../context/AuthProvider';
 import { fetchFeatureStats } from '../services/apiStats';
 
 const FEATURE_OPTIONS = [
-  { key: 'water', label: 'Water', unitLabel: 'ml' },
-  { key: 'mood', label: 'Mood', unitLabel: 'score' },
-  { key: 'sleep', label: 'Sleep', unitLabel: 'hrs' },
-  { key: 'exercise', label: 'Exercise', unitLabel: 'exercise' },
-  { key: 'food', label: 'Food', unitLabel: 'kcal' },
+  { key: 'water', label: 'น้ำ', unitLabel: 'มล.' },
+  { key: 'mood', label: 'อารมณ์', unitLabel: 'คะแนน' },
+  { key: 'sleep', label: 'นอนหลับ', unitLabel: 'ชม.' },
+  { key: 'exercise', label: 'ออกกำลังกาย', unitLabel: 'ครั้ง' },
+  { key: 'food', label: 'อาหาร', unitLabel: 'กิโลแคลอรี่' },
 ];
 
 const RANGE_OPTIONS = [
@@ -44,8 +44,8 @@ const EMPTY_DATA = {
 const EXERCISE_METRICS = [
   { key: 'duration', label: 'เวลา', chartUnit: 'นาที/วัน' },
   { key: 'steps', label: 'ก้าว', chartUnit: 'ก้าว/วัน' },
-  { key: 'calories', label: 'kcal', chartUnit: 'kcal/วัน' },
-  { key: 'distance', label: 'km', chartUnit: 'km/วัน' },
+  { key: 'calories', label: 'กิโลแคลอรี่', chartUnit: 'กิโลแคลอรี่/วัน' },
+  { key: 'distance', label: 'ระยะทาง', chartUnit: 'กม./วัน' },
   { key: 'sessions', label: 'เซสชัน', chartUnit: 'ครั้ง/วัน' },
 ];
 
@@ -62,6 +62,59 @@ const formatTickDate = (value, dense = false) => {
   if (Number.isNaN(d.getTime())) return '';
   if (dense) return d.toLocaleDateString('th-TH', { day: 'numeric' });
   return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+};
+
+/** แปลง YYYY-MM-DD เป็น Date เที่ยงคืนใน local */
+const parseLocalDateOnly = (ymd) => {
+  if (!ymd || typeof ymd !== 'string') return null;
+  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const dt = new Date(y, mo, day);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+
+const formatYmd = (d) => {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${da}`;
+};
+
+/** วันที่ 1 … วันสุดท้ายของเดือนเดียวกับ startYmd */
+const buildMonthDateKeysInclusive = (startYmd) => {
+  const start = parseLocalDateOnly(startYmd);
+  if (!start) return [];
+  const y = start.getFullYear();
+  const mo = start.getMonth();
+  const lastDay = new Date(y, mo + 1, 0).getDate();
+  const keys = [];
+  for (let d = 1; d <= lastDay; d += 1) {
+    keys.push(formatYmd(new Date(y, mo, d)));
+  }
+  return keys;
+};
+
+/** โหมดเดือน: แสดงครบทุกวันในเดือน (เติม 0 ถ้าไม่มีแถวจาก API) เพื่อเลื่อนกราฟซ้าย–ขวาได้ */
+const padSeriesToFullCalendarMonth = (rangeKey, dateRange, series, exercise) => {
+  if (rangeKey !== 'month' || !dateRange?.startDate) return series || [];
+  const keys = buildMonthDateKeysInclusive(dateRange.startDate);
+  if (keys.length === 0) return series || [];
+  const map = new Map((series || []).map((row) => [row.date, row]));
+  if (exercise) {
+    return keys.map((date) => {
+      const row = map.get(date);
+      if (row) return row;
+      return { date, sessions: 0, steps: 0, durationSec: 0, calories: 0, distance: 0 };
+    });
+  }
+  return keys.map((date) => {
+    const row = map.get(date);
+    if (row) return { date, value: Number(row.value) || 0 };
+    return { date, value: 0 };
+  });
 };
 
 const formatDurationTotal = (sec) => {
@@ -104,8 +157,8 @@ const formatExercisePeakDisplay = (metricKey, value) => {
     const sec = Math.round(value * 60);
     return formatDurationTotal(sec);
   }
-  if (metricKey === 'distance') return `${value.toFixed(2)} km`;
-  if (metricKey === 'calories') return `${Math.round(value)} kcal`;
+  if (metricKey === 'distance') return `${value.toFixed(2)} กม.`;
+  if (metricKey === 'calories') return `${Math.round(value)} กิโลแคลอรี่`;
   if (metricKey === 'sessions') return `${Math.round(value)} ครั้ง`;
   return `${Math.round(value).toLocaleString()} ก้าว`;
 };
@@ -132,25 +185,34 @@ const SummaryCard = ({ label, value, helper }) => (
   </View>
 );
 
-const BarChart = ({ data, unit, formatBar }) => {
+const BarChart = ({ data, unit, formatBar, monthMode }) => {
   const fmt = formatBar ?? ((v) => String(v));
   const maxValue = Math.max(1, ...data.map((item) => Number(item.value) || 0));
-  const isDense = data.length > 10;
+  const isDense = monthMode || data.length > 10;
+  const rowStyle = monthMode ? styles.chartRowMonth : styles.chartRowWeek;
+  const itemStyle = monthMode ? styles.barItemMonth : styles.barItemWeek;
+  const trackStyle = monthMode ? styles.barTrackMonth : styles.barTrackWeek;
 
   return (
     <View style={styles.chartCard}>
       <View style={styles.chartHeaderRow}>
-        <Text style={styles.chartSectionHeading}>แนวโน้มรายวัน</Text>
+        <Text style={styles.chartSectionHeading}>สถิติ</Text>
         <Text style={styles.chartUnit}>{unit}</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={monthMode}
+        nestedScrollEnabled
+        contentContainerStyle={rowStyle}
+      >
         {data.map((item) => {
           const value = Number(item.value) || 0;
-          const barHeight = Math.max(6, Math.round((value / maxValue) * 130));
+          const rawH = Math.round((value / maxValue) * 130);
+          const barHeight = value > 0 ? Math.max(4, rawH) : 0;
           return (
-            <View key={item.date} style={styles.barItem}>
+            <View key={item.date} style={itemStyle}>
               <Text style={styles.barValue}>{fmt(value)}</Text>
-              <View style={styles.barTrack}>
+              <View style={trackStyle}>
                 <View style={[styles.barFill, { height: barHeight }]} />
               </View>
               <Text style={styles.barLabel}>{formatTickDate(item.date, isDense)}</Text>
@@ -186,13 +248,20 @@ export default function FeatureStatsScreen() {
     return stats.series.every((item) => (Number(item.value) || 0) === 0);
   }, [isExercise, stats.series]);
 
+  const seriesForChart = useMemo(
+    () => padSeriesToFullCalendarMonth(range, stats.dateRange, stats.series, isExercise),
+    [range, stats.dateRange, stats.series, isExercise],
+  );
+
   const chartData = useMemo(() => {
-    if (!isExercise) return stats.series;
-    return stats.series.map((item) => ({
+    if (!isExercise) return seriesForChart;
+    return seriesForChart.map((item) => ({
       date: item.date,
       value: getExercisePointValue(item, exerciseMetric),
     }));
-  }, [exerciseMetric, isExercise, stats.series]);
+  }, [exerciseMetric, isExercise, seriesForChart]);
+
+  const isMonthChart = range === 'month';
 
   const exerciseChartUnit = useMemo(
     () => EXERCISE_METRICS.find((m) => m.key === exerciseMetric)?.chartUnit ?? '',
@@ -233,7 +302,7 @@ export default function FeatureStatsScreen() {
   const insightText = useMemo(() => {
     if (isExercise) {
       if (isEmpty) {
-        return 'ยังไม่มีเซสชันออกกำลังกายในช่วงนี้ ลองบันทึกเซสชันจากหน้า Exercise เพื่อดูแนวโน้ม';
+        return 'ยังไม่มีเซสชันออกกำลังกายในช่วงนี้ ลองบันทึกเซสชันจากหน้าออกกำลังกายเพื่อดูแนวโน้ม';
       }
       let best = { date: null, value: -1 };
       for (const item of stats.series) {
@@ -265,7 +334,7 @@ export default function FeatureStatsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color="#1E4D2B" />
-          <Text style={styles.stateText}>กำลังโหลดสถิติ...</Text>
+          <Text style={styles.stateText}>กำลังโหลดสถิติ…</Text>
         </View>
       </SafeAreaView>
     );
@@ -293,9 +362,9 @@ export default function FeatureStatsScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerSmall}>Health Feature Stats</Text>
+            <Text style={styles.headerSmall}>สถิติฟีเจอร์สุขภาพ</Text>
             <Text style={styles.headerSubText}>
-              {formatThaiDate(stats.dateRange?.startDate)} - {formatThaiDate(stats.dateRange?.endDate)}
+              {formatThaiDate(stats.dateRange?.startDate)} ถึง {formatThaiDate(stats.dateRange?.endDate)}
             </Text>
           </View>
         </View>
@@ -328,8 +397,8 @@ export default function FeatureStatsScreen() {
               <SummaryCard label="เซสชันรวม" value={`${exerciseTotals.sessions}`} helper="ครั้ง" />
               <SummaryCard label="เวลารวม" value={formatDurationTotal(exerciseTotals.durationSec)} helper="จากเซสชันทั้งหมด" />
               <SummaryCard label="ก้าวรวม" value={`${exerciseTotals.steps.toLocaleString()}`} helper="ก้าว (เซสชัน)" />
-              <SummaryCard label="แคลอรี่รวม" value={`${exerciseTotals.calories}`} helper="kcal" />
-              <SummaryCard label="ระยะทางรวม" value={`${(Number(exerciseTotals.distance) || 0).toFixed(2)}`} helper="km" />
+              <SummaryCard label="กิโลแคลอรี่รวม" value={`${exerciseTotals.calories}`} helper="กิโลแคลอรี่" />
+              <SummaryCard label="ระยะทางรวม" value={`${(Number(exerciseTotals.distance) || 0).toFixed(2)}`} helper="กม." />
               <SummaryCard label="วันมีเซสชัน" value={`${stats.summary.activeDays}`} helper="วัน" />
             </View>
 
@@ -352,6 +421,7 @@ export default function FeatureStatsScreen() {
               data={chartData}
               unit={exerciseChartUnit}
               formatBar={(v) => formatExerciseBarValue(exerciseMetric, v)}
+              monthMode={isMonthChart}
             />
           </>
         ) : (
@@ -363,11 +433,11 @@ export default function FeatureStatsScreen() {
               <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
             </View>
 
-            <BarChart data={stats.series} unit={featureMeta.unitLabel} />
+            <BarChart data={chartData} unit={featureMeta.unitLabel} monthMode={isMonthChart} />
           </>
         )}
 
-        <Text style={styles.pageSectionTitle}>Insight</Text>
+        <Text style={styles.pageSectionTitle}>สรุป</Text>
         <View style={[styles.insightCard, styles.contentInset]}>
           <Text style={styles.insightText}>{insightText}</Text>
         </View>
@@ -455,11 +525,41 @@ const styles = StyleSheet.create({
     color: '#1B4332',
   },
   chartUnit: { fontSize: 12, color: '#6A7E70' },
-  chartRow: { alignItems: 'flex-end', gap: 8, paddingRight: 8 },
-  barItem: { alignItems: 'center' },
-  barValue: { fontSize: 10, color: '#577062', marginBottom: 4 },
-  barTrack: {
-    width: 14,
+  chartRowWeek: {
+    alignItems: 'flex-end',
+    gap: 14,
+    paddingLeft: 10,
+    paddingRight: 14,
+    paddingVertical: 4,
+  },
+  chartRowMonth: {
+    alignItems: 'flex-end',
+    gap: 12,
+    paddingLeft: 12,
+    paddingRight: 20,
+    paddingVertical: 6,
+  },
+  barItemWeek: {
+    alignItems: 'center',
+    minWidth: 30,
+    paddingHorizontal: 2,
+  },
+  barItemMonth: {
+    alignItems: 'center',
+    minWidth: 36,
+    paddingHorizontal: 4,
+  },
+  barValue: { fontSize: 10, color: '#577062', marginBottom: 6, textAlign: 'center' },
+  barTrackWeek: {
+    width: 12,
+    height: 130,
+    borderRadius: 10,
+    backgroundColor: '#E9F0EC',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barTrackMonth: {
+    width: 16,
     height: 130,
     borderRadius: 10,
     backgroundColor: '#E9F0EC',
