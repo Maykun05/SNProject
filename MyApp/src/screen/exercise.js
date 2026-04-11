@@ -171,7 +171,7 @@ export default function ExerciseScreen({ navigation, route }) {
       ? 0
       : Math.min(completedCount, EXERCISE_DAILY_BONUS_SLOTS) / EXERCISE_DAILY_BONUS_SLOTS;
 
-  const ringLabelText = `${completedCount}/${EXERCISE_DAILY_BONUS_SLOTS}`;
+  const ringXpLine = `${completedCount}/${EXERCISE_DAILY_BONUS_SLOTS} · XP`;
 
   const exerciseFeatureDone =
     activityInstances.length >= 1 && activityInstances.some((i) => progressById[i.id]);
@@ -329,9 +329,23 @@ export default function ExerciseScreen({ navigation, route }) {
         <View style={styles.topCard}>
           <View style={styles.ringWrapper}>
             <ExerciseProgressRing
-              progress={ringArcProgress}
-              centerLabel={ringLabelText}
-              caption="สำเร็จ / โควตาโบนัส XP วันนี้ (3)"
+              innerProgress={exerciseFeatureDone ? 1 : 0}
+              outerProgress={ringArcProgress}
+              centerCompact={exerciseFeatureDone && activityInstances.length > 0}
+              centerLabel={
+                activityInstances.length === 0
+                  ? ringXpLine
+                  : exerciseFeatureDone
+                    ? 'สำเร็จ'
+                    : ringXpLine
+              }
+              caption={
+                activityInstances.length === 0
+                  ? 'หน้าแรก: เพิ่มกิจกรรมก่อน'
+                  : exerciseFeatureDone
+                    ? ringXpLine
+                    : 'ยังไม่สำเร็จ'
+              }
             />
           </View>
         </View>
