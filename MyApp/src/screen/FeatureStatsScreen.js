@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -14,6 +15,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthContext } from '../context/AuthProvider';
+import { MOODS } from '../constants/moods';
 import { fetchFeatureStats } from '../services/apiStats';
 
 const FEATURE_OPTIONS = [
@@ -193,6 +195,76 @@ const formatExercisePeakDisplay = (metricKey, value) => {
   return `${Math.round(value).toLocaleString()} ก้าว`;
 };
 
+const MOOD_TRACK_HEIGHT = 130;
+
+const clampMoodScore = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(5, Math.max(0, n));
+};
+
+/** ปัดเป็นขั้น 1–5 แล้วแมปกับคีย์ใน MOODS */
+const scoreToMoodKey = (v) => {
+  const rounded = Math.round(Number(v) || 0);
+  const s = Math.min(5, Math.max(1, rounded));
+  const keys = ['awful', 'sad', 'meh', 'good', 'rad'];
+  return keys[s - 1];
+};
+
+const moodImageForScore = (value) => {
+  const entry = MOODS.find((m) => m.key === scoreToMoodKey(value));
+  return entry?.image ?? null;
+};
+
+const moodBarColorForScore = (value) => {
+  const entry = MOODS.find((m) => m.key === scoreToMoodKey(value));
+  return entry?.spectrumColor ?? '#9AA89A';
+};
+
+const moodLevelThaiLabel = (key) => {
+  const map = {
+    awful: 'ระดับต่ำมาก',
+    sad: 'ระดับต่ำ',
+    meh: 'ระดับกลางๆ',
+    good: 'ระดับดี',
+    rad: 'ระดับดีมาก',
+  };
+  return map[key] ?? 'มีบันทึก';
+};
+
+const MOOD_KEY_RANK = { rad: 5, good: 4, meh: 3, sad: 2, awful: 1 };
+
+/** นับ mode จากวันที่ value > 0; เสมอกันเลือกขั้นที่ดีกว่า */
+const dominantMoodKeyFromRows = (rows) => {
+  const counts = { awful: 0, sad: 0, meh: 0, good: 0, rad: 0 };
+  for (const row of rows || []) {
+    const v = Number(row.value) || 0;
+    if (v <= 0) continue;
+    const k = scoreToMoodKey(v);
+    if (counts[k] !== undefined) counts[k] += 1;
+  }
+  let best = null;
+  let bestCount = 0;
+  for (const k of ['awful', 'sad', 'meh', 'good', 'rad']) {
+    const c = counts[k];
+    if (c === 0) continue;
+    if (best === null || c > bestCount || (c === bestCount && MOOD_KEY_RANK[k] > MOOD_KEY_RANK[best])) {
+      bestCount = c;
+      best = k;
+    }
+  }
+  return best;
+};
+
+const moodSupportLineFromAvg = (avgOnLogged) => {
+  const a = Number(avgOnLogged);
+  if (!Number.isFinite(a) || a <= 0) return '';
+  if (a >= 4.25) return 'โดยรวมช่วงนี้รู้สึกค่อนข้างดี เก็บต่อไปแบบนี้ได้เลย';
+  if (a >= 3.5) return 'โดยรวมอยู่ในระดับที่พอใจได้ ลองสังเกตว่าวันไหนที่รู้สึกดีเป็นพิเศษ';
+  if (a >= 2.5) return 'มีทั้งวันที่ดีและวันที่เหนื่อยปนกัน ถ้ารู้สึกหนักหน่วงลองพักหรือคุยกับคนใกล้ชิด';
+  return 'ช่วงนี้อาจหนักหน่อย ถ้ารู้สึกทนไม่ไหวอย่าอายที่จะขอความช่วยเหลือจากผู้เชี่ยวชาญ';
+};
+
 const normalize = (payload = {}, feature = 'water', range = '7d') => ({
   ...EMPTY_DATA,
   ...payload,
@@ -254,6 +326,52 @@ const BarChart = ({ data, unit, formatBar, monthMode }) => {
   );
 };
 
+const MoodSpectrumChart = ({ data, unit, monthMode }) => {
+  const isDense = monthMode || data.length > 10;
+  const rowStyle = monthMode ? styles.chartRowMonth : styles.chartRowWeek;
+  const itemStyle = monthMode ? styles.barItemMonth : styles.barItemWeek;
+  const trackStyle = monthMode ? styles.barTrackMonth : styles.barTrackWeek;
+
+  return (
+    <View style={styles.chartCard}>
+      <View style={styles.chartHeaderRow}>
+        <Text style={styles.chartSectionHeading}>สถิติ</Text>
+        <Text style={styles.chartUnit}>{unit}</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={monthMode}
+        nestedScrollEnabled
+        contentContainerStyle={rowStyle}
+      >
+        {data.map((item) => {
+          const raw = Number(item.value) || 0;
+          const score = clampMoodScore(raw);
+          const barHeight = raw > 0 ? Math.max(4, Math.round((score / 5) * MOOD_TRACK_HEIGHT)) : 0;
+          const img = raw > 0 ? moodImageForScore(raw) : null;
+          const barColor = raw > 0 ? moodBarColorForScore(raw) : undefined;
+
+          return (
+            <View key={item.date} style={itemStyle}>
+              {img ? (
+                <Image source={img} style={styles.moodIcon} />
+              ) : (
+                <Text style={styles.moodIconPlaceholder}>–</Text>
+              )}
+              <View style={trackStyle}>
+                {barHeight > 0 ? (
+                  <View style={[styles.moodBarFill, { height: barHeight, backgroundColor: barColor }]} />
+                ) : null}
+              </View>
+              <Text style={styles.barLabel}>{formatTickDate(item.date, isDense)}</Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
 const GREEN = '#1E4D2B';
 
 export default function FeatureStatsScreen() {
@@ -277,6 +395,7 @@ export default function FeatureStatsScreen() {
   const featureMeta = useMemo(() => FEATURE_OPTIONS.find((item) => item.key === feature) ?? FEATURE_OPTIONS[0], [feature]);
 
   const isExercise = feature === 'exercise';
+  const isMood = feature === 'mood';
 
   const isEmpty = useMemo(() => {
     if (isExercise) {
@@ -299,6 +418,28 @@ export default function FeatureStatsScreen() {
   }, [exerciseMetric, isExercise, seriesForChart]);
 
   const isWideChart = range === 'month' || (range === 'custom' && chartData.length > 10);
+
+  const moodDerived = useMemo(() => {
+    if (!isMood) return null;
+    const rows = chartData;
+    let sumActive = 0;
+    let nActive = 0;
+    for (const row of rows) {
+      const v = Number(row.value) || 0;
+      if (v <= 0) continue;
+      sumActive += v;
+      nActive += 1;
+    }
+    const avgOnLogged = nActive ? sumActive / nActive : 0;
+    const dominantKey = dominantMoodKeyFromRows(rows);
+    const a = parseLocalDateOnly(stats.dateRange?.startDate);
+    const b = parseLocalDateOnly(stats.dateRange?.endDate);
+    const spanDays =
+      a && b
+        ? Math.floor((toStartOfDay(b).getTime() - toStartOfDay(a).getTime()) / MS_PER_DAY) + 1
+        : rows.length || 0;
+    return { avgOnLogged, dominantKey, nActive, spanDays };
+  }, [chartData, isMood, stats.dateRange?.endDate, stats.dateRange?.startDate]);
 
   const exerciseChartUnit = useMemo(
     () => EXERCISE_METRICS.find((m) => m.key === exerciseMetric)?.chartUnit ?? '',
@@ -402,12 +543,24 @@ export default function FeatureStatsScreen() {
       return `วันที่ ${label} สูงสุด: ${formatThaiDate(best.date)} — ${formatExercisePeakDisplay(exerciseMetric, best.value)}`;
     }
     if (isEmpty) return 'ยังไม่มีข้อมูลในช่วงเวลานี้ ลองบันทึกกิจกรรมเพิ่มเพื่อเริ่มเห็นแนวโน้ม';
+    if (isMood && moodDerived) {
+      const { dominantKey, nActive, spanDays, avgOnLogged } = moodDerived;
+      const domLine =
+        dominantKey != null
+          ? `ช่วงนี้ส่วนใหญ่อยู่ที่${moodLevelThaiLabel(dominantKey)}`
+          : 'ช่วงนี้ยังไม่มีข้อมูลอารมณ์ที่นับได้';
+      const logLine = `บันทึกอารมณ์ ${nActive} จาก ${spanDays} วันในช่วงนี้`;
+      const tone = moodSupportLineFromAvg(avgOnLogged);
+      return tone ? `${domLine}\n${logLine}\n${tone}` : `${domLine}\n${logLine}`;
+    }
     return `วันที่ทำได้สูงสุด: ${formatThaiDate(stats.summary.peakDate)} (${stats.summary.peakValue} ${featureMeta.unitLabel})`;
   }, [
     exerciseMetric,
     featureMeta.unitLabel,
     isEmpty,
     isExercise,
+    isMood,
+    moodDerived,
     stats.series,
     stats.summary.peakDate,
     stats.summary.peakValue,
@@ -525,14 +678,51 @@ export default function FeatureStatsScreen() {
           </>
         ) : (
           <>
-            <View style={[styles.summaryGrid, styles.contentInset]}>
-              <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
-              <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
-              <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
-              <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
-            </View>
+            {isMood && moodDerived ? (
+              <View style={[styles.summaryGrid, styles.contentInset]}>
+                <SummaryCard
+                  label="บันทึกอารมณ์"
+                  value={`${moodDerived.nActive}`}
+                  helper={`จาก ${moodDerived.spanDays} วัน`}
+                />
+                <SummaryCard
+                  label="ส่วนใหญ่อยู่ที่"
+                  value={
+                    moodDerived.dominantKey != null
+                      ? moodLevelThaiLabel(moodDerived.dominantKey)
+                      : '–'
+                  }
+                  helper={moodDerived.nActive > 0 ? 'จากวันที่มีบันทึก' : undefined}
+                />
+                <SummaryCard
+                  label="รู้สึกดีที่สุด"
+                  value={formatThaiDate(stats.summary.peakDate)}
+                  helper={moodLevelThaiLabel(scoreToMoodKey(stats.summary.peakValue))}
+                />
+                <SummaryCard
+                  label="เฉลี่ย (วันที่บันทึก)"
+                  value={moodLevelThaiLabel(scoreToMoodKey(moodDerived.avgOnLogged))}
+                  helper={
+                    moodDerived.nActive > 0
+                      ? `เฉลี่ย ${moodDerived.avgOnLogged.toFixed(2)} ในวันที่มีบันทึก`
+                      : undefined
+                  }
+                />
+              </View>
+            ) : (
+              <View style={[styles.summaryGrid, styles.contentInset]}>
+                <SummaryCard label="รวมทั้งหมด" value={`${stats.summary.total}`} helper={featureMeta.unitLabel} />
+                <SummaryCard label="วันที่มีข้อมูล" value={`${stats.summary.activeDays}`} helper="วัน" />
+                <SummaryCard label="ค่าเฉลี่ย/วัน" value={`${stats.summary.average}`} helper={featureMeta.unitLabel} />
+                <SummaryCard label="ค่าสูงสุด/วัน" value={`${stats.summary.peakValue}`} helper={featureMeta.unitLabel} />
+              </View>
+            )}
 
-            <BarChart data={chartData} unit={featureMeta.unitLabel} monthMode={isWideChart} />
+            {isMood ? (
+              <MoodSpectrumChart data={chartData} unit="ระดับอารมณ์ (1–5)" monthMode={isWideChart} />
+            ) : (
+              <BarChart data={chartData} unit={featureMeta.unitLabel} monthMode={isWideChart} />
+            )}
           </>
         )}
 
@@ -770,6 +960,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   barValue: { fontSize: 10, color: '#577062', marginBottom: 6, textAlign: 'center' },
+  moodIcon: { width: 26, height: 26, marginBottom: 6, resizeMode: 'contain', alignSelf: 'center' },
+  moodIconPlaceholder: {
+    fontSize: 14,
+    color: '#577062',
+    marginBottom: 6,
+    minHeight: 26,
+    lineHeight: 26,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  moodBarFill: {
+    width: '100%',
+    borderRadius: 10,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
   barTrackWeek: {
     width: 12,
     height: 130,
