@@ -185,7 +185,11 @@ export default function CalendarScreen() {
 
       </View>
 
-      {Boolean(mode === 'mood') && <MoodCount moods={moods} />}
+      {Boolean(mode === 'mood') && (
+        <View style={styles.moodCountOuter}>
+          <MoodCount moods={moods} />
+        </View>
+      )}
 
       {Boolean(mode === 'mood') && (
       <MoodPickerModal
@@ -202,12 +206,13 @@ export default function CalendarScreen() {
    STYLES
 ====================== */
 const styles = StyleSheet.create({
+  /** พื้นหลังเดียวกับ `MissionScreen` container */
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FBF9',
   },
 
+  /** แถวเลือกเดือน (ในการ์ดปฏิทิน) */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -226,18 +231,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  /**
+   * ระยะเดียวกับ `MissionScreen` → `styles.header` (หัวข้อภารกิจ)
+   * marginTop / paddingTop / paddingHorizontal / paddingBottom / minHeight
+   */
   topHeader: {
-    marginTop: 10,
-    marginBottom: 10,
     justifyContent: 'center',
+    marginTop: 18, 
+    paddingTop: 18,
+    paddingHorizontal: 24,
+    paddingBottom: 10,
+    position: 'relative',
+    minHeight: 84,
     alignItems: 'center',
   },
 
+  /** ช่องว่างแนวนอนเดียวกับ `heroCard` (marginHorizontal: 20) */
+  moodCountOuter: {
+    marginHorizontal: 20,
+  },
+
+  /** โทนเดียวกับ `MissionScreen` → `headerSmall` (คำว่า "ภารกิจ") */
   mainTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 30,
+    fontWeight: '800',
     color: GREEN,
-    lineHeight: 32
+    opacity: 0.9,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 
   modeSwitch: {
@@ -258,8 +279,8 @@ const styles = StyleSheet.create({
   },
 
   calendarCard: {
-    marginTop: 10,
-    marginHorizontal: 16,
+    marginTop: 8,
+    marginHorizontal: 20,
     padding: 12,
     borderRadius: 20,
     backgroundColor: '#fff',
@@ -276,6 +297,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'absolute',
     right: 20,
+    top: 34,
   },
 
   segmentItem: {
