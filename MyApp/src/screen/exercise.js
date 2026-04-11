@@ -37,6 +37,7 @@ import { useGarden } from '../context/GardenContext';
 import { useLevel } from '../context/LevelContext';
 import { getExerciseDay, putExerciseDay } from '../services/exerciseApi';
 import { clearStepTrackerDraft } from '../utils/stepTrackerDraft';
+import StackScreenBackButton from '../components/StackScreenBackButton';
 
 /** เว้นพื้นที่ล่างให้เลื่อนเห็นรายการสุดท้าย (รวมแท็บ / home indicator) */
 const SCROLL_BOTTOM_EXTRA = 88;
@@ -315,6 +316,7 @@ export default function ExerciseScreen({ navigation, route }) {
 
   return (
     <View style={styles.screen}>
+      <StackScreenBackButton />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[

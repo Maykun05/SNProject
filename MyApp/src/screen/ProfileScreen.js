@@ -13,6 +13,7 @@ import { useLevel } from '../context/LevelContext';
 import CoinBadge from '../components/CoinBadge.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthProvider.js';
+import StackScreenBackButton from '../components/StackScreenBackButton';
 import ProfileHealthRow from '../components/profile/ProfileHealthRow';
 import ProfileAccountCard from '../components/profile/ProfileAccountCard';
 import BirthDatePickerCard from '../components/BirthDatePickerCard';
@@ -241,6 +242,7 @@ const handleChangePassword = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StackScreenBackButton />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <LinearGradient
           colors={['#EEF5F0', '#FFFFFF']}

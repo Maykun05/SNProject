@@ -26,7 +26,7 @@ export default function HomeStackNavigator() {
         options={{ headerShown: false }}
       />
 
-      <Stack.Screen name="Exercise" component={ExerciseScreen} />
+      <Stack.Screen name="Exercise" component={ExerciseScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Calorie" component={FoodScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="WaterScreen"component={WaterScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Login" component={LoginScreen} />

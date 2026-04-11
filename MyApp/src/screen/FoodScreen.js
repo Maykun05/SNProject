@@ -23,6 +23,7 @@ import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
 import { useGarden } from "../context/GardenContext";
 import { useLevel } from "../context/LevelContext";
+import StackScreenBackButton from "../components/StackScreenBackButton";
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5F9FF" },
@@ -314,6 +315,7 @@ export default function FoodScreen({ route }) {
 
   return (
     <SafeAreaView style={s.safe} edges={["bottom"]}>
+      <StackScreenBackButton tintColor="#1565C0" />
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}

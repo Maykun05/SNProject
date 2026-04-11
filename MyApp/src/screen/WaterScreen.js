@@ -12,6 +12,7 @@ import { useGarden } from '../context/GardenContext';
 import { AuthContext } from '../context/AuthProvider';
 import { useLevel } from '../context/LevelContext';
 import { recommendedWaterMl } from '../utils/waterFormula';
+import StackScreenBackButton from '../components/StackScreenBackButton';
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F9FF' },
@@ -126,6 +127,7 @@ export default function WaterScreen({ route }) {
 
   return (
     <SafeAreaView style={s.safe} edges={['bottom']}>
+      <StackScreenBackButton tintColor="#1565C0" />
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
