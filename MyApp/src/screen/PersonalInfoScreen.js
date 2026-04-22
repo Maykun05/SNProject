@@ -63,6 +63,18 @@ const PersonalInfoScreen = ({ navigation }) => {
         return;
       }
 
+      const w = parseFloat(weight);
+      if (Number.isNaN(w) || w < 20 || w > 300) {
+        Alert.alert('น้ำหนักไม่ถูกต้อง', 'กรุณากรอกน้ำหนัก 20-300 กก.');
+        return;
+      }
+
+      const h = parseFloat(height);
+      if (Number.isNaN(h) || h < 50 || h > 250) {
+        Alert.alert('ส่วนสูงไม่ถูกต้อง', 'กรุณากรอกส่วนสูง 50-250 ซม.');
+        return;
+      }
+
       const res = await fetch(`${API_URL}/api/profile`, {
         method: "PUT",
         headers: {
@@ -70,8 +82,8 @@ const PersonalInfoScreen = ({ navigation }) => {
           Authorization: `Bearer ${userToken}`,
         },
         body: JSON.stringify({
-          weight: Number(weight),
-          height: Number(height),
+          weight: w,
+          height: h,
           birthDate: date.toISOString(),
           activityLevel: exerciseLevel,
           gender: gender,
