@@ -350,7 +350,7 @@ const handleChangePassword = async () => {
         </View>
         <TouchableOpacity
           style={styles.cardFull}
-          onPress={() => {}}
+          onPress={() => navigation.navigate('Notifications')}
           activeOpacity={0.85}
         >
           <View style={styles.cardHeaderIndicator} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
  ScrollView, Switch, Alert
@@ -6,22 +6,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '../context/ProfileContext';
+import NotificationTimePicker from '../components/notification/NotificationTimePicker';
+import { applyNotificationSettings } from '../notifications/exerciseSessionNotification';
 
 const GREEN = '#1E4D2B';
 
 const NOTI_ITEMS = [
-  { key: 'dailyReminder',   label: 'เตือนก้าวเดินรายวัน',     icon: 'footsteps-outline'      },
-  { key: 'goalAchieved',    label: 'เมื่อครบเวลา/เกณฑ์ระหว่างออกกำลัง', icon: 'trophy-outline' },
-  { key: 'exerciseSessionSaved', label: 'เมื่อบันทึกเซสชันออกกำลังสำเร็จ', icon: 'checkmark-done-outline' },
-  { key: 'weeklyReport',    label: 'รายงานสรุปรายสัปดาห์',     icon: 'bar-chart-outline'      },
-  { key: 'waterReminder',   label: 'เตือนดื่มน้ำ',             icon: 'water-outline'          },
-  { key: 'exerciseReminder',label: 'เตือนออกกำลังกาย',         icon: 'bicycle-outline'        },
+  { key: 'dailyReminder',        label: 'เตือนกิจกรรมรายวัน',     icon: 'notifications-outline',   scheduleable: true, defaultTime: '07:00' },
+  { key: 'waterReminder',        label: 'เตือนดื่มน้ำ',           icon: 'water-outline',           scheduleable: true, defaultTime: '09:00' },
+  { key: 'foodReminder',         label: 'เตือนบันทึกอาหาร',       icon: 'restaurant-outline',      scheduleable: true, defaultTime: '08:00', hasMultipleTimes: true },
+  { key: 'exerciseReminder',     label: 'เตือนออกกำลังกาย',       icon: 'bicycle-outline',         scheduleable: true, defaultTime: '07:00' },
+  { key: 'sleepReminder',        label: 'เตือนเวลานอน',           icon: 'moon-outline',            scheduleable: true, defaultTime: '22:00' },
+  { key: 'moodReminder',         label: 'เตือนบันทึกอารมณ์',      icon: 'happy-outline',           scheduleable: true, defaultTime: '21:00' },
+  { key: 'weeklyReport',         label: 'รายงานสรุปรายสัปดาห์',   icon: 'bar-chart-outline',       scheduleable: true, defaultTime: '08:00' },
 ];
 
 export default function NotificationsScreen({ navigation }) {
   const { profile, updateSettings } = useProfile();
 
-  // ✅ อ่านจาก profile.settings.notifications (object)
   const savedNoti = typeof profile.settings?.notifications === 'object'
     ? profile.settings.notifications
     : {};
@@ -29,10 +31,29 @@ export default function NotificationsScreen({ navigation }) {
   const initState = () =>
     Object.fromEntries(NOTI_ITEMS.map(({ key }) => [key, savedNoti[key] ?? true]));
 
+  const initTimeState = () => {
+    const times = {};
+    NOTI_ITEMS.forEach(({ key, defaultTime, hasMultipleTimes }) => {
+      if (hasMultipleTimes) {
+        times[`${key}Times`] = {
+          breakfast: savedNoti[`${key}Times`]?.breakfast ?? '08:00',
+          lunch: savedNoti[`${key}Times`]?.lunch ?? '12:00',
+          dinner: savedNoti[`${key}Times`]?.dinner ?? '18:00',
+        };
+      } else if (defaultTime) {
+        times[`${key}Time`] = savedNoti[`${key}Time`] ?? defaultTime;
+      }
+    });
+    return times;
+  };
+
   const [notiState, setNotiState] = useState(initState);
-  const [masterOn,  setMasterOn]  = useState(
-    Object.values(initState()).some(Boolean)
-  );
+  const [timeState, setTimeState] = useState(initTimeState);
+  const [masterOn, setMasterOn] = useState(Object.values(initState()).some(Boolean));
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [currentTimeKey, setCurrentTimeKey] = useState(null);
+  const [currentMealType, setCurrentMealType] = useState(null);
 
   const toggleMaster = (val) => {
     setMasterOn(val);
@@ -45,11 +66,50 @@ export default function NotificationsScreen({ navigation }) {
     setMasterOn(Object.values(next).some(Boolean));
   };
 
-  const handleSave = () => {
-    updateSettings({ notifications: notiState });
-    Alert.alert('บันทึกสำเร็จ', 'ตั้งค่าการแจ้งเตือนถูกอัปเดตแล้ว', [
-      { text: 'ตกลง', onPress: () => navigation.goBack() },
-    ]);
+  const openTimePicker = (key, mealType = null) => {
+    setCurrentTimeKey(key);
+    setCurrentMealType(mealType);
+    setPickerVisible(true);
+  };
+
+  const handleTimeConfirm = (timeString) => {
+    if (currentMealType) {
+      setTimeState((prev) => ({
+        ...prev,
+        [`${currentTimeKey}Times`]: {
+          ...prev[`${currentTimeKey}Times`],
+          [currentMealType]: timeString,
+        },
+      }));
+    } else {
+      setTimeState((prev) => ({
+        ...prev,
+        [`${currentTimeKey}Time`]: timeString,
+      }));
+    }
+    setPickerVisible(false);
+  };
+
+  const getTimeForKey = (key, mealType = null) => {
+    if (mealType) {
+      return timeState[`${key}Times`]?.[mealType] ?? '08:00';
+    }
+    return timeState[`${key}Time`] ?? '07:00';
+  };
+
+  const handleSave = async () => {
+    try {
+      const allSettings = { ...notiState, ...timeState };
+      console.log('handleSave: allSettings =', allSettings);
+      updateSettings({ notifications: allSettings });
+      await applyNotificationSettings({ notifications: allSettings });
+      Alert.alert('บันทึกสำเร็จ', 'ตั้งค่าการแจ้งเตือนถูกอัปเดตแล้ว', [
+        { text: 'ตกลง', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('handleSave error:', err);
+      Alert.alert('ข้อผิดพลาด', err.message || 'ไม่สามารถบันทึกได้');
+    }
   };
 
   return (
@@ -89,18 +149,57 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={styles.sectionTitle}>ตั้งค่าการแจ้งเตือนแต่ละรายการ</Text>
           {NOTI_ITEMS.map((item, index) => (
             <React.Fragment key={item.key}>
-              <View style={styles.notiRow}>
-                <View style={styles.iconBoxSmall}>
-                  <Ionicons name={item.icon} size={18} color={GREEN} />
+              <View>
+                <View style={styles.notiRow}>
+                  <View style={styles.iconBoxSmall}>
+                    <Ionicons name={item.icon} size={18} color={GREEN} />
+                  </View>
+                  <Text style={styles.notiLabel}>{item.label}</Text>
+                  <Switch
+                    value={notiState[item.key]}
+                    onValueChange={(val) => toggleItem(item.key, val)}
+                    trackColor={{ false: '#E0E0E0', true: '#A5D6A7' }}
+                    thumbColor={notiState[item.key] ? GREEN : '#FFF'}
+                    disabled={!masterOn}
+                  />
                 </View>
-                <Text style={styles.notiLabel}>{item.label}</Text>
-                <Switch
-                  value={notiState[item.key]}
-                  onValueChange={(val) => toggleItem(item.key, val)}
-                  trackColor={{ false: '#E0E0E0', true: '#A5D6A7' }}
-                  thumbColor={notiState[item.key] ? GREEN : '#FFF'}
-                  disabled={!masterOn}
-                />
+                {item.scheduleable && notiState[item.key] && (
+                  <View style={styles.timePickerRow}>
+                    {item.hasMultipleTimes ? (
+                      <>
+                        <TouchableOpacity
+                          style={styles.timeBtn}
+                          onPress={() => openTimePicker(item.key, 'breakfast')}
+                        >
+                          <Ionicons name="sunny-outline" size={14} color={GREEN} />
+                          <Text style={styles.timeBtnText}>{getTimeForKey(item.key, 'breakfast')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.timeBtn}
+                          onPress={() => openTimePicker(item.key, 'lunch')}
+                        >
+                          <Ionicons name="sunny-outline" size={14} color={GREEN} />
+                          <Text style={styles.timeBtnText}>{getTimeForKey(item.key, 'lunch')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.timeBtn}
+                          onPress={() => openTimePicker(item.key, 'dinner')}
+                        >
+                          <Ionicons name="moon-outline" size={14} color={GREEN} />
+                          <Text style={styles.timeBtnText}>{getTimeForKey(item.key, 'dinner')}</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.timeBtn}
+                        onPress={() => openTimePicker(item.key)}
+                      >
+                        <Ionicons name="time-outline" size={14} color={GREEN} />
+                        <Text style={styles.timeBtnText}>{getTimeForKey(item.key)}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
               {Boolean(index < NOTI_ITEMS.length - 1) && <View style={styles.divider} />}
             </React.Fragment>
@@ -118,6 +217,23 @@ export default function NotificationsScreen({ navigation }) {
         </TouchableOpacity>
 
       </ScrollView>
+
+      <NotificationTimePicker
+        visible={pickerVisible}
+        initialTime={
+          currentMealType
+            ? getTimeForKey(currentTimeKey, currentMealType)
+            : getTimeForKey(currentTimeKey)
+        }
+        onConfirm={handleTimeConfirm}
+        onClose={() => setPickerVisible(false)}
+        title={
+          currentMealType
+            ? `เลือกเวลา (${currentMealType === 'breakfast' ? 'เช้า' : currentMealType === 'lunch' ? 'เที่ยง' : 'เย็น'})`
+            : 'เลือกเวลา'
+        }
+      />
+
     </SafeAreaView>
   );
 }
@@ -170,4 +286,14 @@ const styles = StyleSheet.create({
   saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   cancelBtn: { alignItems: 'center', paddingVertical: 14 },
   cancelBtnText: { fontSize: 15, color: '#999' },
+  timePickerRow: {
+    flexDirection: 'row', gap: 8, marginTop: 8, marginLeft: 46, flexWrap: 'wrap',
+  },
+  timeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 6, paddingHorizontal: 10,
+    backgroundColor: '#F5F5F5', borderRadius: 20,
+    borderWidth: 1, borderColor: '#E0E0E0',
+  },
+  timeBtnText: { fontSize: 13, fontWeight: '600', color: GREEN },
 });

@@ -13,6 +13,7 @@ import { AuthContext } from '../context/AuthProvider';
 import { useLevel } from '../context/LevelContext';
 import { recommendedWaterMl } from '../utils/waterFormula';
 import StackScreenBackButton from '../components/StackScreenBackButton';
+import { showWaterReminder, shouldShowWaterReminder } from '../notifications/exerciseSessionNotification';
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F9FF' },
@@ -118,7 +119,12 @@ export default function WaterScreen({ route }) {
     if (fromHomeFeature) notifyHomeFeatureGoalMet('water');
   }, [consumed, waterGoal, fromHomeFeature, userToken, logFeature, notifyHomeFeatureGoalMet]);
 
-  const handlePick = (ml) => addWater(ml);
+  const handlePick = (ml) => {
+    addWater(ml);
+    if (shouldShowWaterReminder(profile.settings)) {
+      showWaterReminder();
+    }
+  };
 
   const handleSaveGoal = async (parsed) => {
     if (parsed > consumed) doneCalled.current = false;

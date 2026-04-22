@@ -10,6 +10,8 @@ import { getLocalDateKey } from '../utils/dateUtils';
 import { saveSleepToDB, getLatestSleep } from '../services/sleepService';
 import { useGarden } from '../context/GardenContext';
 import { HOME_FEATURE_XP, useLevel } from '../context/LevelContext';
+import { showSleepReminder, showMoodReminder } from '../notifications/exerciseSessionNotification';
+import { useProfile } from '../context/ProfileContext';
 
 const todayKey = () => getLocalDateKey();
 
@@ -18,6 +20,7 @@ export default function useHomeState() {
   const { userToken, userId } = useContext(AuthContext);
   const { fetchTodayProgress, logFeature } = useGarden();
   const { addXp, registerHomeFeatureGoalHandler } = useLevel();
+  const { profile } = useProfile();
 
   const [doneMap, setDoneMap]                 = useState({});
   const [enabledFeatures, setEnabledFeatures] = useState({});
@@ -191,6 +194,7 @@ export default function useHomeState() {
       if (!logged) {
         setDoneMap((prev) => ({ ...prev, sleep: true }));
       }
+      showSleepReminder();
     } catch (err) {
       console.log('setSleepToday error:', err);
     }
@@ -209,6 +213,7 @@ export default function useHomeState() {
       if (!logged) {
         setDoneMap((prev) => ({ ...prev, mood: true }));
       }
+      showMoodReminder();
     } catch (err) {
       console.log('setMoodToday error:', err);
     }

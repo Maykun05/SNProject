@@ -106,8 +106,35 @@ export const ProfileProvider = ({ children }) => {
     setProfile(prev => ({ ...prev, goals: { ...prev.goals, ...newGoals } }));
   };
 
-  const updateSettings = (newSettings) => {
-    setProfile(prev => ({ ...prev, settings: { ...prev.settings, ...newSettings } }));
+  const updateSettings = async (newSettings) => {
+    const merged = { ...profile.settings, ...newSettings };
+    setProfile(prev => ({ ...prev, settings: merged }));
+
+    if (!userToken) {
+      await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify({ ...profile, settings: merged }));
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/profile`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ settings: merged }),
+      });
+      console.log('updateSettings response status:', res.status);
+      const text = await res.text();
+      console.log('updateSettings response body:', text);
+      if (!res.ok) throw new Error(`Update settings failed: ${res.status} ${text}`);
+      const updated = JSON.parse(text);
+      setProfile(normalizeUserProfilePayload(updated));
+      await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify(normalizeUserProfilePayload(updated)));
+    } catch (e) {
+      console.warn('updateSettings API error:', e);
+      await AsyncStorage.setItem('PROFILE_DATA', JSON.stringify({ ...profile, settings: merged }));
+    }
   };
 
   /** ดึงโปรไฟล์จาก API ใหม่ (เช่น หลังได้รับเหรียญจากภารกิจ) */

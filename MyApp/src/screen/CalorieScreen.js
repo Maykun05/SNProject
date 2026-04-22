@@ -18,6 +18,7 @@ import CalorieGoalModal from "../components/calorie/CalorieGoalModal";
 import { Ionicons } from "@expo/vector-icons";
 import { sendToAI } from "../utils/openaiUtils";
 import { fetchFoodToday, createFood, deleteFood, searchFoodByName, saveFoodToDatabase } from "../services/foodService";
+import { showFoodReminder, shouldShowFoodReminder } from "../notifications/exerciseSessionNotification";
 import { putProfileCalorieGoal } from "../services/profileApi";
 import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
@@ -300,6 +301,9 @@ export default function FoodScreen({ route }) {
       const newFood = await createFood(userToken, previewFood);
       setFoods((prev) => [newFood, ...prev]);
       setPreviewFood(null);
+      if (shouldShowFoodReminder(profile.settings)) {
+        showFoodReminder();
+      }
     } catch (err) {
       Alert.alert("บันทึกอาหารไม่สำเร็จ");
     }

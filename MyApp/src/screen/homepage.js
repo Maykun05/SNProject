@@ -31,6 +31,7 @@ import { recommendedDailyCaloriesFromProfile } from '../utils/recommendedCalFrom
 
 import GardenCard from '../components/home/GardenCard';
 import { API_URL } from '../config';
+import { showSleepReminder, shouldShowSleepReminder, showMoodReminder, shouldShowMoodReminder } from '../notifications/exerciseSessionNotification';
 
 /** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md (สไลด์ 6) */
 const GREEN = '#1E4D2B';

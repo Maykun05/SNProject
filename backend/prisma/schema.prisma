@@ -92,9 +92,10 @@ model Profile {
   selectedTreeType Int      @default(1)
   treeType        TreeType @relation(fields: [selectedTreeType], references: [id], onDelete: Restrict)
 
-  calorieGoal     Int?  
+  calorieGoal     Int?
   waterGoal       Int?
   profileImage    String?
+  settings        Json     @default("{}")
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
