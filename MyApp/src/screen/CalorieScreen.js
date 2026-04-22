@@ -407,6 +407,15 @@ export default function FoodScreen({ route }) {
                 returnKeyType="search"
                 onSubmitEditing={searchFood}
               />
+              {text ? (
+                <TouchableOpacity
+                  onPress={() => setText("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.6}
+                >
+                  <Ionicons name="close-circle" size={20} color="#B0BEC5" />
+                </TouchableOpacity>
+              ) : null}
             </View>
             <TouchableOpacity style={s.searchBtn} onPress={searchFood} activeOpacity={0.9}>
               <Text style={s.searchBtnText}>{loading ? "…" : "ค้นหา"}</Text>

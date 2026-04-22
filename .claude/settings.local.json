@@ -3,7 +3,11 @@
     "allow": [
       "Bash(find d:\\\\\\\\dev\\\\\\\\JECTUNIVERSITY\\\\\\\\satangproject\\\\\\\\backend -name \"*route*\" -o -name \"*router*\")",
       "Bash(npx prisma *)",
-      "Bash(psql -h localhost -U postgres -d healthapp_db -c \"SELECT * FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 5;\")"
+      "Bash(psql -h localhost -U postgres -d healthapp_db -c \"SELECT * FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 5;\")",
+      "Bash(expo install *)",
+      "Bash(npx expo *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)"
     ]
   }
 }
