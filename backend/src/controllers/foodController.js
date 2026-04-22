@@ -74,12 +74,10 @@ export const FoodController = {
         return res.status(400).json({ error: "Audio file is required" });
       }
 
-      console.log("🎤 Transcribe request - file size:", req.file.size);
       const transcript = await TranscribeService.transcribeAudio(req.file.buffer);
-      console.log("✅ Transcribe success:", transcript);
       res.json({ transcript });
     } catch (err) {
-      console.error("❌ Transcribe controller error:", err);
+      console.error("Transcribe error:", err);
       res.status(500).json({ error: err.message || "Failed to transcribe audio" });
     }
   }

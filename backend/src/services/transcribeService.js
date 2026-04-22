@@ -44,11 +44,7 @@ async function convertM4AtoWAV(inputBuffer) {
 export const TranscribeService = {
   async transcribeAudio(audioBuffer) {
     try {
-      console.log("🎤 Audio buffer size:", audioBuffer.length);
-      console.log("🔄 Converting M4A to WAV...");
-
       const wavBuffer = await convertM4AtoWAV(audioBuffer);
-      console.log("✅ Conversion complete, WAV size:", wavBuffer.length);
 
       const audio = {
         content: wavBuffer.toString("base64"),
@@ -61,16 +57,12 @@ export const TranscribeService = {
         audioChannelCount: 1,
       };
 
-      console.log("🎯 Config:", JSON.stringify(config));
-
       const request = {
         audio: audio,
         config: config,
       };
 
-      console.log("📤 Sending to Google Cloud...");
       const [response] = await client.recognize(request);
-      console.log("✅ Google response:", response);
 
       const transcription = response.results
         .map((result) =>
@@ -78,10 +70,9 @@ export const TranscribeService = {
         )
         .join("\n");
 
-      console.log("✅ Transcribed:", transcription);
       return transcription.trim();
     } catch (err) {
-      console.error("❌ Transcribe error:", err);
+      console.error("Transcribe error:", err);
       throw new Error("Failed to transcribe audio: " + err.message);
     }
   },

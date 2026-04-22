@@ -3,11 +3,9 @@ import * as FileSystem from "expo-file-system/legacy";
 
 export async function transcribeAudio(audioUri) {
   try {
-    console.log("📁 Reading audio from:", audioUri);
     const audioData = await FileSystem.readAsStringAsync(audioUri, {
       encoding: "base64",
     });
-    console.log("✅ Audio size:", audioData.length, "chars");
 
     const formData = new FormData();
     formData.append(
@@ -20,7 +18,6 @@ export async function transcribeAudio(audioUri) {
       "recording.m4a"
     );
 
-    console.log("📤 Sending to backend:", API_URL + "/api/food/transcribe");
     const response = await fetch(API_URL + "/api/food/transcribe", {
       method: "POST",
       body: formData,
@@ -30,16 +27,13 @@ export async function transcribeAudio(audioUri) {
     });
 
     const data = await response.json();
-    console.log("🤖 Response:", data);
 
     if (!response.ok) {
-      console.error("API error:", data);
+      console.error("Transcribe API error:", data);
       return "";
     }
 
     const transcript = data?.transcript || "";
-    console.log("📝 Transcript:", transcript);
-
     return transcript.trim();
   } catch (err) {
     console.error("Transcribe error:", err);
@@ -98,14 +92,11 @@ export async function sendToAI(text) {
     );
 
     const data = await response.json();
-    console.log("FULL GEMINI RESPONSE:", data);
 
     const raw =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       data?.candidates?.[0]?.output ||
       null;
-
-    console.log("🍽 RAW GEMINI:", raw);
 
     if (!raw) return null;
 
