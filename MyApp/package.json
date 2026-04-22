@@ -21,6 +21,7 @@
     "axios": "^1.13.3",
     "babel-preset-expo": "~54.0.10",
     "expo": "^54.0.30",
+    "expo-av": "^16.0.8",
     "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "~15.0.8",
     "expo-location": "~19.0.8",

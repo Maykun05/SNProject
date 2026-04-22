@@ -12,11 +12,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Audio } from "expo-av";
 
 import CalProgressRing from "../components/calorie/calProgressRing";
 import CalorieGoalModal from "../components/calorie/CalorieGoalModal";
 import { Ionicons } from "@expo/vector-icons";
-import { sendToAI } from "../utils/openaiUtils";
+import { sendToAI, transcribeAudio } from "../utils/openaiUtils";
 import { fetchFoodToday, createFood, deleteFood, searchFoodByName, saveFoodToDatabase } from "../services/foodService";
 import { showFoodReminder, shouldShowFoodReminder } from "../notifications/exerciseSessionNotification";
 import { putProfileCalorieGoal } from "../services/profileApi";
@@ -175,6 +176,54 @@ export default function FoodScreen({ route }) {
   const { logFeature } = useGarden();
   const [showCalorieModal, setShowCalorieModal] = useState(false);
   const foodGoalDoneLogged = useRef(false);
+  const textInputRef = useRef(null);
+  const recordingRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const startRecording = async () => {
+    try {
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        recordingRef.current = null;
+      }
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Recording error:", err);
+      Alert.alert("ไมโครโฟนมีปัญหา");
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recordingRef.current) return;
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      setIsRecording(false);
+      setIsTranscribing(true);
+
+      const transcript = await transcribeAudio(uri);
+      if (transcript) {
+        setText(transcript);
+        await searchFoodWithText(transcript);
+      } else {
+        Alert.alert("ไม่สามารถแปลงเสียงเป็นข้อความ");
+      }
+    } catch (err) {
+      console.error("Stop recording error:", err);
+      Alert.alert("ไมโครโฟนมีปัญหา");
+    } finally {
+      setIsTranscribing(false);
+      recordingRef.current = null;
+    }
+  };
 
   const consumedCal = foods.reduce((sum, f) => sum + f.calories, 0);
 
@@ -241,8 +290,8 @@ export default function FoodScreen({ route }) {
       : autoCal
     : 2000;
 
-  const searchFood = async () => {
-    if (!text.trim()) return;
+  const searchFoodWithText = async (foodText) => {
+    if (!foodText.trim()) return;
     Keyboard.dismiss();
     setLoading(true);
     try {
@@ -251,12 +300,12 @@ export default function FoodScreen({ route }) {
 
       // ค้นหาในฐานข้อมูลก่อน
       if (userToken) {
-        res = await searchFoodByName(userToken, text.trim());
+        res = await searchFoodByName(userToken, foodText.trim());
       }
 
       // ถ้าไม่เจอในฐานข้อมูล ค่อยเรียก AI API
       if (!res) {
-        res = await sendToAI(text);
+        res = await sendToAI(foodText);
         fromAI = true;
       }
 
@@ -278,7 +327,6 @@ export default function FoodScreen({ route }) {
           });
         } catch (err) {
           console.error("Failed to cache food:", err);
-          // ไม่ block flow แม้ cache fail
         }
       }
 
@@ -294,6 +342,10 @@ export default function FoodScreen({ route }) {
       Alert.alert("ไม่สามารถค้นหาอาหารได้");
     }
     setLoading(false);
+  };
+
+  const searchFood = async () => {
+    searchFoodWithText(text);
   };
 
   const addFood = async () => {
@@ -399,6 +451,7 @@ export default function FoodScreen({ route }) {
             <View style={s.searchField}>
               <Ionicons name="search" size={20} color="#78909C" />
               <TextInput
+                ref={textInputRef}
                 value={text}
                 onChangeText={setText}
                 placeholder="พิมพ์ชื่อเมนูหรืออาหาร"
@@ -407,6 +460,24 @@ export default function FoodScreen({ route }) {
                 returnKeyType="search"
                 onSubmitEditing={searchFood}
               />
+              {isRecording && (
+                <Text style={{ fontSize: 12, color: CAL.main, fontWeight: "600" }}>
+                  🔴 Recording...
+                </Text>
+              )}
+              <TouchableOpacity
+                onPressIn={startRecording}
+                onPressOut={stopRecording}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.6}
+                disabled={isTranscribing}
+              >
+                <Ionicons
+                  name={isRecording ? "mic" : "mic-outline"}
+                  size={24}
+                  color={isRecording ? "#FF0000" : isTranscribing ? "#FF9800" : "#78909C"}
+                />
+              </TouchableOpacity>
               {text ? (
                 <TouchableOpacity
                   onPress={() => setText("")}

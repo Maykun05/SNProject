@@ -1,4 +1,52 @@
-import { GEMINI_API_KEY } from "../config";
+import { GEMINI_API_KEY, API_URL } from "../config";
+import * as FileSystem from "expo-file-system/legacy";
+
+export async function transcribeAudio(audioUri) {
+  try {
+    console.log("📁 Reading audio from:", audioUri);
+    const audioData = await FileSystem.readAsStringAsync(audioUri, {
+      encoding: "base64",
+    });
+    console.log("✅ Audio size:", audioData.length, "chars");
+
+    const formData = new FormData();
+    formData.append(
+      "audio",
+      {
+        uri: audioUri,
+        type: "audio/m4a",
+        name: "recording.m4a",
+      },
+      "recording.m4a"
+    );
+
+    console.log("📤 Sending to backend:", API_URL + "/api/food/transcribe");
+    const response = await fetch(API_URL + "/api/food/transcribe", {
+      method: "POST",
+      body: formData,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const data = await response.json();
+    console.log("🤖 Response:", data);
+
+    if (!response.ok) {
+      console.error("API error:", data);
+      return "";
+    }
+
+    const transcript = data?.transcript || "";
+    console.log("📝 Transcript:", transcript);
+
+    return transcript.trim();
+  } catch (err) {
+    console.error("Transcribe error:", err);
+    return "";
+  }
+}
+
 export async function sendToAI(text) {
   try {
 

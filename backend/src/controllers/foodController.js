@@ -1,4 +1,5 @@
 import { FoodService } from "../services/foodService.js";
+import { TranscribeService } from "../services/transcribeService.js";
 
 export const FoodController = {
   async addFood(req, res) {
@@ -64,6 +65,22 @@ export const FoodController = {
       res.json(food);
     } catch (err) {
       res.status(500).json({ error: "Failed to save food to database" });
+    }
+  },
+
+  async transcribeAudio(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Audio file is required" });
+      }
+
+      console.log("🎤 Transcribe request - file size:", req.file.size);
+      const transcript = await TranscribeService.transcribeAudio(req.file.buffer);
+      console.log("✅ Transcribe success:", transcript);
+      res.json({ transcript });
+    } catch (err) {
+      console.error("❌ Transcribe controller error:", err);
+      res.status(500).json({ error: err.message || "Failed to transcribe audio" });
     }
   }
 };
