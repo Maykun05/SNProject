@@ -37,6 +37,36 @@ export async function createFood(token, payload) {
 }
 
 /**
+ * ค้นหาอาหารจากชื่อ (จากฐานข้อมูล)
+ * @param {string} token
+ * @param {string} name
+ * @returns {Promise<Object|null>}
+ */
+export async function searchFoodByName(token, name) {
+  const res = await fetch(`${API_URL}/api/food/search?name=${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+/**
+ * บันทึกอาหารลงใน FoodDatabase (global cache)
+ * @param {{ name: string, calories: number, protein?: number, carbs?: number, fat?: number }} payload
+ */
+export async function saveFoodToDatabase(payload) {
+  const res = await fetch(`${API_URL}/api/food/database/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json();
+}
+
+/**
  * ลบรายการอาหาร
  * @param {string} token
  * @param {string|number} foodId

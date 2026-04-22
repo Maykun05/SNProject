@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find d:\\\\\\\\dev\\\\\\\\JECTUNIVERSITY\\\\\\\\satangproject\\\\\\\\backend -name \"*route*\" -o -name \"*router*\")",
+      "Bash(npx prisma *)"
+    ]
+  }
+}

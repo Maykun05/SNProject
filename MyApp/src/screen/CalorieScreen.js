@@ -17,7 +17,7 @@ import CalProgressRing from "../components/calorie/calProgressRing";
 import CalorieGoalModal from "../components/calorie/CalorieGoalModal";
 import { Ionicons } from "@expo/vector-icons";
 import { sendToAI } from "../utils/openaiUtils";
-import { fetchFoodToday, createFood, deleteFood } from "../services/foodService";
+import { fetchFoodToday, createFood, deleteFood, searchFoodByName, saveFoodToDatabase } from "../services/foodService";
 import { putProfileCalorieGoal } from "../services/profileApi";
 import { AuthContext } from "../context/AuthProvider";
 import { useProfile } from "../context/ProfileContext";
@@ -245,12 +245,42 @@ export default function FoodScreen({ route }) {
     Keyboard.dismiss();
     setLoading(true);
     try {
-      const res = await sendToAI(text);
+      let res = null;
+      let fromAI = false;
+
+      // ค้นหาในฐานข้อมูลก่อน
+      if (userToken) {
+        res = await searchFoodByName(userToken, text.trim());
+      }
+
+      // ถ้าไม่เจอในฐานข้อมูล ค่อยเรียก AI API
+      if (!res) {
+        res = await sendToAI(text);
+        fromAI = true;
+      }
+
       if (!res) {
         Alert.alert("ไม่พบเมนูอาหารนี้");
         setLoading(false);
         return;
       }
+
+      // ถ้าได้ผลจาก AI ให้ save ลง FoodDatabase อัตโนมัติ
+      if (fromAI) {
+        try {
+          await saveFoodToDatabase({
+            name: res.name,
+            calories: res.calories,
+            protein: res.protein,
+            carbs: res.carbs,
+            fat: res.fat,
+          });
+        } catch (err) {
+          console.error("Failed to cache food:", err);
+          // ไม่ block flow แม้ cache fail
+        }
+      }
+
       setPreviewFood({
         name: res.name,
         calories: res.calories,
@@ -260,7 +290,7 @@ export default function FoodScreen({ route }) {
       });
       setText("");
     } catch (err) {
-      Alert.alert("ไม่สามารถวิเคราะห์อาหารได้");
+      Alert.alert("ไม่สามารถค้นหาอาหารได้");
     }
     setLoading(false);
   };
