@@ -94,7 +94,7 @@ model Profile {
 
   calorieGoal     Int?
   waterGoal       Int?
-  profileImage    String?
+  profileImage    String?   @db.Text
   settings        Json     @default("{}")
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)

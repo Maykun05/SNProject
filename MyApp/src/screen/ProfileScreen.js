@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '../context/ProfileContext';
 import { useLevel } from '../context/LevelContext';
@@ -92,7 +93,18 @@ const ProfileScreen = ({ navigation }) => {
       allowsEditing: true, aspect: [1, 1], quality: 0.8,
     });
     if (!result.canceled) {
-      updateProfile({ profileImage: result.assets[0].uri });
+      const uri = result.assets[0].uri;
+      try {
+        const base64 = await readAsStringAsync(uri, { encoding: EncodingType.Base64 });
+        const mimeType = uri.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        const base64Uri = `data:${mimeType};base64,${base64}`;
+
+        await saveProfilePatch({ profileImage: base64Uri });
+        updateProfile({ profileImage: base64Uri });
+        Alert.alert('สำเร็จ', 'บันทึกรูปภาพเรียบร้อยแล้ว');
+      } catch (err) {
+        Alert.alert('เกิดข้อผิดพลาด', err.message || 'บันทึกรูปภาพไม่สำเร็จ');
+      }
     }
   };
 
