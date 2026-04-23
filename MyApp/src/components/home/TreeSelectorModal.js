@@ -319,12 +319,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E0E0E0',
     width: '100%',
+    minHeight: 170,
+    justifyContent: 'center',
   },
   cardSelected: {
     borderColor: '#4CAF50',
     backgroundColor: '#F1F8F1',
-    width: 120,
-    height: 180,
   },
   cardLocked: {
     backgroundColor: '#F5F5F5',

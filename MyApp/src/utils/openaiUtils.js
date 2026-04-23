@@ -92,12 +92,15 @@ export async function sendToAI(text) {
     );
 
     const data = await response.json();
+    console.log("data",data);
+    
 
     const raw =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
       data?.candidates?.[0]?.output ||
       null;
-
+    console.log("raw",raw);
+    
     if (!raw) return null;
 
     const cleaned = raw
