@@ -29,21 +29,38 @@ export function applyXpDelta(currentXp, currentLevel, totalXp, amount) {
 /**
  * อัปเดต XP ใน transaction (อ่าน user ล่าสุดแล้วคำนวณใหม่)
  */
+const LEVEL_UP_COIN_REWARD = 100;
+
 export async function applyXpInTransaction(tx, userId, amount) {
   const user = await tx.user.findUnique({
     where: { id: userId },
-    select: { xp: true, level: true, totalXp: true },
+    select: { xp: true, level: true, totalXp: true, coins: true },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
 
   const next = applyXpDelta(user.xp, user.level, user.totalXp, amount);
+  const levelsGained = next.level - user.level;
+  const coinsAwarded = levelsGained > 0 ? levelsGained * LEVEL_UP_COIN_REWARD : 0;
+
   await tx.user.update({
     where: { id: userId },
     data: {
       xp: next.xp,
       level: next.level,
       totalXp: next.totalXp,
+      ...(coinsAwarded > 0 && { coins: { increment: coinsAwarded } }),
     },
   });
-  return next;
+
+  if (coinsAwarded > 0) {
+    await tx.coinTransaction.create({
+      data: {
+        userId,
+        amount: coinsAwarded,
+        source: `level_up_${user.level + 1}`,
+      },
+    });
+  }
+
+  return { ...next, coins: user.coins + coinsAwarded, coinsAwarded, levelsGained };
 }
