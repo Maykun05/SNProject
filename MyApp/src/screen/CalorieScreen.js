@@ -123,6 +123,15 @@ const s = StyleSheet.create({
   logs: { marginTop: 8 },
   logHead: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   logTitle: { fontSize: 17, fontWeight: "800", color: CAL.ink },
+  overGoalBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B85C14',
+    backgroundColor: '#FDF0E6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
   logSum: { fontSize: 14, color: CAL.muted, fontWeight: "600" },
   empty: {
     backgroundColor: "#FFF",
@@ -517,7 +526,12 @@ export default function FoodScreen({ route }) {
 
         <View style={s.logs}>
           <View style={s.logHead}>
-            <Text style={s.logTitle}>วันนี้</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={s.logTitle}>วันนี้</Text>
+              {consumedCal > recommendedCal && recommendedCal > 0 && (
+                <Text style={s.overGoalBadge}>เกินเป้าหมายแล้ว</Text>
+              )}
+            </View>
             <Text style={s.logSum}>{consumedCal} กิโลแคลอรี่</Text>
           </View>
           {!userToken ? (
