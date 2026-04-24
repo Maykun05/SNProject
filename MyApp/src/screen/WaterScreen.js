@@ -19,7 +19,7 @@ import { transcribeAudio } from '../utils/openaiUtils';
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F9FF' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 28 },
+  content: { paddingHorizontal: 20, paddingBottom: 100 },
   loading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   loadingTxt: { fontSize: 14, color: '#546E7A' },
   ringCard: {
