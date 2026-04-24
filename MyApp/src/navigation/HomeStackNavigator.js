@@ -38,9 +38,9 @@ export default function HomeStackNavigator() {
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="EditGoals"        component={EditGoalsScreen} />
-      <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} />
-      <Stack.Screen name="Notifications"    component={NotificationsScreen} />
+      <Stack.Screen name="EditGoals"        component={EditGoalsScreen}  />
+      <Stack.Screen name="PrivacyPolicy"    component={PrivacyPolicyScreen} options={{ headerShown: false }}/>
+      <Stack.Screen name="Notifications"    component={NotificationsScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="GardenScreen"     component={GardenScreen} options={{ title: 'สวนของฉัน', headerShown: true }}/>
 
     </Stack.Navigator>
