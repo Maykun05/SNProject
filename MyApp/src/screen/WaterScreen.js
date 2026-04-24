@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import WaterProgressRing from '../components/water/waterProgressRing';
 import WaterQuickPick from '../components/water/WaterQuickPick';
 import WaterGoalModal from '../components/water/WaterGoalModal';
@@ -13,6 +14,7 @@ import { AuthContext } from '../context/AuthProvider';
 import { useLevel } from '../context/LevelContext';
 import { recommendedWaterMl } from '../utils/waterFormula';
 import StackScreenBackButton from '../components/StackScreenBackButton';
+import { transcribeAudio } from '../utils/openaiUtils';
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F9FF' },
@@ -74,6 +76,34 @@ const s = StyleSheet.create({
   amt: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1565C0' },
   time: { fontSize: 13, color: '#90A4AE' },
   delBtn: { padding: 8, marginLeft: 4 },
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  micBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1976D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#1976D2',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  micBtnActive: {
+    backgroundColor: '#C62828',
+  },
+  voiceHint: {
+    fontSize: 12,
+    color: '#78909C',
+    flex: 1,
+  },
 });
 
 function formatLogTime(iso) {
@@ -106,6 +136,56 @@ export default function WaterScreen({ route }) {
   const { logFeature } = useGarden();
   const [showGoalModal, setShowGoalModal] = useState(false);
   const doneCalled = useRef(false);
+  const recordingRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const startRecording = async () => {
+    try {
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        recordingRef.current = null;
+      }
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Water recording error:', err);
+      Alert.alert('ไม่สามารถเปิดไมโครโฟนได้');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recordingRef.current) return;
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      setIsRecording(false);
+      setIsTranscribing(true);
+      const transcript = await transcribeAudio(uri);
+      const match = transcript?.match(/\d+/);
+      if (match) {
+        const ml = parseInt(match[0], 10);
+        if (ml > 0 && ml <= 5000) {
+          addWater(ml);
+        } else {
+          Alert.alert('ปริมาณไม่ถูกต้อง', 'กรุณาพูดปริมาณน้ำระหว่าง 1–5000 มล.');
+        }
+      } else {
+        Alert.alert('ไม่พบตัวเลข', 'กรุณาพูดปริมาณน้ำเป็นตัวเลข เช่น 200 หรือ 300 มล.');
+      }
+    } catch (err) {
+      console.error('Water stop recording error:', err);
+      Alert.alert('ไมโครโฟนมีปัญหา');
+    } finally {
+      setIsTranscribing(false);
+      recordingRef.current = null;
+    }
+  };
 
   useFocusEffect(useCallback(() => { if (userToken) refreshWater(); }, [userToken, refreshWater]));
 
@@ -164,6 +244,23 @@ export default function WaterScreen({ route }) {
         </View>
 
         <WaterQuickPick onPick={handlePick} />
+
+        <View style={s.voiceRow}>
+          <TouchableOpacity
+            style={[s.micBtn, isRecording && s.micBtnActive]}
+            onPress={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name={isRecording ? 'stop' : 'mic'} size={22} color="#fff" />
+            )}
+          </TouchableOpacity>
+          <Text style={s.voiceHint}>
+            {isRecording ? 'กำลังฟัง… กดหยุดเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'พูดปริมาณ เช่น 200 หรือ 300 มล.'}
+          </Text>
+        </View>
 
         <View style={s.logs}>
           <View style={s.logHead}>
