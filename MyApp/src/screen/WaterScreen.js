@@ -253,11 +253,13 @@ export default function WaterScreen({ route }) {
 
         <View style={s.voiceRow}>
           <Text style={s.voiceHint}>
-            {isRecording ? 'กำลังฟัง… กดหยุดเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'พูดปริมาณ เช่น 200 หรือ 300 มล.'}
+            {isRecording ? 'กำลังฟัง… ปล่อยเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'กดค้างแล้วพูดปริมาณ เช่น 200 หรือ 300 มล.'}
           </Text>
           <TouchableOpacity
             style={[s.micBtn, isRecording && s.micBtnActive]}
-            onPress={isRecording ? stopRecording : startRecording}
+            onPressIn={startRecording}
+            onPressOut={stopRecording}
+            activeOpacity={0.8}
             disabled={isTranscribing}
           >
             {isTranscribing ? (

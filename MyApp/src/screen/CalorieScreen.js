@@ -61,6 +61,39 @@ const s = StyleSheet.create({
     shadowRadius: 8,
   },
   searchWrap: { marginBottom: 16 },
+  voiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+    backgroundColor: '#F5E6D3',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  voiceHint: {
+    fontSize: 12,
+    color: '#946040',
+    flex: 1,
+    fontWeight: '500',
+  },
+  micBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: CAL.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: CAL.accent,
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  micBtnActive: {
+    backgroundColor: '#C62828',
+  },
   searchLabel: { fontSize: 13, fontWeight: "700", color: "#78909C", marginBottom: 10 },
   /** โครงสร้างเดียวกับ WaterQuickPick: กรอบเฉพาะช่องพิมพ์ + ปุ่มข้างนอก */
   searchRow: {
@@ -465,24 +498,6 @@ export default function FoodScreen({ route }) {
                 returnKeyType="search"
                 onSubmitEditing={searchFood}
               />
-              {isRecording && (
-                <Text style={{ fontSize: 12, color: CAL.main, fontWeight: "600" }}>
-                  🔴 Recording...
-                </Text>
-              )}
-              <TouchableOpacity
-                onPressIn={startRecording}
-                onPressOut={stopRecording}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                activeOpacity={0.6}
-                disabled={isTranscribing}
-              >
-                <Ionicons
-                  name={isRecording ? "mic" : "mic-outline"}
-                  size={24}
-                  color={isRecording ? "#FF0000" : isTranscribing ? "#FF9800" : "#78909C"}
-                />
-              </TouchableOpacity>
               {text ? (
                 <TouchableOpacity
                   onPress={() => setText("")}
@@ -495,6 +510,25 @@ export default function FoodScreen({ route }) {
             </View>
             <TouchableOpacity style={s.searchBtn} onPress={searchFood} activeOpacity={0.9}>
               <Text style={s.searchBtnText}>{loading ? "…" : "ค้นหา"}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={s.voiceRow}>
+            <Text style={s.voiceHint}>
+              {isRecording ? 'กำลังฟัง… ปล่อยเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'กดค้างแล้วพูดชื่ออาหาร'}
+            </Text>
+            <TouchableOpacity
+              onPressIn={startRecording}
+              onPressOut={stopRecording}
+              style={[s.micBtn, isRecording && s.micBtnActive]}
+              activeOpacity={0.8}
+              disabled={isTranscribing}
+            >
+              {isTranscribing ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name={isRecording ? 'mic' : 'mic-outline'} size={22} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
