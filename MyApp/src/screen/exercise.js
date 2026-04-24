@@ -55,6 +55,7 @@ export default function ExerciseScreen({ navigation, route }) {
   const [editLabels, setEditLabels] = useState({ labelA: '', labelB: '' });
 
   const [customModalVisible, setCustomModalVisible] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   /** เป้าเวลาในโมดัล — บันทึกเป็นวินาที (นาที × 60) */
   const [customTargetMinutes, setCustomTargetMinutes] = useState(10);
   const [customName, setCustomName] = useState('');
@@ -350,10 +351,10 @@ export default function ExerciseScreen({ navigation, route }) {
           </View>
         </View>
 
-        <Text style={styles.helperText}>
-          กด &quot;เพิ่ม&quot; เพื่อสร้างกิจกรรม — ทำสำเร็จอย่างน้อย 1 กิจกรรมเพื่ออัปเดตความคืบหน้าออกกำลังกายบนหน้าแรก
-          ได้รับโบนัส 10 XP ต่อครั้งที่บรรลุเป้าหมายของกิจกรรม สูงสุด 3 ครั้งต่อวัน
-        </Text>
+        <TouchableOpacity style={styles.infoBtn} onPress={() => setShowInfoModal(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="information-circle-outline" size={20} color="#7A7A7A" />
+          <Text style={styles.infoBtnText}>วิธีใช้</Text>
+        </TouchableOpacity>
 
         {activityInstances.length > 1 && pendingLabels.length > 0 && (
           <Text style={styles.pendingSummary}>
@@ -443,6 +444,20 @@ export default function ExerciseScreen({ navigation, route }) {
           );
         })}
       </ScrollView>
+
+      <Modal visible={showInfoModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowInfoModal(false)}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>วิธีใช้</Text>
+            <Text style={styles.infoCardBody}>
+{'1. กด "เพิ่ม" เพื่อสร้างกิจกรรม\n2. กดที่กิจกรรมในหัวข้อ "กิจกรรมของวันนี้" เพื่อเริ่มทำ\n3. ทำสำเร็จอย่างน้อย 1 อย่างเพื่อนับเป็นกิจกรรมวันนี้บนหน้าแรก\n\nได้รับโบนัส 10 XP ต่อครั้งที่ทำครบเป้าหมาย สูงสุด 3 ครั้งต่อวัน'}
+            </Text>
+            <TouchableOpacity style={styles.infoCardClose} onPress={() => setShowInfoModal(false)}>
+              <Text style={styles.infoCardCloseTxt}>ปิด</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <ExerciseGoalEditModal
         visible={createPresetKey != null && PRESET_TEMPLATE_KEYS.includes(createPresetKey)}
@@ -553,7 +568,26 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 8,
   },
-  helperText: { color: '#7A7A7A', marginTop: 8, fontSize: 12, lineHeight: 18 },
+  infoBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
+  infoBtnText: { fontSize: 12, color: '#7A7A7A', fontWeight: '600' },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 32,
+    alignSelf: 'center',
+    width: '85%',
+  },
+  infoCardTitle: { fontSize: 16, fontWeight: '800', color: '#23413A', marginBottom: 10 },
+  infoCardBody: { fontSize: 13, color: '#4A6153', lineHeight: 20 },
+  infoCardClose: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#F0F4F2',
+    borderRadius: 10,
+  },
+  infoCardCloseTxt: { fontSize: 14, fontWeight: '700', color: '#3D5A4C' },
   emptyHint: { color: '#9E9E9E', fontSize: 13, marginBottom: 8, lineHeight: 19 },
   typeRow: {
     flexDirection: 'row',
