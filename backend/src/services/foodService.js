@@ -48,7 +48,7 @@ export const FoodService = {
         userId,
         name: {
           mode: "insensitive",
-          contains: nameQuery
+          equals: nameQuery
         }
       },
       orderBy: { createdAt: "desc" }
