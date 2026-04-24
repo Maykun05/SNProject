@@ -13,7 +13,6 @@ import { AuthContext } from '../context/AuthProvider';
 import { useLevel } from '../context/LevelContext';
 import { recommendedWaterMl } from '../utils/waterFormula';
 import StackScreenBackButton from '../components/StackScreenBackButton';
-import { showWaterReminder, shouldShowWaterReminder } from '../notifications/exerciseSessionNotification';
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F9FF' },
@@ -40,6 +39,15 @@ const s = StyleSheet.create({
   logs: { marginTop: 8 },
   logHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   logTitle: { fontSize: 17, fontWeight: '800', color: '#263238' },
+  overGoalBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1565C0',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
   logSum: { fontSize: 14, color: '#78909C', fontWeight: '600' },
   empty: {
     backgroundColor: '#FFF',
@@ -121,9 +129,6 @@ export default function WaterScreen({ route }) {
 
   const handlePick = (ml) => {
     addWater(ml);
-    if (shouldShowWaterReminder(profile.settings)) {
-      showWaterReminder();
-    }
   };
 
   const handleSaveGoal = async (parsed) => {
@@ -162,7 +167,12 @@ export default function WaterScreen({ route }) {
 
         <View style={s.logs}>
           <View style={s.logHead}>
-            <Text style={s.logTitle}>วันนี้</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={s.logTitle}>วันนี้</Text>
+              {consumed > waterGoal && waterGoal > 0 && (
+                <Text style={s.overGoalBadge}>เกินเป้าหมายแล้ว</Text>
+              )}
+            </View>
             <Text style={s.logSum}>{consumed} มล.</Text>
           </View>
           {!userToken ? (
