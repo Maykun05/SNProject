@@ -132,13 +132,13 @@ export const LevelProvider = ({ children }) => {
         if (!res.ok || !json.success || !json.data) {
           throw new Error(json.message || 'xp apply failed');
         }
-        const { xp: nx, level: nl, totalXp: nt } = json.data;
+        const { xp: nx, level: nl, totalXp: nt, coinsAwarded } = json.data;
         setXp(nx);
         setLevel(nl);
         setTotalXp(nt);
         levelRef.current = nl;
-        if (nl > prevLevel && onLevelUp) {
-          setTimeout(() => onLevelUp(nl), 100);
+        if (nl > prevLevel) {
+          if (onLevelUp) setTimeout(() => onLevelUp(nl, coinsAwarded ?? 0), 100);
         }
         await refreshProfile();
       } catch (e) {

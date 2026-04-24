@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, Image, StyleSheet, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, Image, StyleSheet, Text, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useLevel } from '../../context/LevelContext';
+import { useProfile } from '../../context/ProfileContext';
 
 /** โทนเดียวกับ ProfileScreen / ProfileScreen.README.md */
 const GREEN = '#1E4D2B';
@@ -11,7 +13,10 @@ const XP_BAR_END = '#5FA578';
 export default function HomeHeader() {
   const insets = useSafeAreaInsets();
   const { level, xp, xpRequired, xpPercent, levelInfo } = useLevel();
+  const { profile } = useProfile();
+  const coins = profile?.coins ?? 0;
   const xpFill = Math.min(100, Math.max(0, Number.isFinite(xpPercent) ? xpPercent : 0));
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <LinearGradient
@@ -32,9 +37,17 @@ export default function HomeHeader() {
       />
 
       <View style={styles.levelCenter}>
-        <Text style={styles.levelTitle}>
-          {(levelInfo?.emoji ?? '')} Lv.{level ?? 0} {(levelInfo?.name ?? '')}
-        </Text>
+        <View style={styles.levelTitleRow}>
+          <Text style={styles.levelTitle}>
+            {(levelInfo?.emoji ?? '')} Lv.{level ?? 0} {(levelInfo?.name ?? '')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowInfo(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="information-circle-outline" size={16} color={GREEN} opacity={0.6} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.xpBarBg}>
           <View style={[styles.xpBarFillWrap, { width: `${xpFill}%` }]}>
             <LinearGradient
@@ -45,15 +58,39 @@ export default function HomeHeader() {
             />
           </View>
         </View>
-        <Text style={styles.xpText}>
-          {xp} / {xpRequired} XP
-        </Text>
-        <Text style={styles.xpHint} numberOfLines={2}>
-          ทำฟีเจอร์วันนี้ครบเป้า +10 XP · ภารกิจ +XP ตามการ์ด
-        </Text>
+        <Text style={styles.xpText}>{xp} / {xpRequired} XP</Text>
+        <View style={styles.coinRow}>
+          <Image source={require('../../assets/coin.png')} style={styles.coinImg} />
+          <Text style={styles.coinText}>{coins.toLocaleString()}</Text>
+        </View>
       </View>
 
       <View style={styles.rightSpace} />
+
+      <Modal visible={showInfo} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowInfo(false)}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>XP และเหรียญ</Text>
+
+            <Text style={styles.infoSectionHead}>⚡ XP คืออะไร?</Text>
+            <Text style={styles.infoBody}>
+              {'XP ใช้สะสมเพื่อขึ้นเลเวล ได้มาจาก:\n• ทำแต่ละฟีเจอร์ครบเป้าหมาย +10 XP/ฟีเจอร์\n• ออกกำลังกายครบเป้าหมาย +10 XP/ครั้ง (สูงสุด 3 ครั้ง/วัน)\n• สำเร็จภารกิจ → ได้ XP ตามที่ระบุในการ์ดภารกิจในหน้าภารกิจ'}
+            </Text>
+
+            <View style={styles.infoSectionHeadRow}>
+              <Image source={require('../../assets/coin.png')} style={styles.infoSectionCoinImg} />
+              <Text style={styles.infoSectionHead}>เหรียญคืออะไร?</Text>
+            </View>
+            <Text style={styles.infoBody}>
+              {'เหรียญใช้ปลดล็อกต้นไม้แบบใหม่ในหน้าโฮม ได้มาจาก:\n• สำเร็จภารกิจ → ได้เหรียญตามที่ระบุในการ์ดภารกิจในหน้าภารกิจ\n• เลเวลขึ้น +100 เหรียญ'}
+            </Text>
+
+            <TouchableOpacity style={styles.infoClose} onPress={() => setShowInfo(false)}>
+              <Text style={styles.infoCloseTxt}>ปิด</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -111,8 +148,79 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     lineHeight: 14,
   },
-  rightSpace: {
-    width: 80,
+  rightSpace: { width: 80 },
+  levelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  coinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  coinImg: {
+    width: 14,
+    height: 14,
+    resizeMode: 'contain',
+  },
+  coinText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#B8860B',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 20,
+  },
+  infoTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: GREEN,
+    marginBottom: 14,
+  },
+  infoSectionHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  infoSectionCoinImg: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+  },
+  infoSectionHead: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2A2A2A',
+    marginBottom: 6,
+  },
+  infoBody: {
+    fontSize: 13,
+    color: '#4A6153',
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  infoClose: {
+    marginTop: 4,
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#F0F4F2',
+    borderRadius: 10,
+  },
+  infoCloseTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3D5A4C',
   },
   username: { marginTop: 8 },
 });
