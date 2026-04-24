@@ -79,9 +79,14 @@ const s = StyleSheet.create({
   voiceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
     marginTop: 8,
     marginBottom: 4,
+    backgroundColor: '#EEF4FF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   micBtn: {
     width: 44,
@@ -101,8 +106,9 @@ const s = StyleSheet.create({
   },
   voiceHint: {
     fontSize: 12,
-    color: '#78909C',
+    color: '#546E7A',
     flex: 1,
+    fontWeight: '500',
   },
 });
 
@@ -246,6 +252,9 @@ export default function WaterScreen({ route }) {
         <WaterQuickPick onPick={handlePick} />
 
         <View style={s.voiceRow}>
+          <Text style={s.voiceHint}>
+            {isRecording ? 'กำลังฟัง… กดหยุดเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'พูดปริมาณ เช่น 200 หรือ 300 มล.'}
+          </Text>
           <TouchableOpacity
             style={[s.micBtn, isRecording && s.micBtnActive]}
             onPress={isRecording ? stopRecording : startRecording}
@@ -257,9 +266,6 @@ export default function WaterScreen({ route }) {
               <Ionicons name={isRecording ? 'stop' : 'mic'} size={22} color="#fff" />
             )}
           </TouchableOpacity>
-          <Text style={s.voiceHint}>
-            {isRecording ? 'กำลังฟัง… กดหยุดเมื่อพูดเสร็จ' : isTranscribing ? 'กำลังแปลงเสียง…' : 'พูดปริมาณ เช่น 200 หรือ 300 มล.'}
-          </Text>
         </View>
 
         <View style={s.logs}>
