@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,24 +13,40 @@ const SCREEN_H = Dimensions.get('window').height;
 export default function FeatureSelectorModal({
   visible,
   features,
-  enabledFeatures,   // ✅ ใช้ map ของ key → true/false
-  onToggle,          // ✅ toggle ทีละตัว
+  enabledFeatures,
   onClose,
   onSave,
 }) {
+  const [draft, setDraft] = useState({});
+
+  useEffect(() => {
+    if (visible) setDraft({ ...enabledFeatures });
+  }, [visible]);
+
+  const toggleDraft = (key) => {
+    setDraft(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSave = () => {
+    onSave(draft);
+  };
+
+  const handleClose = () => {
+    onClose();
+  };
+
   return (
     <Modal transparent visible={visible} animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
+        <View style={styles.modal} onStartShouldSetResponder={() => true}>
           <Text style={styles.title}>แก้ไขฟีเจอร์ที่สนใจ</Text>
 
           {features.map(f => {
-            const active = enabledFeatures[f.key]; // ✅ ใช้ key
-
+            const active = draft[f.key];
             return (
               <TouchableOpacity
                 key={f.id}
-                onPress={() => onToggle(f.key)}   // ✅ toggle ด้วย key
+                onPress={() => toggleDraft(f.key)}
                 style={[styles.row, active && styles.rowActive]}
               >
                 <View style={[styles.check, active && styles.checkActive]} />
@@ -42,15 +58,15 @@ export default function FeatureSelectorModal({
           })}
 
           <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={handleClose}>
               <Text style={styles.cancelText}>ยกเลิก</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onSave}>
+            <TouchableOpacity onPress={handleSave}>
               <Text style={styles.saveText}>บันทึก</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 }

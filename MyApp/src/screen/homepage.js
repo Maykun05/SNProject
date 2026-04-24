@@ -291,10 +291,9 @@ export default function HomeScreen({ navigation }) {
           visible={showFeatureModal}
           features={FEATURES}
           enabledFeatures={enabledFeatures}
-          onToggle={toggleFeature}
           onClose={() => setShowFeatureModal(false)}
-          onSave={() => {
-            saveFeatures(enabledFeatures);
+          onSave={(draft) => {
+            saveFeatures(draft);
             setShowFeatureModal(false);
           }}
         />
