@@ -223,11 +223,11 @@ const moodBarColorForScore = (value) => {
 
 const moodLevelThaiLabel = (key) => {
   const map = {
-    awful: 'ระดับต่ำมาก',
-    sad: 'ระดับต่ำ',
-    meh: 'ระดับกลางๆ',
-    good: 'ระดับดี',
-    rad: 'ระดับดีมาก',
+    awful: 'แย่',
+    sad: 'ไม่ค่อยดี',
+    meh: 'เฉยๆ',
+    good: 'ดี',
+    rad: 'ดีมาก',
   };
   return map[key] ?? 'มีบันทึก';
 };
