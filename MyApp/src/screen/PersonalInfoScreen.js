@@ -17,11 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config';
 import { AuthContext } from "../context/AuthProvider";
+import { useProfile } from '../context/ProfileContext';
 import BirthDatePickerCard from '../components/BirthDatePickerCard';
 
 const PersonalInfoScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { userToken } = useContext(AuthContext);
+  const { updateProfile } = useProfile();
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [birthDateText, setBirthDateText] = useState('เลือกวันเกิด');
@@ -97,6 +99,7 @@ const PersonalInfoScreen = ({ navigation }) => {
         throw new Error(data.message);
       }
 
+      updateProfile({ weight: w, height: h, birthDate: date.toISOString(), activityLevel: exerciseLevel, gender });
       navigation.navigate("Select");
 
     } catch (err) {

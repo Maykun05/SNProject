@@ -116,6 +116,7 @@ const ProfileScreen = ({ navigation }) => {
     }
 
     updateProfile({ name: trimmed });
+    setUsername(trimmed);
     setShowNameModal(false);
 
     try {
